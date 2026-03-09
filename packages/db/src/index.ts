@@ -23,6 +23,7 @@ export type {
   CharacterAppearance,
   LocationProfile,
   Task,
+  TaskEvent,
   UsageCost,
   // AI 渠道相关
   AiProvider,

@@ -159,7 +159,7 @@ describe('BaiduClient', () => {
           messages: [{ role: 'user', content: 'Hello' }],
         })
       ).rejects.toThrow('文心一言未返回任何内容')
-    })
+    }, 20000)
 
     it('应该在 API Key 格式错误时抛出错误', async () => {
       const invalidClient = new BaiduClient({

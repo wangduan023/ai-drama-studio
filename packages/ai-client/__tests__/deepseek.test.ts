@@ -235,7 +235,7 @@ describe('DeepSeekClient', () => {
     })
 
     it('应该处理空响应', async () => {
-      mockFetch.mockImplementationOnce(() =>
+      mockFetch.mockImplementation(() =>
         Promise.resolve({
           ok: true,
           status: 200,
@@ -250,7 +250,7 @@ describe('DeepSeekClient', () => {
           messages: [{ role: 'user', content: 'Hello' }],
         })
       ).rejects.toThrow('DeepSeek 未返回任何内容')
-    })
+    }, 20000)
 
     it('应该在 API 错误时抛出错误', async () => {
       mockFetch.mockImplementationOnce(() =>

@@ -5,7 +5,7 @@
  * for real-time SSE distribution to connected clients.
  */
 
-import { prisma } from '@ai-drama-studio/db'
+import { prisma, type TaskEvent } from '@ai-drama-studio/db'
 import { getSharedSubscriber, createPublisher } from './redis'
 import type {
   TaskEventType,
@@ -23,15 +23,7 @@ import {
 const CHANNEL_PREFIX = 'task-events:project:'
 const STREAM_EPHEMERAL_ENABLED = process.env.SSE_STREAM_EPHEMERAL_ENABLED !== 'false'
 
-type TaskEventRow = {
-  id: number
-  taskId: string
-  projectId: string
-  userId: string
-  eventType: string
-  payload: Record<string, unknown> | null
-  createdAt: Date
-}
+type TaskEventRow = Pick<TaskEvent, 'id' | 'taskId' | 'projectId' | 'userId' | 'eventType' | 'payload' | 'createdAt'>
 
 type TaskMeta = {
   id: string
@@ -40,18 +32,6 @@ type TaskMeta = {
   targetId: string
   episodeId: string | null
 }
-
-type TaskEventModel = {
-  create: (args: unknown) => Promise<TaskEventRow>
-  findMany: (args: unknown) => Promise<TaskEventRow[]>
-}
-
-type TaskModel = {
-  findMany: (args: unknown) => Promise<TaskMeta[]>
-}
-
-const taskEventModel = (prisma as unknown as { taskEvent: TaskEventModel }).taskEvent
-const taskModel = (prisma as unknown as { task: TaskModel }).task
 
 /**
  * Get the Redis channel name for a project
@@ -203,7 +183,7 @@ async function mapRowsToReplayEvents(rows: TaskEventRow[]): Promise<SSEEvent[]> 
 
   const taskIds = Array.from(new Set(rows.map((row) => row.taskId)))
   const tasks: TaskMeta[] = taskIds.length
-    ? await taskModel.findMany({
+    ? await prisma.task.findMany({
         where: { id: { in: taskIds } },
         select: {
           id: true,
@@ -229,7 +209,7 @@ async function mapRowsToReplayEvents(rows: TaskEventRow[]): Promise<SSEEvent[]> 
         targetType: task?.targetType || null,
         targetId: task?.targetId || null,
         episodeId: task?.episodeId || null,
-        payload: row.payload || null,
+        payload: row.payload as Record<string, unknown> | null,
       })
     }
     const lifecycleType = row.eventType as TaskEventType
@@ -244,7 +224,7 @@ async function mapRowsToReplayEvents(rows: TaskEventRow[]): Promise<SSEEvent[]> 
       targetType: task?.targetType || null,
       targetId: task?.targetId || null,
       episodeId: task?.episodeId || null,
-      payload: row.payload || null,
+      payload: row.payload as Record<string, unknown> | null,
     })
   })
 }
@@ -257,7 +237,7 @@ export async function listTaskLifecycleEvents(
   limit = 500
 ): Promise<SSEEvent[]> {
   const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(Math.floor(limit), 1), 5000) : 500
-  const latestRows = await taskEventModel.findMany({
+  const latestRows = await prisma.taskEvent.findMany({
     where: { taskId },
     orderBy: { id: 'desc' },
     take: safeLimit,
@@ -282,7 +262,7 @@ export async function listEventsAfter(
   const collected: TaskEventRow[] = []
 
   while (collected.length < limit && scannedRows < maxScanRows) {
-    const rows = await taskEventModel.findMany({
+    const rows = await prisma.taskEvent.findMany({
       where: {
         projectId,
         id: { gt: cursor },
@@ -377,7 +357,7 @@ export async function publishTaskLifecycleEvent(params: {
   const normalizedType = normalizeLifecycleType(params.lifecycleType)
 
   const event = persist
-    ? await taskEventModel.create({
+    ? await prisma.taskEvent.create({
         data: {
           taskId: params.taskId,
           projectId: params.projectId,
@@ -466,7 +446,7 @@ export async function publishTaskStreamEvent(params: {
   const normalizedPayload = normalizeStreamPayload(params.taskType, params.payload || null)
 
   const event = persist
-    ? await taskEventModel.create({
+    ? await prisma.taskEvent.create({
         data: {
           taskId: params.taskId,
           projectId: params.projectId,

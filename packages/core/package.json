@@ -9,8 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-drama-studio/db": "file:*",
-    "@ai-drama-studio/prompt-system": "file:*"
+    "@ai-drama-studio/db": "workspace:*",
+    "@ai-drama-studio/prompt-system": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
