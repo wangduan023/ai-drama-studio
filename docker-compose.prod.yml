@@ -1,0 +1,137 @@
+version: '3.8'
+
+# AI Drama Studio - 生产模式 Docker Compose
+# 优化镜像大小，移除开发工具
+
+services:
+  # ==================== MySQL ====================
+  mysql:
+    image: mysql:8.0
+    container_name: ai-drama-studio-mysql-prod
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-aidrama123_prod}
+      MYSQL_DATABASE: ai_drama_studio
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql_prod_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+      - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p${MYSQL_ROOT_PASSWORD:-aidrama123_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - ai-drama-prod-network
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: ai-drama-studio-redis-prod
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_prod_data:/data
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    networks:
+      - ai-drama-prod-network
+
+  # ==================== Web (生产模式) ====================
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.web
+      target: runner
+    container_name: ai-drama-studio-web-prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # 从 .env 文件继承所有配置
+      NODE_ENV: production
+      # 数据库连接
+      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD:-aidrama123_prod}@mysql:3306/ai_drama_studio"
+      # Redis 连接
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    ports:
+      - "3000:3000"
+      - "3010:3010"
+    volumes:
+      - ./data:/app/data
+      - ./docker-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-drama-prod-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+
+  # ==================== Worker (生产模式) ====================
+  worker:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.worker
+      target: runner
+    container_name: ai-drama-studio-worker-prod
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      # 数据库连接
+      DATABASE_URL: "mysql://root:${MYSQL_ROOT_PASSWORD:-aidrama123_prod}@mysql:3306/ai_drama_studio"
+      # Redis 连接
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    volumes:
+      - ./data:/app/data
+      - ./docker-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-drama-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+      replicas: 2  # 生产环境可扩展多个 worker 实例
+
+volumes:
+  mysql_prod_data:
+    driver: local
+  redis_prod_data:
+    driver: local
+
+networks:
+  ai-drama-prod-network:
+    driver: bridge

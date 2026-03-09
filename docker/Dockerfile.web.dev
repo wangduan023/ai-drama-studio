@@ -1,0 +1,31 @@
+# AI Drama Studio - 开发模式 Web 容器镜像
+# 支持热重载（hot reload）
+# Monorepo 结构：apps/web
+
+FROM node:20-alpine
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+# 安装构建依赖和热重载工具
+RUN apk add --no-cache python3 make g++
+
+# 复制 package 文件
+COPY package.json package-lock.json* ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/*/package.json ./packages/
+
+# 安装所有依赖（含 devDependencies）
+RUN npm ci
+
+# Prisma generate
+RUN npx prisma generate
+
+# 复制全部源码（开发模式需要）
+COPY . .
+
+WORKDIR /app/apps/web
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

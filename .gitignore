@@ -1,0 +1,49 @@
+# Docker 数据卷
+data/
+docker-logs/
+
+# Docker 环境文件
+.env
+!.env.example
+docker/.env.docker
+
+# MySQL 初始化脚本（如有敏感数据）
+docker/mysql-init/*.sql
+!docker/mysql-init/.gitkeep
+
+# 构建产物
+.next/
+out/
+build/
+dist/
+
+# 依赖
+node_modules/
+
+# Prisma
+packages/db/prisma/migrations/
+packages/db/node_modules/
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 测试覆盖率
+coverage/
+
+# 临时文件
+*.tmp
+*.temp

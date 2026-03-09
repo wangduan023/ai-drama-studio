@@ -1,0 +1,168 @@
+version: '3.8'
+
+services:
+  # ==================== MySQL ====================
+  mysql:
+    image: mysql:8.0
+    container_name: ai-drama-studio-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: aidrama123
+      MYSQL_DATABASE: ai_drama_studio
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+      - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -aidrama123"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    networks:
+      - ai-drama-network
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: ai-drama-studio-redis
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    networks:
+      - ai-drama-network
+
+  # ==================== Web (Next.js) ====================
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.web
+    container_name: ai-drama-studio-web
+    restart: unless-stopped
+    environment:
+      # 数据库连接（指向容器内部 MySQL）
+      DATABASE_URL: "mysql://root:aidrama123@mysql:3306/ai_drama_studio"
+      # Redis 连接（指向容器内部 Redis）
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      # 认证
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "ai-drama-studio-default-secret-2026"
+      # 存储配置
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: "/app/data/uploads"
+      # 内部密钥
+      CRON_SECRET: "ai-drama-studio-cron-secret"
+      INTERNAL_TASK_TOKEN: "ai-drama-studio-task-token"
+      API_ENCRYPTION_KEY: "ai-drama-studio-fixed-key-2026"
+      # Bull Board
+      BULL_BOARD_HOST: "0.0.0.0"
+      BULL_BOARD_PORT: "3010"
+      BULL_BOARD_BASE_PATH: "/admin/queues"
+      # 日志
+      LOG_LEVEL: "INFO"
+      LOG_FORMAT: "json"
+      LOG_SERVICE: "ai-drama-studio"
+      # 计费
+      BILLING_MODE: "OFF"
+    ports:
+      - "3000:3000"
+      - "3010:3010"
+    volumes:
+      - ./data:/app/data
+      - ./docker-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-drama-network
+    command: >
+      sh -c "
+        npx prisma db push --skip-generate &&
+        (sleep 3 && echo '' &&
+        echo '╔══════════════════════════════════════════════════╗' &&
+        echo '║        AI Drama Studio is ready!                 ║' &&
+        echo '║                                                  ║' &&
+        echo '║  HTTP:  http://localhost:3000                    ║' &&
+        echo '║  Queues: http://localhost:3010                   ║' &&
+        echo '╚══════════════════════════════════════════════════╝' &&
+        echo '') &
+        npm run start
+      "
+
+  # ==================== Worker (BullMQ) ====================
+  worker:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.worker
+    container_name: ai-drama-studio-worker
+    restart: unless-stopped
+    environment:
+      # 数据库连接
+      DATABASE_URL: "mysql://root:aidrama123@mysql:3306/ai_drama_studio"
+      # Redis 连接
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      # AI API 配置（从宿主机继承或在此覆盖）
+      OPENAI_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+      GOOGLE_API_KEY: ""
+      # 存储配置
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: "/app/data/uploads"
+      # 内部密钥（必须与 Web 服务一致）
+      INTERNAL_TASK_TOKEN: "ai-drama-studio-task-token"
+      API_ENCRYPTION_KEY: "ai-drama-studio-fixed-key-2026"
+      # Worker 配置
+      WATCHDOG_INTERVAL_MS: "30000"
+      TASK_HEARTBEAT_TIMEOUT_MS: "90000"
+      QUEUE_CONCURRENCY_IMAGE: "50"
+      QUEUE_CONCURRENCY_VIDEO: "50"
+      QUEUE_CONCURRENCY_VOICE: "20"
+      QUEUE_CONCURRENCY_TEXT: "50"
+      # 日志
+      LOG_LEVEL: "INFO"
+      LOG_FORMAT: "json"
+      LOG_SERVICE: "ai-drama-studio-worker"
+    volumes:
+      - ./data:/app/data
+      - ./docker-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-drama-network
+    command: >
+      sh -c "
+        echo 'Starting AI Drama Studio Worker...' &&
+        npm run start:worker
+      "
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ai-drama-network:
+    driver: bridge

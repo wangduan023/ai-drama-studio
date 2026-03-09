@@ -1,0 +1,174 @@
+version: '3.8'
+
+# AI Drama Studio - 开发模式 Docker Compose
+# 支持热重载（hot reload）
+
+services:
+  # ==================== MySQL ====================
+  mysql:
+    image: mysql:8.0
+    container_name: ai-drama-studio-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: aidrama123
+      MYSQL_DATABASE: ai_drama_studio
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "13306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+    command:
+      - "--default-authentication-plugin=mysql_native_password"
+      - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -aidrama123"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
+    networks:
+      - ai-drama-dev-network
+
+  # ==================== Redis ====================
+  redis:
+    image: redis:7-alpine
+    container_name: ai-drama-studio-redis-dev
+    restart: unless-stopped
+    ports:
+      - "16379:6379"
+    volumes:
+      - redis_dev_data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    networks:
+      - ai-drama-dev-network
+
+  # ==================== Web (开发模式 - 热重载) ====================
+  web:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.web.dev
+    container_name: ai-drama-studio-web-dev
+    restart: unless-stopped
+    environment:
+      # 数据库连接
+      DATABASE_URL: "mysql://root:aidrama123@mysql:3306/ai_drama_studio"
+      # Redis 连接
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      # 认证
+      NEXTAUTH_URL: "http://localhost:3000"
+      NEXTAUTH_SECRET: "ai-drama-studio-default-secret-2026"
+      # 存储配置
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: "/app/data/uploads"
+      # 内部密钥
+      CRON_SECRET: "ai-drama-studio-cron-secret"
+      INTERNAL_TASK_TOKEN: "ai-drama-studio-task-token"
+      API_ENCRYPTION_KEY: "ai-drama-studio-fixed-key-2026"
+      # Bull Board
+      BULL_BOARD_HOST: "0.0.0.0"
+      BULL_BOARD_PORT: "3010"
+      BULL_BOARD_BASE_PATH: "/admin/queues"
+      # 日志
+      LOG_LEVEL: "DEBUG"
+      LOG_FORMAT: "pretty"
+      LOG_SERVICE: "ai-drama-studio"
+      LOG_DEBUG_ENABLED: "true"
+      # 计费
+      BILLING_MODE: "OFF"
+    ports:
+      - "3000:3000"
+      - "3010:3010"
+    volumes:
+      # 挂载源码以支持热重载
+      - .:/app
+      # 避免挂载 node_modules
+      - /app/node_modules
+      - /app/.next
+      - ./data:/app/data
+      - ./docker-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-drama-dev-network
+    command: >
+      sh -c "
+        npx prisma db push --skip-generate &&
+        npm run dev
+      "
+
+  # ==================== Worker (开发模式 - 热重载) ====================
+  worker:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.worker.dev
+    container_name: ai-drama-studio-worker-dev
+    restart: unless-stopped
+    environment:
+      # 数据库连接
+      DATABASE_URL: "mysql://root:aidrama123@mysql:3306/ai_drama_studio"
+      # Redis 连接
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      # AI API 配置
+      OPENAI_API_KEY: ""
+      ANTHROPIC_API_KEY: ""
+      GOOGLE_API_KEY: ""
+      # 存储配置
+      STORAGE_TYPE: local
+      STORAGE_LOCAL_PATH: "/app/data/uploads"
+      # 内部密钥
+      INTERNAL_TASK_TOKEN: "ai-drama-studio-task-token"
+      API_ENCRYPTION_KEY: "ai-drama-studio-fixed-key-2026"
+      # Worker 配置
+      WATCHDOG_INTERVAL_MS: "30000"
+      TASK_HEARTBEAT_TIMEOUT_MS: "90000"
+      QUEUE_CONCURRENCY_IMAGE: "50"
+      QUEUE_CONCURRENCY_VIDEO: "50"
+      QUEUE_CONCURRENCY_VOICE: "20"
+      QUEUE_CONCURRENCY_TEXT: "50"
+      # 日志
+      LOG_LEVEL: "DEBUG"
+      LOG_FORMAT: "pretty"
+      LOG_SERVICE: "ai-drama-studio-worker"
+      LOG_DEBUG_ENABLED: "true"
+    volumes:
+      # 挂载源码以支持热重载
+      - .:/app
+      # 避免挂载 node_modules
+      - /app/node_modules
+      - ./data:/app/data
+      - ./docker-logs:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ai-drama-dev-network
+    command: >
+      sh -c "
+        echo 'Starting AI Drama Studio Worker (dev mode)...' &&
+        npm run dev:worker
+      "
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+
+networks:
+  ai-drama-dev-network:
+    driver: bridge

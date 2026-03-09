@@ -1,0 +1,90 @@
+{
+  "name": "@ai-drama-studio/ai-client",
+  "version": "0.1.0",
+  "description": "AI Drama Studio - AI Client Abstraction Layer",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "ai",
+    "client",
+    "openai",
+    "anthropic",
+    "gemini",
+    "doubao",
+    "video-generation",
+    "image-generation"
+  ],
+  "author": "AI Drama Studio Team",
+  "license": "MIT",
+  "dependencies": {
+    "tslib": "^2.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  },
+  "publishConfig": {
+    "access": "private"
+  },
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "require": "./src/index.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "import": "./src/types.ts",
+      "require": "./src/types.ts"
+    },
+    "./errors": {
+      "types": "./src/errors.ts",
+      "import": "./src/errors.ts",
+      "require": "./src/errors.ts"
+    },
+    "./base": {
+      "types": "./src/base.ts",
+      "import": "./src/base.ts",
+      "require": "./src/base.ts"
+    },
+    "./factory": {
+      "types": "./src/factory.ts",
+      "import": "./src/factory.ts",
+      "require": "./src/factory.ts"
+    },
+    "./load-balancer": {
+      "types": "./src/load-balancer.ts",
+      "import": "./src/load-balancer.ts",
+      "require": "./src/load-balancer.ts"
+    },
+    "./clients/openai": {
+      "types": "./src/clients/openai.client.ts",
+      "import": "./src/clients/openai.client.ts",
+      "require": "./src/clients/openai.client.ts"
+    },
+    "./clients/anthropic": {
+      "types": "./src/clients/anthropic.client.ts",
+      "import": "./src/clients/anthropic.client.ts",
+      "require": "./src/clients/anthropic.client.ts"
+    },
+    "./clients/gemini": {
+      "types": "./src/clients/gemini.client.ts",
+      "import": "./src/clients/gemini.client.ts",
+      "require": "./src/clients/gemini.client.ts"
+    },
+    "./clients/doubao": {
+      "types": "./src/clients/doubao.client.ts",
+      "import": "./src/clients/doubao.client.ts",
+      "require": "./src/clients/doubao.client.ts"
+    }
+  }
+}

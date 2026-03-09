@@ -1,0 +1,29 @@
+# AI Drama Studio - 开发模式 Worker 容器镜像
+# 支持热重载（hot reload）
+# Monorepo 结构：apps/worker
+
+FROM node:20-alpine
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+# 安装构建依赖
+RUN apk add --no-cache python3 make g++
+
+# 复制 package 文件
+COPY package.json package-lock.json* ./
+COPY apps/worker/package.json ./apps/worker/
+COPY packages/*/package.json ./packages/
+
+# 安装所有依赖（含 devDependencies）
+RUN npm ci
+
+# Prisma generate
+RUN npx prisma generate
+
+# 复制全部源码
+COPY . .
+
+WORKDIR /app
+
+CMD ["npm", "run", "dev", "--prefix", "apps/worker"]

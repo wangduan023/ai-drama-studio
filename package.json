@@ -1,0 +1,67 @@
+{
+  "name": "ai-drama-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Drama Studio - AI 短剧/漫剧生成平台",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:worker\"",
+    "dev:web": "next dev --turbopack -H 0.0.0.0",
+    "dev:worker": "tsx watch --env-file=.env src/lib/workers/index.ts",
+    "build": "npm run build:prisma && next build",
+    "build:prisma": "npx prisma generate",
+    "start": "concurrently --kill-others \"npm run start:web\" \"npm run start:worker\"",
+    "start:web": "next start -H 0.0.0.0",
+    "start:worker": "tsx --env-file=.env src/lib/workers/index.ts",
+    "db:generate": "npx prisma generate",
+    "db:migrate": "npx prisma migrate dev",
+    "db:migrate:deploy": "npx prisma migrate deploy",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
+    "db:seed": "tsx packages/db/src/seed.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf .next node_modules"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.2.0",
+    "@ai-sdk/google": "^1.2.0",
+    "@ai-sdk/openai": "^1.2.0",
+    "@bull-board/api": "^6.16.4",
+    "@bull-board/express": "^6.16.4",
+    "@prisma/client": "^6.1.0",
+    "ai": "^4.2.0",
+    "bullmq": "^5.67.0",
+    "concurrently": "^9.1.0",
+    "express": "^4.21.0",
+    "ioredis": "^5.4.1",
+    "next": "^15.1.0",
+    "next-auth": "^4.24.11",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tsx": "^4.19.0",
+    "mysql2": "^3.12.0",
+    "prisma": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/express": "^5.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^15.1.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}

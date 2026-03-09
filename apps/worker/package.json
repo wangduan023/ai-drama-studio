@@ -1,0 +1,27 @@
+{
+  "name": "@ai-drama-studio/worker",
+  "version": "0.1.0",
+  "description": "AI Drama Studio Worker Application - BullMQ 任务处理器",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "dev": "tsx watch --env-file=.env index.ts",
+    "start": "tsx --env-file=.env index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-drama-studio/queue": "workspace:*",
+    "@ai-drama-studio/db": "workspace:*",
+    "@ai-drama-studio/ai-client": "workspace:*",
+    "@ai-drama-studio/workflow": "workspace:*",
+    "@ai-drama-studio/prompt-system": "workspace:*",
+    "bullmq": "^5.67.0",
+    "ioredis": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

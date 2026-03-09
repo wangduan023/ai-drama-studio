@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.namistory.com)",
+      "WebSearch",
+      "Bash(curl -sL https://www.namistory.com/ -o /tmp/namistory.html)",
+      "Read(//tmp/**)",
+      "Bash(curl -sL \"https://qcdn.zhaomi.cn/assistant/assets/index-B3QI966s.css\" 2>/dev/null | head -500 || echo \"无法获取 CSS\")",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/ai-client && npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(npx tsc --noEmit 2>&1)",
+      "Bash(find /home/wd/dev/docker-ai-shotlive/ai-drama-studio -name \"*.prisma\" -o -name \"db\" -type d 2>/dev/null | head -20)",
+      "Bash(npm run typecheck 2>&1 | head -50)",
+      "Bash(grep -r \"TODO\\\\|FIXME\\\\|XXX\\\\|HACK\" /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/*/src/ --include=\"*.ts\" 2>/dev/null | head -30)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/db && npm run db:generate 2>&1 || true)",
+      "Bash(npm run typecheck 2>&1 || true)",
+      "Bash(npm install zod 2>&1 | tail -5)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio && npm install zod -w @ai-drama-studio/db 2>&1 | tail -10)"
+    ]
+  }
+}

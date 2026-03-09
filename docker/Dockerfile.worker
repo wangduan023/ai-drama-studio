@@ -1,0 +1,59 @@
+# AI Drama Studio - Worker 容器镜像
+# 基于 BullMQ + tsx 的任务处理器
+# Monorepo 结构：apps/worker
+
+# ==================== Stage 1: Dependencies ====================
+FROM node:20-alpine AS deps
+WORKDIR /app
+
+# 安装构建依赖（部分 AI SDK 需要编译）
+RUN apk add --no-cache python3 make g++
+
+COPY package.json package-lock.json* ./
+COPY apps/worker/package.json ./apps/worker/
+COPY packages/*/package.json ./packages/
+RUN npm ci
+
+# ==================== Stage 2: Build ====================
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Prisma generate
+RUN npx prisma generate
+
+# ==================== Stage 3: Production ====================
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# 安装 tini 作为 init 系统
+RUN apk add --no-cache tini
+
+# 复制 node_modules
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/apps/worker/node_modules ./apps/worker/node_modules
+
+# Prisma schema（需要用于 db push）
+COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
+
+# Worker 源码
+COPY --from=builder /app/apps/worker ./apps/worker
+COPY --from=builder /app/packages ./packages
+
+# 配置文件
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/turbo.json ./turbo.json
+
+# 创建数据目录和日志目录
+RUN mkdir -p /app/data/uploads /app/logs && touch /app/.env
+
+WORKDIR /app
+
+ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["npm", "run", "start", "--prefix", "apps/worker"]

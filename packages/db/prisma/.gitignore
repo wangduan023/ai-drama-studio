@@ -1,0 +1,16 @@
+# Prisma CLI CLI 输出
+.migrations
+schema.prisma
+
+# Prisma CLI CLI 输出
+prisma
+
+# SQLite
+*.db
+*.db-journal
+
+# MySQL
+*.sql
+
+# PostgreSQL
+*.dump
