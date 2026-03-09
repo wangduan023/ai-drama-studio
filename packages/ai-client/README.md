@@ -7,7 +7,7 @@ AI Client Abstraction Layer - AI 客户端抽象层
 ## 功能特性
 
 - **统一接口**: 所有 AI 提供商使用相同的接口
-- **多提供商支持**: 支持 20+ 国内外主流 AI 模型
+- **多提供商支持**: 支持 30+ 国内外主流 AI 模型
 - **负载均衡**: 支持轮询、权重、最少负载策略
 - **重试机制**: 指数退避重试逻辑
 - **流式输出**: 完整的 SSE 流式支持
@@ -151,6 +151,70 @@ const klingClient = createAIClient({
   provider: 'kling',
   modelId: 'kling-v1',
   apiKey: process.env.KLING_API_KEY,
+})
+
+// 创建 Mistral AI 客户端
+const mistralClient = createAIClient({
+  provider: 'mistral',
+  modelId: 'mistral-large-latest',
+  apiKey: process.env.MISTRAL_API_KEY,
+})
+
+// 创建 Cohere 客户端
+const cohereClient = createAIClient({
+  provider: 'cohere',
+  modelId: 'command-r-plus',
+  apiKey: process.env.COHERE_API_KEY,
+})
+
+// 创建 Groq 客户端 (超快推理)
+const groqClient = createAIClient({
+  provider: 'groq',
+  modelId: 'llama-3.1-70b-versatile',
+  apiKey: process.env.GROQ_API_KEY,
+})
+
+// 创建 Stability AI 客户端
+const stabilityClient = createAIClient({
+  provider: 'stability',
+  modelId: 'sd3.5-large-turbo',
+  apiKey: process.env.STABILITY_API_KEY,
+})
+
+// 创建 Fal.ai 客户端
+const falClient = createAIClient({
+  provider: 'fal',
+  modelId: 'fal-ai/fast-sd',
+  apiKey: process.env.FAL_API_KEY,
+})
+
+// 创建 Runway ML 客户端
+const runwayClient = createAIClient({
+  provider: 'runway',
+  modelId: 'gen3a_turbo',
+  apiKey: process.env.RUNWAY_API_KEY,
+})
+
+// 创建 Luma AI 客户端
+const lumaClient = createAIClient({
+  provider: 'luma',
+  modelId: 'dream-machine',
+  apiKey: process.env.LUMA_API_KEY,
+})
+
+// 创建 ElevenLabs 客户端
+const elevenlabsClient = createAIClient({
+  provider: 'elevenlabs',
+  modelId: 'eleven_multilingual_v2',
+  apiKey: process.env.ELEVENLABS_API_KEY,
+  voice: 'Rachel',
+})
+
+// 创建 Hugging Face 客户端
+const hfClient = createAIClient({
+  provider: 'huggingface',
+  modelId: 'mistralai/Mistral-Large-Instruct-2407',
+  apiKey: process.env.HF_API_KEY,
 })
 ```
 
@@ -368,6 +432,15 @@ try {
 | OpenAI | ✓ | ✓ (DALL-E 3) | ✗ | ✓ (TTS) | GPT-4o, o1 等 |
 | Anthropic | ✓ | ✗ | ✗ | ✗ | Claude 3.5/3.7 Sonnet |
 | Google Gemini | ✓ | ✓ (Imagen) | ✗ | ✗ | Gemini Pro/Flash |
+| Mistral AI | ✓ | ✗ | ✗ | ✗ | Mistral Large/Codestral |
+| Cohere | ✓ | ✗ | ✗ | ✗ | Command R/R+ |
+| Groq | ✓ | ✗ | ✗ | ✗ | LPU 超快推理 |
+| Stability AI | ✗ | ✓ (SD3.5) | ✓ | ✗ | Stable Diffusion |
+| Fal.ai | ✗ | ✓ | ✓ | ✗ | 图像/视频生成专用 |
+| Runway ML | ✗ | ✗ | ✓ (Gen-3) | ✗ | 视频生成 |
+| Luma AI | ✗ | ✗ | ✓ (Dream Machine) | ✗ | 视频生成 |
+| ElevenLabs | ✗ | ✗ | ✗ | ✓ (TTS) | 语音合成 |
+| Hugging Face | ✓ | ✓ | ✓ | ✓ | 开源模型平台 |
 
 ### 国内厂商 - 文本/多模态
 

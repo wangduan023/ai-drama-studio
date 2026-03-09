@@ -2,8 +2,8 @@
  * AI Provider Repository
  * AI 渠道商仓储层，封装 AI 渠道配置相关的数据库操作
  */
-import { Prisma, PrismaClient, AiModelType } from '@prisma/client'
-import { BaseRepository } from './base.repository'
+import { Prisma, PrismaClient, AiModelType, AiProvider, AiModel } from '@prisma/client'
+import { prisma } from '../client'
 
 export interface CreateAiProviderInput {
   name: string
@@ -14,7 +14,7 @@ export interface CreateAiProviderInput {
   weight?: number
   rateLimit?: number
   quotaDaily?: number
-  metadata?: Record<string, unknown>
+  metadata?: Prisma.InputJsonValue
   description?: string
 }
 
@@ -26,7 +26,7 @@ export interface UpdateAiProviderInput {
   weight?: number
   rateLimit?: number
   quotaDaily?: number
-  metadata?: Record<string, unknown>
+  metadata?: Prisma.InputJsonValue
   description?: string
 }
 
@@ -37,13 +37,11 @@ export interface FindAiProviderOptions {
 
 type AiProviderIncludeMap = Record<string, boolean>
 
-export class AiProviderRepository extends BaseRepository<PrismaClient> {
-  constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
+export class AiProviderRepository {
+  private prisma: PrismaClient
 
-  protected getModelName(): string {
-    return 'aiProvider'
+  constructor(prismaInstance?: PrismaClient) {
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -52,18 +50,13 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindAiProviderOptions = {}
-  ): Promise<Prisma.AiProviderGetPayload<{ include: AiProviderIncludeMap }> | null> {
+  ): Promise<AiProvider | null> {
     const include = this.buildInclude(options)
-    const where: Prisma.AiProviderWhereInput = { id }
-
-    if (options.onlyActive) {
-      where.isActive = true
-    }
 
     return this.prisma.aiProvider.findUnique({
-      where,
+      where: { id, ...(options.onlyActive ? { isActive: true } : {}) },
       include,
-    }) as Promise<Prisma.AiProviderGetPayload<{ include: AiProviderIncludeMap }> | null>
+    })
   }
 
   /**
@@ -72,18 +65,13 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
   async findByName(
     name: string,
     options: FindAiProviderOptions = {}
-  ): Promise<Prisma.AiProviderGetPayload<{ include: AiProviderIncludeMap }> | null> {
+  ): Promise<AiProvider | null> {
     const include = this.buildInclude(options)
-    const where: Prisma.AiProviderWhereInput = { name }
-
-    if (options.onlyActive) {
-      where.isActive = true
-    }
 
     return this.prisma.aiProvider.findUnique({
-      where,
+      where: { name, ...(options.onlyActive ? { isActive: true } : {}) },
       include,
-    }) as Promise<Prisma.AiProviderGetPayload<{ include: AiProviderIncludeMap }> | null>
+    })
   }
 
   /**
@@ -91,25 +79,20 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
    */
   async findAll(
     options: FindAiProviderOptions = {}
-  ): Promise<Prisma.AiProviderGetPayload<{ include: AiProviderIncludeMap }>[]> {
+  ): Promise<AiProvider[]> {
     const include = this.buildInclude(options)
-    const where: Prisma.AiProviderWhereInput = {}
-
-    if (options.onlyActive) {
-      where.isActive = true
-    }
 
     return this.prisma.aiProvider.findMany({
-      where,
+      where: options.onlyActive ? { isActive: true } : {},
       include,
       orderBy: [{ priority: 'asc' }, { name: 'asc' }],
-    }) as Promise<Prisma.AiProviderGetPayload<{ include: AiProviderIncludeMap }>[]>
+    })
   }
 
   /**
    * 创建渠道商
    */
-  async create(input: CreateAiProviderInput): Promise<Prisma.AiProvider> {
+  async create(input: CreateAiProviderInput): Promise<AiProvider> {
     const data: Prisma.AiProviderCreateInput = {
       name: input.name,
       baseUrl: input.baseUrl,
@@ -119,7 +102,7 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
       weight: input.weight ?? 1,
       rateLimit: input.rateLimit,
       quotaDaily: input.quotaDaily,
-      metadata: input.metadata ? JSON.stringify(input.metadata) : null,
+      metadata: input.metadata,
       description: input.description,
     }
 
@@ -129,7 +112,7 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
   /**
    * 更新渠道商
    */
-  async update(id: string, input: UpdateAiProviderInput): Promise<Prisma.AiProvider> {
+  async update(id: string, input: UpdateAiProviderInput): Promise<AiProvider> {
     const data: Prisma.AiProviderUpdateInput = {}
 
     if (input.baseUrl !== undefined) data.baseUrl = input.baseUrl
@@ -139,7 +122,7 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
     if (input.weight !== undefined) data.weight = input.weight
     if (input.rateLimit !== undefined) data.rateLimit = input.rateLimit
     if (input.quotaDaily !== undefined) data.quotaDaily = input.quotaDaily
-    if (input.metadata !== undefined) data.metadata = input.metadata ? JSON.stringify(input.metadata) : null
+    if (input.metadata !== undefined) data.metadata = input.metadata
     if (input.description !== undefined) data.description = input.description
 
     return this.prisma.aiProvider.update({
@@ -151,7 +134,7 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
   /**
    * 删除渠道商
    */
-  async delete(id: string): Promise<Prisma.AiProvider> {
+  async delete(id: string): Promise<AiProvider> {
     return this.prisma.aiProvider.delete({
       where: { id },
     })
@@ -160,7 +143,7 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
   /**
    * 启用/禁用渠道商
    */
-  async toggleStatus(id: string, isActive: boolean): Promise<Prisma.AiProvider> {
+  async toggleStatus(id: string, isActive: boolean): Promise<AiProvider> {
     return this.prisma.aiProvider.update({
       where: { id },
       data: { isActive },
@@ -170,15 +153,12 @@ export class AiProviderRepository extends BaseRepository<PrismaClient> {
   /**
    * 获取渠道商的模型列表
    */
-  async getModels(providerId: string, type?: AiModelType): Promise<Prisma.AiModel[]> {
-    const where: Prisma.AiModelWhereInput = { providerId }
-
-    if (type) {
-      where.type = type
-    }
-
+  async getModels(providerId: string, type?: AiModelType): Promise<AiModel[]> {
     return this.prisma.aiModel.findMany({
-      where,
+      where: {
+        providerId,
+        ...(type ? { type } : {}),
+      },
       orderBy: { name: 'asc' },
     })
   }

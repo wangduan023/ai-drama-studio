@@ -2,8 +2,8 @@
  * Episode Repository
  * 剧集仓储层，封装剧集相关的数据库操作
  */
-import { Prisma, PrismaClient } from '@prisma/client'
-import { BaseRepository } from './base.repository'
+import { Prisma, PrismaClient, Episode } from '@prisma/client'
+import { prisma } from '../client'
 
 export interface CreateEpisodeInput {
   projectId: string
@@ -29,15 +29,11 @@ export interface FindEpisodeOptions {
   withDeleted?: boolean
 }
 
-type EpisodeIncludeMap = Record<string, boolean>
+export class EpisodeRepository {
+  private prisma: PrismaClient
 
-export class EpisodeRepository extends BaseRepository<PrismaClient> {
   constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
-
-  protected getModelName(): string {
-    return 'episode'
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -46,13 +42,23 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindEpisodeOptions = {}
-  ): Promise<Prisma.EpisodeGetPayload<{ include: EpisodeIncludeMap }> | null> {
-    const include = this.buildInclude(options)
+  ): Promise<Episode | null> {
+    const include: Prisma.EpisodeInclude = {}
+
+    if (options.includeScript) include.script = true
+    if (options.includeStoryboards) include.storyboards = true
+    if (options.includeClips) include.clips = true
+    if (options.includeTasks) include.tasks = true
+
+    const where: Prisma.EpisodeWhereUniqueInput = {
+      id,
+      ...(options.withDeleted ? {} : { deletedAt: null }),
+    }
 
     return this.prisma.episode.findUnique({
-      where: { id },
+      where,
       include,
-    }) as Promise<Prisma.EpisodeGetPayload<{ include: EpisodeIncludeMap }> | null>
+    })
   }
 
   /**
@@ -61,8 +67,14 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
   async findByProjectId(
     projectId: string,
     options: FindEpisodeOptions = {}
-  ): Promise<Prisma.EpisodeGetPayload<{ include: EpisodeIncludeMap }>[]> {
-    const include = this.buildInclude(options)
+  ): Promise<Episode[]> {
+    const include: Prisma.EpisodeInclude = {}
+
+    if (options.includeScript) include.script = true
+    if (options.includeStoryboards) include.storyboards = true
+    if (options.includeClips) include.clips = true
+    if (options.includeTasks) include.tasks = true
+
     const where: Prisma.EpisodeWhereInput = {
       projectId,
       ...(options.withDeleted ? {} : { deletedAt: null }),
@@ -72,7 +84,7 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
       where,
       include,
       orderBy: { number: 'asc' },
-    }) as Promise<Prisma.EpisodeGetPayload<{ include: EpisodeIncludeMap }>[]>
+    })
   }
 
   /**
@@ -82,8 +94,13 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
     projectId: string,
     number: number,
     options: FindEpisodeOptions = {}
-  ): Promise<Prisma.EpisodeGetPayload<{ include: EpisodeIncludeMap }> | null> {
-    const include = this.buildInclude(options)
+  ): Promise<Episode | null> {
+    const include: Prisma.EpisodeInclude = {}
+
+    if (options.includeScript) include.script = true
+    if (options.includeStoryboards) include.storyboards = true
+    if (options.includeClips) include.clips = true
+    if (options.includeTasks) include.tasks = true
 
     return this.prisma.episode.findUnique({
       where: {
@@ -93,13 +110,13 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
         },
       },
       include,
-    }) as Promise<Prisma.EpisodeGetPayload<{ include: EpisodeIncludeMap }> | null>
+    })
   }
 
   /**
    * 创建剧集
    */
-  async create(input: CreateEpisodeInput): Promise<Prisma.Episode> {
+  async create(input: CreateEpisodeInput): Promise<Episode> {
     return this.prisma.episode.create({
       data: {
         projectId: input.projectId,
@@ -113,7 +130,7 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
   /**
    * 更新剧集
    */
-  async update(id: string, input: UpdateEpisodeInput): Promise<Prisma.Episode> {
+  async update(id: string, input: UpdateEpisodeInput): Promise<Episode> {
     return this.prisma.episode.update({
       where: { id },
       data: input,
@@ -123,7 +140,7 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
   /**
    * 软删除剧集
    */
-  async softDelete(id: string, deletedBy?: string): Promise<Prisma.Episode> {
+  async softDelete(id: string, deletedBy?: string): Promise<Episode> {
     return this.prisma.episode.update({
       where: { id },
       data: {
@@ -136,7 +153,7 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
   /**
    * 恢复已删除的剧集
    */
-  async restore(id: string): Promise<Prisma.Episode> {
+  async restore(id: string): Promise<Episode> {
     return this.prisma.episode.update({
       where: { id },
       data: {
@@ -149,9 +166,9 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
   /**
    * 批量创建剧集
    */
-  async createMany(episodes: CreateEpisodeInput[]): Promise<Prisma.Episode[]> {
+  async createMany(episodes: CreateEpisodeInput[]): Promise<Episode[]> {
     return this.prisma.$transaction(async (tx) => {
-      const created: Prisma.Episode[] = []
+      const created: Episode[] = []
       for (const episode of episodes) {
         const createdEpisode = await tx.episode.create({
           data: episode,
@@ -177,19 +194,5 @@ export class EpisodeRepository extends BaseRepository<PrismaClient> {
     ])
 
     return { storyboardCount, clipCount, taskCount }
-  }
-
-  /**
-   * 构建 include 对象
-   */
-  private buildInclude(options: FindEpisodeOptions): EpisodeIncludeMap {
-    const include: EpisodeIncludeMap = {}
-
-    if (options.includeScript) include.script = true
-    if (options.includeStoryboards) include.storyboards = true
-    if (options.includeClips) include.clips = true
-    if (options.includeTasks) include.tasks = true
-
-    return include
   }
 }

@@ -25,6 +25,16 @@ import { MiniMaxClient } from './clients/minimax.client'
 import { LingyiClient, KlingClient, StepfunClient } from './clients/lingyi.client'
 import { BaichuanClient } from './clients/baichuan.client'
 import { SenseTimeClient } from './clients/sensetime.client'
+// 国际 AI 厂商客户端
+import { MistralClient } from './clients/mistral.client'
+import { CohereClient } from './clients/cohere.client'
+import { GroqClient } from './clients/groq.client'
+import { StabilityClient } from './clients/stability.client'
+import { FalClient } from './clients/fal.client'
+import { RunwayClient } from './clients/runway.client'
+import { ElevenLabsClient } from './clients/elevenlabs.client'
+import { LumaClient } from './clients/luma.client'
+import { HuggingFaceClient } from './clients/huggingface.client'
 import type { BaseAIClient } from './base'
 
 /**
@@ -68,6 +78,15 @@ export type AIClientType =
   | StepfunClient
   | BaichuanClient
   | SenseTimeClient
+  | MistralClient
+  | CohereClient
+  | GroqClient
+  | StabilityClient
+  | FalClient
+  | RunwayClient
+  | ElevenLabsClient
+  | LumaClient
+  | HuggingFaceClient
   | BaseAIClient
 
 /**
@@ -183,6 +202,34 @@ export function createAIClient(options: ClientFactoryOptions): AIClientType {
       // 百度文心一格使用 BaiduClient
       return new BaiduClient(config)
 
+    // 国际 AI 厂商
+    case 'mistral':
+      return new MistralClient(config)
+
+    case 'cohere':
+      return new CohereClient(config)
+
+    case 'groq':
+      return new GroqClient(config)
+
+    case 'stability':
+      return new StabilityClient(config)
+
+    case 'fal':
+      return new FalClient(config)
+
+    case 'runway':
+      return new RunwayClient(config)
+
+    case 'elevenlabs':
+      return new ElevenLabsClient(config)
+
+    case 'luma':
+      return new LumaClient(config)
+
+    case 'huggingface':
+      return new HuggingFaceClient(config)
+
     case 'openai-compatible':
       // OpenAI 兼容格式的自定义端点
       return new OpenAIClient({
@@ -198,11 +245,11 @@ export function createAIClient(options: ClientFactoryOptions): AIClientType {
 /**
  * 规范化提供商名称
  */
-function normalizeProvider(provider: string): AIProvider {
+export function normalizeProvider(provider: string): AIProvider {
   const normalized = provider.toLowerCase()
 
   // 直接匹配
-  if (['openai', 'anthropic', 'google', 'doubao', 'deepseek', 'qwen', 'ollama', 'comfyui', 'baidu', 'tencent', 'iflytek', 'zhipu', 'moonshot', 'minimax', 'lingyi', 'kling', 'stepfun', 'baichuan', 'sensetime', 'wanxiang', 'hunyuan-image', 'gewang'].includes(normalized)) {
+  if (['openai', 'anthropic', 'google', 'doubao', 'deepseek', 'qwen', 'ollama', 'comfyui', 'baidu', 'tencent', 'iflytek', 'zhipu', 'moonshot', 'minimax', 'lingyi', 'kling', 'stepfun', 'baichuan', 'sensetime', 'wanxiang', 'hunyuan-image', 'gewang', 'mistral', 'cohere', 'groq', 'stability', 'fal', 'runway', 'elevenlabs', 'luma', 'huggingface'].includes(normalized)) {
     return normalized as AIProvider
   }
 
@@ -211,8 +258,7 @@ function normalizeProvider(provider: string): AIProvider {
     normalized.includes('openai-compatible') ||
     normalized.includes('openai_compatible') ||
     normalized.startsWith('azure') ||
-    normalized.startsWith('together') ||
-    normalized.startsWith('groq')
+    normalized.startsWith('together')
   ) {
     return 'openai-compatible'
   }
@@ -394,6 +440,84 @@ function normalizeProvider(provider: string): AIProvider {
     normalized.includes('yige')
   ) {
     return 'gewang'
+  }
+
+  // Mistral AI 别名
+  if (
+    normalized.includes('mistral') ||
+    normalized.includes('mistral-ai')
+  ) {
+    return 'mistral'
+  }
+
+  // Cohere 别名
+  if (
+    normalized.includes('cohere') ||
+    normalized.includes('command-r')
+  ) {
+    return 'cohere'
+  }
+
+  // Groq 别名
+  if (
+    normalized.includes('groq') ||
+    normalized.includes('groq-cloud')
+  ) {
+    return 'groq'
+  }
+
+  // Stability AI 别名
+  if (
+    normalized.includes('stability') ||
+    normalized.includes('stability-ai') ||
+    normalized.includes('stable-diffusion')
+  ) {
+    return 'stability'
+  }
+
+  // Fal.ai 别名
+  if (
+    normalized.includes('fal') ||
+    normalized.includes('fal-ai')
+  ) {
+    return 'fal'
+  }
+
+  // Runway ML 别名
+  if (
+    normalized.includes('runway') ||
+    normalized.includes('runway-ml') ||
+    normalized.includes('gen-3') ||
+    normalized.includes('gen3')
+  ) {
+    return 'runway'
+  }
+
+  // ElevenLabs 别名
+  if (
+    normalized.includes('elevenlabs') ||
+    normalized.includes('eleven-labs')
+  ) {
+    return 'elevenlabs'
+  }
+
+  // Luma AI 别名
+  if (
+    normalized.includes('luma') ||
+    normalized.includes('luma-ai') ||
+    normalized.includes('dream-machine')
+  ) {
+    return 'luma'
+  }
+
+  // Hugging Face 别名
+  if (
+    normalized.includes('huggingface') ||
+    normalized.includes('hugging-face') ||
+    normalized.includes('hugging-face') ||
+    normalized.includes('hf')
+  ) {
+    return 'huggingface'
   }
 
   // 默认使用 OpenAI 兼容格式

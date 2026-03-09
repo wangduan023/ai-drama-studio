@@ -169,32 +169,6 @@ export const TaskPayloadSchema = z.union([
 ])
 
 // ============================================
-// AI Model Metadata Schema
-// ============================================
-
-/**
- * AI 模型元数据 Schema
- */
-export const AiModelMetadataSchema = z.object({
-  // 支持的参数
-  supportedParams: z.array(z.string()).optional(),
-
-  // 模型能力
-  capabilities: z.object({
-    textGeneration: z.boolean().optional(),
-    imageGeneration: z.boolean().optional(),
-    videoGeneration: z.boolean().optional(),
-    voiceGeneration: z.boolean().optional(),
-    functionCalling: z.boolean().optional(),
-    visionInput: z.boolean().optional(),
-  }).optional(),
-
-  // 版本信息
-  version: z.string().optional(),
-  releaseDate: z.string().optional(),
-})
-
-// ============================================
 // Type helpers
 // ============================================
 
@@ -204,4 +178,3 @@ export type CharacterAppearanceMap = z.infer<typeof CharacterAppearanceMapSchema
 export type ScriptContent = z.infer<typeof ScriptContentSchema>
 export type AssetMetadata = z.infer<typeof AssetMetadataSchema>
 export type TaskPayload = z.infer<typeof TaskPayloadSchema>
-export type AiModelMetadata = z.infer<typeof AiModelMetadataSchema>

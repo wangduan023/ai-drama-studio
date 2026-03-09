@@ -2,15 +2,15 @@
  * Location Repository
  * 场景档案仓储层，封装场景相关的数据库操作
  */
-import { Prisma, PrismaClient } from '@prisma/client'
-import { BaseRepository } from './base.repository'
+import { Prisma, PrismaClient, LocationType, LocationProfile } from '@prisma/client'
+import { prisma } from '../client'
 
 export interface CreateLocationInput {
   projectId: string
   name: string
   description?: string
   eraPeriod?: string
-  locationType?: Prisma.LocationType
+  locationType?: LocationType
   moodColor?: string
   keyElements?: string[]
 }
@@ -18,7 +18,7 @@ export interface CreateLocationInput {
 export interface UpdateLocationInput {
   description?: string
   eraPeriod?: string
-  locationType?: Prisma.LocationType
+  locationType?: LocationType
   moodColor?: string
   keyElements?: string[]
   locationConfirmed?: boolean
@@ -30,13 +30,11 @@ export interface FindLocationOptions {
   withDeleted?: boolean
 }
 
-export class LocationRepository extends BaseRepository<PrismaClient> {
-  constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
+export class LocationRepository {
+  private prisma: PrismaClient
 
-  protected getModelName(): string {
-    return 'locationProfile'
+  constructor(prismaInstance?: PrismaClient) {
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -45,9 +43,14 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindLocationOptions = {}
-  ): Promise<Prisma.LocationProfile | null> {
+  ): Promise<LocationProfile | null> {
+    const where: Prisma.LocationProfileWhereUniqueInput = {
+      id,
+      ...(options.withDeleted ? {} : { deletedAt: null }),
+    }
+
     return this.prisma.locationProfile.findUnique({
-      where: { id },
+      where,
     })
   }
 
@@ -57,7 +60,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   async findByProjectId(
     projectId: string,
     options: FindLocationOptions = {}
-  ): Promise<Prisma.LocationProfile[]> {
+  ): Promise<LocationProfile[]> {
     const where: Prisma.LocationProfileWhereInput = {
       projectId,
       ...(options.withDeleted ? {} : { deletedAt: null }),
@@ -76,7 +79,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
     projectId: string,
     name: string,
     options: FindLocationOptions = {}
-  ): Promise<Prisma.LocationProfile | null> {
+  ): Promise<LocationProfile | null> {
     return this.prisma.locationProfile.findUnique({
       where: {
         projectId_name: {
@@ -90,7 +93,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   /**
    * 创建场景
    */
-  async create(input: CreateLocationInput): Promise<Prisma.LocationProfile> {
+  async create(input: CreateLocationInput): Promise<LocationProfile> {
     const data: Prisma.LocationProfileCreateInput = {
       project: { connect: { id: input.projectId } },
       name: input.name,
@@ -107,7 +110,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   /**
    * 更新场景
    */
-  async update(id: string, input: UpdateLocationInput): Promise<Prisma.LocationProfile> {
+  async update(id: string, input: UpdateLocationInput): Promise<LocationProfile> {
     const data: Prisma.LocationProfileUpdateInput = {}
 
     if (input.description !== undefined) data.description = input.description
@@ -128,7 +131,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   /**
    * 软删除场景
    */
-  async softDelete(id: string, deletedBy?: string): Promise<Prisma.LocationProfile> {
+  async softDelete(id: string, deletedBy?: string): Promise<LocationProfile> {
     return this.prisma.locationProfile.update({
       where: { id },
       data: {
@@ -141,7 +144,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   /**
    * 恢复已删除的场景
    */
-  async restore(id: string): Promise<Prisma.LocationProfile> {
+  async restore(id: string): Promise<LocationProfile> {
     return this.prisma.locationProfile.update({
       where: { id },
       data: {
@@ -154,7 +157,7 @@ export class LocationRepository extends BaseRepository<PrismaClient> {
   /**
    * 确认场景档案
    */
-  async confirmLocation(id: string): Promise<Prisma.LocationProfile> {
+  async confirmLocation(id: string): Promise<LocationProfile> {
     return this.prisma.locationProfile.update({
       where: { id },
       data: { locationConfirmed: true },

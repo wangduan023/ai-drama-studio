@@ -2,8 +2,8 @@
  * AI Model Repository
  * AI 模型仓储层，封装 AI 模型配置相关的数据库操作
  */
-import { Prisma, PrismaClient, AiModelType } from '@prisma/client'
-import { BaseRepository } from './base.repository'
+import { Prisma, PrismaClient, AiModelType, AiModel } from '@prisma/client'
+import { prisma } from '../client'
 
 export interface CreateAiModelInput {
   providerId: string
@@ -22,7 +22,7 @@ export interface CreateAiModelInput {
   rateLimit?: number
   rpm?: number
   tpm?: number
-  metadata?: Record<string, unknown>
+  metadata?: Prisma.InputJsonValue
   description?: string
 }
 
@@ -41,7 +41,7 @@ export interface UpdateAiModelInput {
   rateLimit?: number
   rpm?: number
   tpm?: number
-  metadata?: Record<string, unknown>
+  metadata?: Prisma.InputJsonValue
   description?: string
 }
 
@@ -52,13 +52,11 @@ export interface FindAiModelOptions {
 
 type AiModelIncludeMap = Record<string, boolean>
 
-export class AiModelRepository extends BaseRepository<PrismaClient> {
-  constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
+export class AiModelRepository {
+  private prisma: PrismaClient
 
-  protected getModelName(): string {
-    return 'aiModel'
+  constructor(prismaInstance?: PrismaClient) {
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -67,18 +65,13 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindAiModelOptions = {}
-  ): Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }> | null> {
+  ): Promise<AiModel | null> {
     const include = this.buildInclude(options)
-    const where: Prisma.AiModelWhereInput = { id }
-
-    if (options.onlyEnabled) {
-      where.isEnabled = true
-    }
 
     return this.prisma.aiModel.findUnique({
-      where,
+      where: { id },
       include,
-    }) as Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }> | null>
+    })
   }
 
   /**
@@ -88,7 +81,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
     providerId: string,
     modelId: string,
     options: FindAiModelOptions = {}
-  ): Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }> | null> {
+  ): Promise<AiModel | null> {
     const include = this.buildInclude(options)
 
     return this.prisma.aiModel.findUnique({
@@ -99,7 +92,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
         },
       },
       include,
-    }) as Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }> | null>
+    })
   }
 
   /**
@@ -108,19 +101,17 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
   async findByType(
     type: AiModelType,
     options: FindAiModelOptions = {}
-  ): Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }>[]> {
+  ): Promise<AiModel[]> {
     const include = this.buildInclude(options)
-    const where: Prisma.AiModelWhereInput = { type }
-
-    if (options.onlyEnabled) {
-      where.isEnabled = true
-    }
 
     return this.prisma.aiModel.findMany({
-      where,
+      where: {
+        type,
+        ...(options.onlyEnabled ? { isEnabled: true } : {}),
+      },
       include,
       orderBy: [{ isDefault: 'desc' }, { name: 'asc' }],
-    }) as Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }>[]>
+    })
   }
 
   /**
@@ -129,19 +120,17 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
   async findByProvider(
     providerId: string,
     options: FindAiModelOptions = {}
-  ): Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }>[]> {
+  ): Promise<AiModel[]> {
     const include = this.buildInclude(options)
-    const where: Prisma.AiModelWhereInput = { providerId }
-
-    if (options.onlyEnabled) {
-      where.isEnabled = true
-    }
 
     return this.prisma.aiModel.findMany({
-      where,
+      where: {
+        providerId,
+        ...(options.onlyEnabled ? { isEnabled: true } : {}),
+      },
       include,
       orderBy: { name: 'asc' },
-    }) as Promise<Prisma.AiModelGetPayload<{ include: AiModelIncludeMap }>[]>
+    })
   }
 
   /**
@@ -149,7 +138,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
    */
   async getDefaultModel(
     type: AiModelType
-  ): Promise<Prisma.AiModelGetPayload<{ include: { provider: true } }> | null> {
+  ): Promise<AiModel | null> {
     return this.prisma.aiModel.findFirst({
       where: {
         type,
@@ -163,7 +152,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
   /**
    * 创建模型
    */
-  async create(input: CreateAiModelInput): Promise<Prisma.AiModel> {
+  async create(input: CreateAiModelInput): Promise<AiModel> {
     const data: Prisma.AiModelCreateInput = {
       provider: { connect: { id: input.providerId } },
       modelId: input.modelId,
@@ -181,7 +170,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
       rateLimit: input.rateLimit,
       rpm: input.rpm,
       tpm: input.tpm,
-      metadata: input.metadata !== undefined ? (input.metadata ? JSON.stringify(input.metadata) : null) : undefined,
+      metadata: input.metadata,
       description: input.description,
     }
 
@@ -191,7 +180,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
   /**
    * 更新模型
    */
-  async update(id: string, input: UpdateAiModelInput): Promise<Prisma.AiModel> {
+  async update(id: string, input: UpdateAiModelInput): Promise<AiModel> {
     const data: Prisma.AiModelUpdateInput = {}
 
     if (input.name !== undefined) data.name = input.name
@@ -208,7 +197,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
     if (input.rateLimit !== undefined) data.rateLimit = input.rateLimit
     if (input.rpm !== undefined) data.rpm = input.rpm
     if (input.tpm !== undefined) data.tpm = input.tpm
-    if (input.metadata !== undefined) data.metadata = input.metadata ? JSON.stringify(input.metadata) : null
+    if (input.metadata !== undefined) data.metadata = input.metadata
     if (input.description !== undefined) data.description = input.description
 
     return this.prisma.aiModel.update({
@@ -220,7 +209,7 @@ export class AiModelRepository extends BaseRepository<PrismaClient> {
   /**
    * 删除模型
    */
-  async delete(id: string): Promise<Prisma.AiModel> {
+  async delete(id: string): Promise<AiModel> {
     return this.prisma.aiModel.delete({
       where: { id },
     })

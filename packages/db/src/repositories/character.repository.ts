@@ -2,8 +2,8 @@
  * Character Repository
  * 角色档案仓储层，封装角色相关的数据库操作
  */
-import { Prisma, PrismaClient } from '@prisma/client'
-import { BaseRepository } from './base.repository'
+import { Prisma, PrismaClient, CharacterRoleLevel, CharacterProfile, CharacterAppearance } from '@prisma/client'
+import { prisma } from '../client'
 
 export interface CreateCharacterInput {
   projectId: string
@@ -12,7 +12,7 @@ export interface CreateCharacterInput {
   introduction?: string
   gender?: string
   ageRange?: string
-  roleLevel?: Prisma.CharacterRoleLevel
+  roleLevel?: CharacterRoleLevel
   archetype?: string
   personalityTags?: string[]
   eraPeriod?: string
@@ -30,7 +30,7 @@ export interface UpdateCharacterInput {
   introduction?: string
   gender?: string
   ageRange?: string
-  roleLevel?: Prisma.CharacterRoleLevel
+  roleLevel?: CharacterRoleLevel
   archetype?: string
   personalityTags?: string[]
   eraPeriod?: string
@@ -51,15 +51,11 @@ export interface FindCharacterOptions {
   withDeleted?: boolean
 }
 
-type CharacterIncludeMap = Record<string, boolean>
+export class CharacterRepository {
+  private prisma: PrismaClient
 
-export class CharacterRepository extends BaseRepository<PrismaClient> {
   constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
-
-  protected getModelName(): string {
-    return 'characterProfile'
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -68,13 +64,20 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindCharacterOptions = {}
-  ): Promise<Prisma.CharacterProfileGetPayload<{ include: CharacterIncludeMap }> | null> {
-    const include = this.buildInclude(options)
+  ): Promise<CharacterProfile | null> {
+    const include: Prisma.CharacterProfileInclude = {}
 
-    return this.prisma.characterProfile.findUnique({
-      where: { id },
+    if (options.includeAppearances) include.appearances = true
+
+    const where: Prisma.CharacterProfileWhereInput = {
+      id,
+      ...(options.withDeleted ? {} : { deletedAt: null }),
+    }
+
+    return this.prisma.characterProfile.findFirst({
+      where,
       include,
-    }) as Promise<Prisma.CharacterProfileGetPayload<{ include: CharacterIncludeMap }> | null>
+    })
   }
 
   /**
@@ -83,8 +86,11 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   async findByProjectId(
     projectId: string,
     options: FindCharacterOptions = {}
-  ): Promise<Prisma.CharacterProfileGetPayload<{ include: CharacterIncludeMap }>[]> {
-    const include = this.buildInclude(options)
+  ): Promise<CharacterProfile[]> {
+    const include: Prisma.CharacterProfileInclude = {}
+
+    if (options.includeAppearances) include.appearances = true
+
     const where: Prisma.CharacterProfileWhereInput = {
       projectId,
       ...(options.withDeleted ? {} : { deletedAt: null }),
@@ -94,7 +100,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
       where,
       include,
       orderBy: { createdAt: 'desc' },
-    }) as Promise<Prisma.CharacterProfileGetPayload<{ include: CharacterIncludeMap }>[]>
+    })
   }
 
   /**
@@ -104,8 +110,10 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
     projectId: string,
     name: string,
     options: FindCharacterOptions = {}
-  ): Promise<Prisma.CharacterProfileGetPayload<{ include: CharacterIncludeMap }> | null> {
-    const include = this.buildInclude(options)
+  ): Promise<CharacterProfile | null> {
+    const include: Prisma.CharacterProfileInclude = {}
+
+    if (options.includeAppearances) include.appearances = true
 
     return this.prisma.characterProfile.findUnique({
       where: {
@@ -115,13 +123,13 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
         },
       },
       include,
-    }) as Promise<Prisma.CharacterProfileGetPayload<{ include: CharacterIncludeMap }> | null>
+    })
   }
 
   /**
    * 创建角色
    */
-  async create(input: CreateCharacterInput): Promise<Prisma.CharacterProfile> {
+  async create(input: CreateCharacterInput): Promise<CharacterProfile> {
     const data: Prisma.CharacterProfileCreateInput = {
       project: { connect: { id: input.projectId } },
       name: input.name,
@@ -139,7 +147,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
       suggestedColors: input.suggestedColors ? JSON.stringify(input.suggestedColors) : null,
       primaryIdentifier: input.primaryIdentifier,
       visualKeywords: input.visualKeywords ? JSON.stringify(input.visualKeywords) : null,
-      expectedAppearances: input.expectedAppearances ? JSON.stringify(input.expectedAppearances) : null,
+      expectedAppearances: input.expectedAppearances,
     }
 
     return this.prisma.characterProfile.create({ data })
@@ -148,7 +156,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   /**
    * 更新角色
    */
-  async update(id: string, input: UpdateCharacterInput): Promise<Prisma.CharacterProfile> {
+  async update(id: string, input: UpdateCharacterInput): Promise<CharacterProfile> {
     const data: Prisma.CharacterProfileUpdateInput = {}
 
     if (input.aliases !== undefined) data.aliases = input.aliases ? JSON.stringify(input.aliases) : null
@@ -165,7 +173,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
     if (input.suggestedColors !== undefined) data.suggestedColors = input.suggestedColors ? JSON.stringify(input.suggestedColors) : null
     if (input.primaryIdentifier !== undefined) data.primaryIdentifier = input.primaryIdentifier
     if (input.visualKeywords !== undefined) data.visualKeywords = input.visualKeywords ? JSON.stringify(input.visualKeywords) : null
-    if (input.expectedAppearances !== undefined) data.expectedAppearances = input.expectedAppearances ? JSON.stringify(input.expectedAppearances) : null
+    if (input.expectedAppearances !== undefined) data.expectedAppearances = input.expectedAppearances
     if (input.profileConfirmed !== undefined) data.profileConfirmed = input.profileConfirmed
     if (input.deletedAt !== undefined) data.deletedAt = input.deletedAt
     if (input.deletedBy !== undefined) data.deletedBy = input.deletedBy
@@ -179,7 +187,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   /**
    * 软删除角色
    */
-  async softDelete(id: string, deletedBy?: string): Promise<Prisma.CharacterProfile> {
+  async softDelete(id: string, deletedBy?: string): Promise<CharacterProfile> {
     return this.prisma.characterProfile.update({
       where: { id },
       data: {
@@ -192,7 +200,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   /**
    * 恢复已删除的角色
    */
-  async restore(id: string): Promise<Prisma.CharacterProfile> {
+  async restore(id: string): Promise<CharacterProfile> {
     return this.prisma.characterProfile.update({
       where: { id },
       data: {
@@ -205,7 +213,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   /**
    * 确认角色档案
    */
-  async confirmProfile(id: string): Promise<Prisma.CharacterProfile> {
+  async confirmProfile(id: string): Promise<CharacterProfile> {
     return this.prisma.characterProfile.update({
       where: { id },
       data: { profileConfirmed: true },
@@ -222,7 +230,7 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
     description: string,
     descriptions?: string[],
     imageUrls?: string[]
-  ): Promise<Prisma.CharacterAppearance> {
+  ): Promise<CharacterAppearance> {
     return this.prisma.characterAppearance.create({
       data: {
         characterId,
@@ -238,21 +246,10 @@ export class CharacterRepository extends BaseRepository<PrismaClient> {
   /**
    * 获取角色的所有外观
    */
-  async getAppearances(characterId: string): Promise<Prisma.CharacterAppearance[]> {
+  async getAppearances(characterId: string): Promise<CharacterAppearance[]> {
     return this.prisma.characterAppearance.findMany({
       where: { characterId },
       orderBy: { appearanceIndex: 'asc' },
     })
-  }
-
-  /**
-   * 构建 include 对象
-   */
-  private buildInclude(options: FindCharacterOptions): CharacterIncludeMap {
-    const include: CharacterIncludeMap = {}
-
-    if (options.includeAppearances) include.appearances = true
-
-    return include
   }
 }

@@ -14,7 +14,30 @@
       "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/db && npm run db:generate 2>&1 || true)",
       "Bash(npm run typecheck 2>&1 || true)",
       "Bash(npm install zod 2>&1 | tail -5)",
-      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio && npm install zod -w @ai-drama-studio/db 2>&1 | tail -10)"
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio && npm install zod -w @ai-drama-studio/db 2>&1 | tail -10)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/db && npm run typecheck 2>&1 | head -30)",
+      "Bash(npm run typecheck 2>&1 | head -20)",
+      "Bash(npm run db:generate 2>&1 | tail -20)",
+      "Bash(npm run typecheck 2>&1 | head -30)",
+      "Bash(npm install --save-dev vitest @vitest/coverage-v8)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio && npm install --save-dev vitest @vitest/coverage-v8 --workspace=@ai-drama-studio/ai-client)",
+      "Bash(npm install --save-dev @vitest/coverage-v8)",
+      "Bash(npm install --save-dev vitest @vitest/coverage-v8 --legacy-peer-deps)",
+      "Bash(npm run typecheck 2>&1 | head -80)",
+      "Bash(npm install 2>&1 | head -50)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio && npm install 2>&1 | tail -20)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/ai-client && npm test 2>&1)",
+      "Bash(npm run typecheck 2>&1 | head -60)",
+      "Bash(npx prisma generate 2>&1 | head -30)",
+      "Bash(npm test 2>&1)",
+      "Bash(npm run test:coverage 2>&1)",
+      "Bash(npm install --save-dev @vitest/coverage-v8 --legacy-peer-deps 2>&1 | tail -10)",
+      "Bash(npm install --save-dev @vitest/coverage-v8 --legacy-peer-deps --ignore-workspaces 2>&1 | tail -10)",
+      "Bash(yarn add -D @vitest/coverage-v8 2>&1 | tail -10)",
+      "Bash(yarn add -D @vitest/coverage-v8 -W 2>&1 | tail -20)",
+      "Bash(npm run typecheck 2>&1 | head -40)",
+      "Bash(npm run typecheck 2>&1)",
+      "Bash(npm config set yes true && cat /home/wd/dev/docker-ai-shotlive/ai-drama-studio/package.json | head -10)"
     ]
   }
 }

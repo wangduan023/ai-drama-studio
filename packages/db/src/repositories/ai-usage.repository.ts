@@ -2,8 +2,8 @@
  * AI Usage Repository
  * AI 使用记录仓储层，封装 AI API 调用记录相关的数据库操作
  */
-import { Prisma, PrismaClient } from '@prisma/client'
-import { BaseRepository } from './base.repository'
+import { Prisma, PrismaClient, AiUsageStatus, AiUsageLog } from '@prisma/client'
+import { prisma } from '../client'
 
 export interface CreateAiUsageInput {
   providerId: string
@@ -18,7 +18,7 @@ export interface CreateAiUsageInput {
   duration?: number
   cost: number
   currency?: string
-  status?: Prisma.AiUsageStatus
+  status?: AiUsageStatus
   errorCode?: string
   errorMessage?: string
   projectId?: string
@@ -43,13 +43,11 @@ export interface AiUsageStats {
   successRate: number
 }
 
-export class AiUsageRepository extends BaseRepository<PrismaClient> {
-  constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
+export class AiUsageRepository {
+  private prisma: PrismaClient
 
-  protected getModelName(): string {
-    return 'aiUsageLog'
+  constructor(prismaInstance?: PrismaClient) {
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -58,7 +56,7 @@ export class AiUsageRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindAiUsageOptions = {}
-  ): Promise<Prisma.AiUsageLog | null> {
+  ): Promise<AiUsageLog | null> {
     return this.prisma.aiUsageLog.findUnique({
       where: { id },
     })
@@ -67,7 +65,7 @@ export class AiUsageRepository extends BaseRepository<PrismaClient> {
   /**
    * 根据任务 ID 查找使用记录
    */
-  async findByTaskId(taskId: string): Promise<Prisma.AiUsageLog[]> {
+  async findByTaskId(taskId: string): Promise<AiUsageLog[]> {
     return this.prisma.aiUsageLog.findMany({
       where: { taskId },
       orderBy: { createdAt: 'desc' },
@@ -80,7 +78,7 @@ export class AiUsageRepository extends BaseRepository<PrismaClient> {
   async findByProjectId(
     projectId: string,
     limit = 100
-  ): Promise<Prisma.AiUsageLog[]> {
+  ): Promise<AiUsageLog[]> {
     return this.prisma.aiUsageLog.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
@@ -97,10 +95,10 @@ export class AiUsageRepository extends BaseRepository<PrismaClient> {
     filters?: {
       providerId?: string
       projectId?: string
-      status?: Prisma.AiUsageStatus
+      status?: AiUsageStatus
       action?: string
     }
-  ): Promise<Prisma.AiUsageLog[]> {
+  ): Promise<AiUsageLog[]> {
     const where: Prisma.AiUsageLogWhereInput = {
       createdAt: {
         gte: startDate,
@@ -130,7 +128,7 @@ export class AiUsageRepository extends BaseRepository<PrismaClient> {
   /**
    * 创建使用记录
    */
-  async create(input: CreateAiUsageInput): Promise<Prisma.AiUsageLog> {
+  async create(input: CreateAiUsageInput): Promise<AiUsageLog> {
     const data: Prisma.AiUsageLogCreateInput = {
       providerId: input.providerId,
       modelId: input.modelId,
@@ -160,9 +158,9 @@ export class AiUsageRepository extends BaseRepository<PrismaClient> {
   /**
    * 批量创建使用记录
    */
-  async createMany(inputs: CreateAiUsageInput[]): Promise<Prisma.AiUsageLog[]> {
+  async createMany(inputs: CreateAiUsageInput[]): Promise<AiUsageLog[]> {
     return this.prisma.$transaction(async (tx) => {
-      const created: Prisma.AiUsageLog[] = []
+      const created: AiUsageLog[] = []
       for (const input of inputs) {
         const record = await tx.aiUsageLog.create({
           data: {

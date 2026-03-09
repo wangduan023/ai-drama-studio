@@ -175,11 +175,13 @@ async function main() {
   console.log('🤖 Creating AI provider configurations...')
 
   const aiProviders = [
+    // ============================================
     // 国际厂商
+    // ============================================
     {
       name: 'openai',
       baseUrl: 'https://api.openai.com/v1',
-      apiKey: '', // 需要用户填入
+      apiKey: '',
       isActive: false,
       priority: 1,
       weight: 1,
@@ -203,7 +205,90 @@ async function main() {
       weight: 1,
       description: 'Google - Gemini 系列'
     },
-    // 国内厂商
+    {
+      name: 'mistral',
+      baseUrl: 'https://api.mistral.ai/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Mistral AI - Mistral 系列'
+    },
+    {
+      name: 'cohere',
+      baseUrl: 'https://api.cohere.ai/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Cohere - Command 系列'
+    },
+    {
+      name: 'groq',
+      baseUrl: 'https://api.groq.com/openai/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Groq - 高速推理'
+    },
+    {
+      name: 'stability',
+      baseUrl: 'https://api.stability.ai/v2beta',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Stability AI - Stable Diffusion'
+    },
+    {
+      name: 'fal',
+      baseUrl: 'https://api.fal.ai/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Fal.ai - 多模态生成'
+    },
+    {
+      name: 'runway',
+      baseUrl: 'https://api.runwayml.com/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Runway ML - Gen-3 视频生成'
+    },
+    {
+      name: 'elevenlabs',
+      baseUrl: 'https://api.elevenlabs.io/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'ElevenLabs - 语音合成'
+    },
+    {
+      name: 'luma',
+      baseUrl: 'https://api.lumalabs.ai/dream-machine/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: 'Luma AI - Dream Machine 视频生成'
+    },
+    {
+      name: 'huggingface',
+      baseUrl: 'https://api-inference.huggingface.co',
+      apiKey: '',
+      isActive: false,
+      priority: 3,
+      weight: 1,
+      description: 'Hugging Face - 多模态模型'
+    },
+    // ============================================
+    // 国内厂商 - 文本/多模态
+    // ============================================
     {
       name: 'doubao',
       baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
@@ -283,7 +368,7 @@ async function main() {
       isActive: false,
       priority: 3,
       weight: 1,
-      description: 'MiniMax'
+      description: 'MiniMax - 海螺 AI'
     },
     {
       name: 'lingyi',
@@ -292,9 +377,8 @@ async function main() {
       isActive: false,
       priority: 3,
       weight: 1,
-      description: '零一万物'
+      description: '零一万物 - Yi 系列'
     },
-    // 视频生成
     {
       name: 'kling',
       baseUrl: 'https://api.klingai.com',
@@ -305,19 +389,69 @@ async function main() {
       description: '快手可灵 - 视频生成'
     },
     {
-      name: 'vidu',
-      baseUrl: 'https://api.vidu.cn',
+      name: 'stepfun',
+      baseUrl: 'https://api.stepfun.com/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 3,
+      weight: 1,
+      description: '阶跃星辰 - 跃问'
+    },
+    {
+      name: 'baichuan',
+      baseUrl: 'https://api.baichuan-ai.com/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 3,
+      weight: 1,
+      description: '百川智能 - Baichuan 系列'
+    },
+    {
+      name: 'sensetime',
+      baseUrl: 'https://api.sensetime.com/v1',
+      apiKey: '',
+      isActive: false,
+      priority: 3,
+      weight: 1,
+      description: '商汤科技 - 日日新'
+    },
+    // ============================================
+    // 图像生成专用
+    // ============================================
+    {
+      name: 'wanxiang',
+      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
       apiKey: '',
       isActive: false,
       priority: 2,
       weight: 1,
-      description: 'Vidu - 视频生成'
+      description: '阿里通义万相 - 图像生成'
     },
+    {
+      name: 'hunyuan-image',
+      baseUrl: 'https://hunyuan.tencentcloudapi.com',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: '腾讯混元图像 - 图像生成'
+    },
+    {
+      name: 'gewang',
+      baseUrl: 'https://qianfan.baidubce.com/v2',
+      apiKey: '',
+      isActive: false,
+      priority: 2,
+      weight: 1,
+      description: '百度文心一格 - 图像生成'
+    },
+    // ============================================
     // 本地服务
+    // ============================================
     {
       name: 'ollama',
       baseUrl: 'http://localhost:11434/api',
-      apiKey: 'ollama', // Ollama 不需要 API Key
+      apiKey: 'ollama',
       isActive: false,
       priority: 10,
       weight: 1,

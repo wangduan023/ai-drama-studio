@@ -2,21 +2,20 @@
  * Project Repository
  * 项目聚合根的仓储层，封装项目相关的数据库操作
  */
-import { Prisma, PrismaClient } from '@prisma/client'
-import { BaseRepository, NOT_DELETED } from './base.repository'
+import { Prisma, PrismaClient, ProjectStatus, Project, Episode } from '@prisma/client'
 import { prisma } from '../client'
 
 export interface CreateProjectInput {
   name: string
   description?: string
   userId: string
-  status?: Prisma.ProjectStatus
+  status?: ProjectStatus
 }
 
 export interface UpdateProjectInput {
   name?: string
   description?: string
-  status?: Prisma.ProjectStatus
+  status?: ProjectStatus
   deletedAt?: Date | null
   deletedBy?: string
 }
@@ -42,13 +41,11 @@ export type ProjectWithRelations = Prisma.ProjectGetPayload<{
 
 type ProjectIncludeMap = Record<string, boolean>
 
-export class ProjectRepository extends BaseRepository<PrismaClient> {
-  constructor(prismaInstance?: PrismaClient) {
-    super(prismaInstance)
-  }
+export class ProjectRepository {
+  private prisma: PrismaClient
 
-  protected getModelName(): string {
-    return 'project'
+  constructor(prismaInstance?: PrismaClient) {
+    this.prisma = prismaInstance || prisma
   }
 
   /**
@@ -57,13 +54,13 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   async findById(
     id: string,
     options: FindProjectOptions = {}
-  ): Promise<Prisma.ProjectGetPayload<{ include: ProjectIncludeMap }> | null> {
+  ): Promise<Project | null> {
     const include = this.buildInclude(options)
 
     return this.prisma.project.findUnique({
       where: { id },
       include,
-    }) as Promise<Prisma.ProjectGetPayload<{ include: ProjectIncludeMap }> | null>
+    })
   }
 
   /**
@@ -72,7 +69,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   async findByUserId(
     userId: string,
     options: FindProjectOptions = {}
-  ): Promise<Prisma.ProjectGetPayload<{ include: ProjectIncludeMap }>[]> {
+  ): Promise<Project[]> {
     const include = this.buildInclude(options)
     const where: Prisma.ProjectWhereInput = {
       userId,
@@ -83,16 +80,16 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
       where,
       include,
       orderBy: { updatedAt: 'desc' },
-    }) as Promise<Prisma.ProjectGetPayload<{ include: ProjectIncludeMap }>[]>
+    })
   }
 
   /**
    * 查找状态过滤的项目
    */
   async findByStatus(
-    status: Prisma.ProjectStatus,
+    status: ProjectStatus,
     options: FindProjectOptions = {}
-  ): Promise<Prisma.ProjectGetPayload<{ include: ProjectIncludeMap }>[]> {
+  ): Promise<Project[]> {
     const include = this.buildInclude(options)
 
     return this.prisma.project.findMany({
@@ -102,7 +99,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
       },
       include,
       orderBy: { updatedAt: 'desc' },
-    }) as Promise<Prisma.ProjectGetPayload<{ include: ProjectIncludeMap }>[]>
+    })
   }
 
   /**
@@ -111,7 +108,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   async create(
     input: CreateProjectInput,
     includeEpisodes = false
-  ): Promise<Prisma.Project> {
+  ): Promise<Project> {
     return this.prisma.project.create({
       data: {
         name: input.name,
@@ -131,7 +128,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   async update(
     id: string,
     input: UpdateProjectInput
-  ): Promise<Prisma.Project> {
+  ): Promise<Project> {
     return this.prisma.project.update({
       where: { id },
       data: input,
@@ -141,7 +138,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   /**
    * 软删除项目
    */
-  async softDelete(id: string, deletedBy?: string): Promise<Prisma.Project> {
+  async softDelete(id: string, deletedBy?: string): Promise<Project> {
     return this.prisma.project.update({
       where: { id },
       data: {
@@ -154,7 +151,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   /**
    * 恢复已删除的项目
    */
-  async restore(id: string): Promise<Prisma.Project> {
+  async restore(id: string): Promise<Project> {
     return this.prisma.project.update({
       where: { id },
       data: {
@@ -167,7 +164,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
   /**
    * 硬删除项目（谨慎使用）
    */
-  async hardDelete(id: string): Promise<Prisma.Project> {
+  async hardDelete(id: string): Promise<Project> {
     return this.prisma.project.delete({
       where: { id },
     })
@@ -178,7 +175,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
    */
   async createWithEpisodes(
     input: CreateProjectInput & { episodes?: { number: number; name: string }[] }
-  ): Promise<Prisma.Project & { episodes: Prisma.Episode[] }> {
+  ): Promise<Project & { episodes: Episode[] }> {
     return this.prisma.$transaction(async (tx) => {
       const project = await tx.project.create({
         data: {
@@ -202,7 +199,7 @@ export class ProjectRepository extends BaseRepository<PrismaClient> {
       return tx.project.findUnique({
         where: { id: project.id },
         include: { episodes: true },
-      }) as Promise<Prisma.Project & { episodes: Prisma.Episode[] }>
+      }) as Promise<Project & { episodes: Episode[] }>
     })
   }
 

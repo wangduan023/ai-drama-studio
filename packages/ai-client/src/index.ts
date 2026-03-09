@@ -148,6 +148,43 @@ export {
   SenseTimeClient,
 } from './clients/sensetime.client'
 
+// 国际 AI 厂商客户端
+export {
+  MistralClient,
+} from './clients/mistral.client'
+
+export {
+  CohereClient,
+} from './clients/cohere.client'
+
+export {
+  GroqClient,
+} from './clients/groq.client'
+
+export {
+  StabilityClient,
+} from './clients/stability.client'
+
+export {
+  FalClient,
+} from './clients/fal.client'
+
+export {
+  RunwayClient,
+} from './clients/runway.client'
+
+export {
+  ElevenLabsClient,
+} from './clients/elevenlabs.client'
+
+export {
+  LumaClient,
+} from './clients/luma.client'
+
+export {
+  HuggingFaceClient,
+} from './clients/huggingface.client'
+
 // ============================================================
 // 工厂导出
 // ============================================================

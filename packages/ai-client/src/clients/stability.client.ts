@@ -42,11 +42,9 @@ export class StabilityClient extends BaseAIClient {
   // ============================================================
 
   async generateText(_params: TextGenerateParams, _onStream?: StreamCallback): Promise<TextGenerateResult> {
-    return {
-      text: '',
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      error: 'Stability AI 不支持文本生成',
-    } as TextGenerateResult
+    throw createAIError('INTERNAL_ERROR', 'Stability AI 不支持文本生成', {
+      provider: this.provider as AIProvider,
+    })
   }
 
   // ============================================================

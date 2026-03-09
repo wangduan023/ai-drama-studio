@@ -43,11 +43,9 @@ export class FalClient extends BaseAIClient {
   // ============================================================
 
   async generateText(_params: TextGenerateParams, _onStream?: StreamCallback): Promise<TextGenerateResult> {
-    return {
-      text: '',
-      usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      error: 'Fal.ai 不支持文本生成',
-    } as TextGenerateResult
+    throw createAIError('INTERNAL_ERROR', 'Fal.ai 不支持文本生成', {
+      provider: this.provider as AIProvider,
+    })
   }
 
   // ============================================================
@@ -65,8 +63,7 @@ export class FalClient extends BaseAIClient {
       } = params
 
       // 映射宽高比到尺寸
-      const size = this.mapAspectRatioToSize(aspectRatio, resolution)
-      const [width, height] = size.split('x').map(Number)
+      const [width, height] = this.mapAspectRatioToSize(aspectRatio, resolution)
 
       // Fal.ai 使用队列系统，先提交任务
       const body: Record<string, unknown> = {

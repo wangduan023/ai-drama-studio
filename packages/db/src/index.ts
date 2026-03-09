@@ -54,8 +54,5 @@ export { AiProviderRepository } from './repositories/ai-provider.repository'
 export { AiModelRepository } from './repositories/ai-model.repository'
 export { AiUsageRepository } from './repositories/ai-usage.repository'
 
-// Base Repository
-export { BaseRepository, NOT_DELETED } from './repositories/base.repository'
-
 // Schemas 导出
 export * from './schemas'

@@ -1,10 +1,10 @@
 /**
- * Runway ML 客户端实现
+ * Luma AI 客户端实现
  *
  * 支持:
- * - Gen-3 Alpha
- * - Gen-2
- * - 视频生成专用 API
+ * - Dream Machine 视频生成
+ * - 图生视频
+ * - 文本生成视频
  * - 异步任务轮询
  */
 
@@ -27,39 +27,39 @@ import { BaseAIClient } from '../base'
 import { createAIError } from '../errors'
 
 /**
- * Runway ML 客户端
+ * Luma AI 客户端
  */
-export class RunwayClient extends BaseAIClient {
+export class LumaClient extends BaseAIClient {
   constructor(config: AIModelConfig) {
     super({
       ...config,
-      baseURL: config.baseURL || 'https://api.runwayml.com/v1',
+      baseURL: config.baseURL || 'https://api.lumalabs.ai/dream-machine/v1',
     })
   }
 
   // ============================================================
-  // 文本生成 - 不支持 (Runway 专注于视频)
+  // 文本生成 - 不支持 (Luma 专注于视频)
   // ============================================================
 
   async generateText(_params: TextGenerateParams, _onStream?: StreamCallback): Promise<TextGenerateResult> {
-    throw createAIError('INTERNAL_ERROR', 'Runway ML 不支持文本生成', {
+    throw createAIError('INTERNAL_ERROR', 'Luma AI 不支持文本生成', {
       provider: this.provider as AIProvider,
     })
   }
 
   // ============================================================
-  // 图像生成 - 不支持 (Runway 专注于视频)
+  // 图像生成 - 不支持
   // ============================================================
 
   async generateImage(_params: ImageGenerateParams): Promise<ImageGenerateResult> {
     return {
       success: false,
-      error: 'Runway ML 不支持图像生成，请使用 Gen-2/Gen-3 进行视频生成',
+      error: 'Luma AI 不支持图像生成',
     }
   }
 
   // ============================================================
-  // 视频生成
+  // 视频生成 (Dream Machine)
   // ============================================================
 
   async generateVideo(params: VideoGenerateParams): Promise<VideoGenerateResult> {
@@ -68,28 +68,31 @@ export class RunwayClient extends BaseAIClient {
         imageUrl,
         prompt,
         duration = 5,
-        resolution = '720p',
       } = params
 
-      // Runway Gen-3 Alpha API
+      // Luma Dream Machine API
       const body: Record<string, unknown> = {
-        taskId: this.generateTaskId(),
         prompt,
-        image: imageUrl,
-        duration_seconds: duration,
-        resolution,
-        seed: params.seed ?? Math.floor(Math.random() * 1000000),
       }
 
-      const model = this.modelId || 'gen3a_turbo'
+      // 如果有起始图片
+      if (imageUrl) {
+        ;(body as Record<string, unknown>).image = imageUrl
+      }
 
-      const response = await fetch(this.getAbsoluteURL(`/tasks/${model}/text_to_video`), {
+      // 扩展视频时长选项
+      if (duration > 5) {
+        ;(body as Record<string, unknown>).extend = true
+      }
+
+      const model = this.modelId || 'dream-machine'
+
+      const response = await fetch(this.getAbsoluteURL(`/generations`), {
         method: 'POST',
         headers: {
           ...this.getHeaders(),
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'X-Runway-Version': '1',
         },
         body: JSON.stringify(body),
         signal: this.createAbortController().controller.signal,
@@ -106,26 +109,31 @@ export class RunwayClient extends BaseAIClient {
    * 解析视频响应
    */
   private parseVideoResponse(data: Record<string, unknown>): VideoGenerateResult {
-    const taskId = data.taskId as string | undefined
-    const status = data.status as string | undefined
+    const id = data.id as string | undefined
+    const state = data.state as string | undefined
 
-    if (!taskId) {
+    if (!id) {
       return {
         success: false,
-        error: 'Runway ML 未返回任务 ID',
+        error: 'Luma AI 未返回任务 ID',
       }
     }
 
     // 检查是否已有结果
-    if (status === 'SUCCEEDED' && data.output) {
-      const output = data.output as Record<string, unknown>
-      const videoUrl = output.output as string | undefined
-      if (videoUrl) {
-        return {
-          success: true,
-          videoUrl,
-          requestId: taskId,
-        }
+    if (state === 'completed' && data.video) {
+      const video = data.video as Record<string, unknown>
+      return {
+        success: true,
+        videoUrl: video.url as string,
+        requestId: id,
+      }
+    }
+
+    // 检查是否失败
+    if (state === 'failed') {
+      return {
+        success: false,
+        error: (data.failure_reason as string) || '视频生成失败',
       }
     }
 
@@ -133,22 +141,21 @@ export class RunwayClient extends BaseAIClient {
     return {
       success: true,
       async: true,
-      externalId: taskId,
-      endpoint: `/tasks/${taskId}`,
+      externalId: id,
+      endpoint: `/generations/${id}`,
     }
   }
 
   /**
    * 轮询视频结果
    */
-  async pollForResult(taskId: string, timeoutMs: number = 300000): Promise<VideoGenerateResult> {
+  async pollForResult(id: string, timeoutMs: number = 300000): Promise<VideoGenerateResult> {
     const startTime = Date.now()
 
     while (Date.now() - startTime < timeoutMs) {
-      const response = await fetch(this.getAbsoluteURL(`/tasks/${taskId}`), {
+      const response = await fetch(this.getAbsoluteURL(`/generations/${id}`), {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
-          'X-Runway-Version': '1',
         },
       })
 
@@ -157,48 +164,41 @@ export class RunwayClient extends BaseAIClient {
       }
 
       const data = await response.json()
-      const status = data.status as string | undefined
+      const state = data.state as string | undefined
 
-      if (status === 'SUCCEEDED') {
-        const output = data.output as Record<string, unknown> | undefined
-        if (output?.output) {
+      if (state === 'completed') {
+        const video = data.video as Record<string, unknown> | undefined
+        if (video?.url) {
           return {
             success: true,
-            videoUrl: output.output as string,
-            requestId: taskId,
+            videoUrl: video.url as string,
+            requestId: id,
           }
         }
       }
 
-      if (status === 'FAILED') {
+      if (state === 'failed') {
         return {
           success: false,
-          error: (data.failure as string) || '视频生成失败',
+          error: (data.failure_reason as string) || '视频生成失败',
         }
       }
 
-      if (status === 'CANCELED') {
+      if (state === 'cancelled') {
         return {
           success: false,
           error: '视频生成已取消',
         }
       }
 
-      // 等待 2 秒后重试
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // 等待 3 秒后重试
+      await new Promise((resolve) => setTimeout(resolve, 3000))
     }
 
     return {
       success: false,
       error: '轮询超时',
     }
-  }
-
-  /**
-   * 生成任务 ID
-   */
-  private generateTaskId(): string {
-    return `task_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   }
 
   // ============================================================
@@ -208,7 +208,7 @@ export class RunwayClient extends BaseAIClient {
   async generateAudio(_params: AudioGenerateParams): Promise<AudioGenerateResult> {
     return {
       success: false,
-      error: 'Runway ML 不支持语音生成',
+      error: 'Luma AI 不支持语音生成',
     }
   }
 }
