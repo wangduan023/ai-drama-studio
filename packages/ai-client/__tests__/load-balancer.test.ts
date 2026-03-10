@@ -25,12 +25,12 @@ describe('LoadBalancer', () => {
         {
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key-1',
+          apiKey: 'sk-test-key-1',
         },
         {
           provider: 'anthropic',
           modelId: 'claude-3-7-sonnet-20250219',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
         },
       ])
 
@@ -44,7 +44,7 @@ describe('LoadBalancer', () => {
           name: 'primary',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -57,7 +57,7 @@ describe('LoadBalancer', () => {
         {
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
           weight: 3,
         },
       ])
@@ -71,7 +71,7 @@ describe('LoadBalancer', () => {
         {
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -88,13 +88,13 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key-1',
+          apiKey: 'sk-test-key-1',
         },
         {
           name: 'client-2',
           provider: 'anthropic',
           modelId: 'claude-3',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
         },
       ], { strategy: 'round-robin' })
 
@@ -113,14 +113,14 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key-1',
+          apiKey: 'sk-test-key-1',
           weight: 1,
         },
         {
           name: 'client-2',
           provider: 'anthropic',
           modelId: 'claude-3',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
           weight: 3,
         },
       ], { strategy: 'round-robin' })
@@ -151,14 +151,14 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key-1',
+          apiKey: 'sk-test-key-1',
           weight: 3,
         },
         {
           name: 'client-2',
           provider: 'anthropic',
           modelId: 'claude-3',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
           weight: 1,
         },
       ], { strategy: 'weighted' })
@@ -175,13 +175,13 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key-1',
+          apiKey: 'sk-test-key-1',
         },
         {
           name: 'client-2',
           provider: 'anthropic',
           modelId: 'claude-3',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
         },
       ], { strategy: 'least-loaded' })
 
@@ -197,14 +197,14 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key-1',
+          apiKey: 'sk-test-key-1',
           weight: 1,
         },
         {
           name: 'client-2',
           provider: 'anthropic',
           modelId: 'claude-3',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
           weight: 5,
         },
       ], { strategy: 'priority' })
@@ -221,7 +221,7 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -245,7 +245,7 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -262,7 +262,7 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ], { failureThreshold: 2 })
 
@@ -281,7 +281,7 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -303,7 +303,7 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -327,13 +327,13 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
         {
           name: 'client-2',
           provider: 'anthropic',
           modelId: 'claude-3',
-          apiKey: 'test-key-2',
+          apiKey: 'sk-test-key-2',
         },
       ])
 
@@ -352,7 +352,7 @@ describe('LoadBalancer', () => {
       loadBalancer.addClient('new-client', {
         provider: 'openai',
         modelId: 'gpt-4o',
-        apiKey: 'test-key',
+        apiKey: 'sk-test-key',
       }, 2)
 
       expect(loadBalancer.getClientCount()).toBe(1)
@@ -369,7 +369,7 @@ describe('LoadBalancer', () => {
           name: 'client-1',
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -387,7 +387,7 @@ describe('LoadBalancer', () => {
         {
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ])
 
@@ -404,7 +404,7 @@ describe('LoadBalancer', () => {
         {
           provider: 'openai',
           modelId: 'gpt-4o',
-          apiKey: 'test-key',
+          apiKey: 'sk-test-key',
         },
       ], 'weighted')
 

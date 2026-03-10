@@ -24,8 +24,8 @@ import { ZhipuClient } from '../src/clients/zhipu.client'
 import { MoonshotClient } from '../src/clients/moonshot.client'
 import { BaichuanClient } from '../src/clients/baichuan.client'
 import { SenseTimeClient } from '../src/clients/sensetime.client'
-import { KlingClient } from '../src/clients/lingyi.client'
-import { StepfunClient } from '../src/clients/lingyi.client'
+import { KlingClient } from '../src/clients/kling.client'
+import { StepfunClient } from '../src/clients/stepfun.client'
 import { LingyiClient } from '../src/clients/lingyi.client'
 import { IflytekClient } from '../src/clients/iflytek.client'
 import { MiniMaxClient } from '../src/clients/minimax.client'
@@ -39,7 +39,7 @@ describe('factory', () => {
       const client = createAIClient({
         provider: 'openai',
         modelId: 'gpt-4o',
-        apiKey: 'test-key',
+        apiKey: 'sk-test-key',
       })
       expect(client).toBeInstanceOf(OpenAIClient)
     })
@@ -283,6 +283,7 @@ describe('factory', () => {
         provider: 'comfyui',
         baseURL: 'http://localhost:8188',
         apiKey: 'test-key',
+        modelId: 'comfyui-workflow', // ComfyUI 现在需要 modelId
       })
       expect(client).toBeInstanceOf(ComfyUIClient)
     })
@@ -519,6 +520,22 @@ describe('factory', () => {
 
       expect(pool.primary).toBeInstanceOf(OpenAIClient)
       expect(pool.fallbacks).toHaveLength(0)
+    })
+  })
+
+  describe('normalizeProvider edge cases', () => {
+    it('应该识别混元图像别名', () => {
+      expect(normalizeProvider('hunyuan-image')).toBe('hunyuan-image')
+      expect(normalizeProvider('hunyuan_image')).toBe('hunyuan-image')
+      expect(normalizeProvider('混元图像')).toBe('hunyuan-image')
+      expect(normalizeProvider('hunyuan-tuxiang')).toBe('hunyuan-image')
+    })
+
+    it('应该识别文心一格别名', () => {
+      expect(normalizeProvider('gewang')).toBe('gewang')
+      expect(normalizeProvider('文心一格')).toBe('gewang')
+      expect(normalizeProvider('wenxin-yige')).toBe('gewang')
+      expect(normalizeProvider('yige')).toBe('gewang')
     })
   })
 })

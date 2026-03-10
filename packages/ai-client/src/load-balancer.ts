@@ -5,11 +5,29 @@
  * - 轮询 (Round-Robin)
  * - 权重 (Weighted)
  * - 最少负载 (Least-Loaded)
+ *
+ * 资源管理：
+ * - 支持 Symbol.dispose 进行资源清理
+ * - 支持 FinalizationRegistry 自动清理（当实例被垃圾回收时）
  */
 
 import type { AIClientType, ClientFactoryOptions } from './factory'
 import { createAIClient } from './factory'
 import type { AIError } from './types'
+import { getLogger } from './logger'
+
+/**
+ * 负载均衡器实例注册表，用于自动清理
+ */
+const loadBalancerRegistry = new FinalizationRegistry<{
+  timer: NodeJS.Timeout | undefined
+  name: string
+}>((heldValue) => {
+  if (heldValue.timer) {
+    clearInterval(heldValue.timer)
+    getLogger().debug(`[LoadBalancer] 自动清理: ${heldValue.name}`)
+  }
+})
 
 /**
  * 客户端包装器（带状态）
@@ -105,6 +123,12 @@ export class LoadBalancer {
 
     // 启动健康检查
     this.startHealthCheck()
+
+    // 注册到 FinalizationRegistry 以便自动清理
+    loadBalancerRegistry.register(this, {
+      timer: this.healthCheckTimer,
+      name: `LoadBalancer-${Date.now()}`,
+    })
   }
 
   /**
@@ -235,7 +259,7 @@ export class LoadBalancer {
       wrapper.consecutiveFailures++
       if (wrapper.consecutiveFailures >= this.config.failureThreshold) {
         wrapper.isHealthy = false
-        console.warn(`[LoadBalancer] 客户端 ${name} 标记为不健康，连续失败 ${wrapper.consecutiveFailures} 次`)
+        getLogger().warn(`[LoadBalancer] 客户端 ${name} 标记为不健康，连续失败 ${wrapper.consecutiveFailures} 次`)
       }
     }
   }
@@ -272,7 +296,7 @@ export class LoadBalancer {
         // 如果连续成功，恢复健康状态
         if (!wrapper.isHealthy && wrapper.consecutiveFailures >= this.config.recoveryThreshold) {
           wrapper.isHealthy = true
-          console.log(`[LoadBalancer] 客户端 ${name} 已恢复健康`)
+          getLogger().info(`[LoadBalancer] 客户端 ${name} 已恢复健康`)
         }
 
         wrapper.lastHealthCheck = Date.now()
@@ -287,7 +311,32 @@ export class LoadBalancer {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer)
       this.healthCheckTimer = undefined
+      getLogger().debug('[LoadBalancer] 健康检查已停止')
     }
+  }
+
+  /**
+   * 资源清理（Symbol.dispose 支持）
+   *
+   * @example
+   * ```typescript
+   * using loadBalancer = createLoadBalancer([...])
+   * // 自动调用 dispose
+   * ```
+   */
+  [Symbol.dispose](): void {
+    this.stop()
+    getLogger().debug('[LoadBalancer] 资源已释放')
+  }
+
+  /**
+   * 销毁负载均衡器
+   * 清理所有资源并释放内存
+   */
+  destroy(): void {
+    this.stop()
+    this.pool.clear()
+    getLogger().info('[LoadBalancer] 已销毁')
   }
 
   /**

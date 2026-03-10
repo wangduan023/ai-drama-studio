@@ -51,6 +51,7 @@ import type {
 } from './types'
 import { createAIClient } from './factory'
 import type { AIClientType } from './factory'
+import { getLogger } from './logger'
 
 /**
  * 账号配置
@@ -379,7 +380,7 @@ export class MultiAccountBalancer {
         if (this.shouldDisableAccount(account, aiError)) {
           account.isAvailable = false
           account.recoverAt = Date.now() + this.recoverTimeMs
-          console.warn(
+          getLogger().warn(
             `[MultiAccountBalancer] 账号 ${account.name} 暂时禁用，` +
             `原因：${aiError.code}, 将在 ${this.recoverTimeMs / 1000}秒后恢复`
           )
@@ -387,7 +388,7 @@ export class MultiAccountBalancer {
 
         // 检查错误是否可重试（如速率限制）
         if (this.isRetryableError(aiError)) {
-          console.log(
+          getLogger().info(
             `[MultiAccountBalancer] 账号 ${account.name} ${operationType} 失败，` +
             `切换到下一个账号...`
           )
@@ -586,7 +587,7 @@ export class MultiAccountBalancer {
       account.isAvailable = true
       account.consecutiveFailures = 0
       account.recoverAt = undefined
-      console.log(`[MultiAccountBalancer] 账号 ${name} 状态已重置`)
+      getLogger().info(`[MultiAccountBalancer] 账号 ${name} 状态已重置`)
     }
   }
 
@@ -598,7 +599,7 @@ export class MultiAccountBalancer {
     if (account) {
       account.isAvailable = false
       account.recoverAt = recoverTimeMs ? Date.now() + recoverTimeMs : undefined
-      console.log(`[MultiAccountBalancer] 账号 ${name} 已手动禁用`)
+      getLogger().info(`[MultiAccountBalancer] 账号 ${name} 已手动禁用`)
     }
   }
 
@@ -610,7 +611,7 @@ export class MultiAccountBalancer {
     if (account) {
       account.isAvailable = true
       account.recoverAt = undefined
-      console.log(`[MultiAccountBalancer] 账号 ${name} 已手动启用`)
+      getLogger().info(`[MultiAccountBalancer] 账号 ${name} 已手动启用`)
     }
   }
 
@@ -622,7 +623,7 @@ export class MultiAccountBalancer {
     if (index !== -1) {
       this.accountList.splice(index, 1)
       this.accounts.delete(name)
-      console.log(`[MultiAccountBalancer] 账号 ${name} 已移除`)
+      getLogger().info(`[MultiAccountBalancer] 账号 ${name} 已移除`)
     }
   }
 
@@ -673,6 +674,20 @@ export class MultiAccountBalancer {
   destroy(): void {
     this.accounts.clear()
     this.accountList.length = 0
+    getLogger().info('[MultiAccountBalancer] 已销毁')
+  }
+
+  /**
+   * 资源清理（Symbol.dispose 支持）
+   *
+   * @example
+   * ```typescript
+   * using balancer = createMultiAccountBalancer({...})
+   * // 自动调用 dispose
+   * ```
+   */
+  [Symbol.dispose](): void {
+    this.destroy()
   }
 }
 

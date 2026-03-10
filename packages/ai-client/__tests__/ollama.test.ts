@@ -236,4 +236,212 @@ describe('OllamaClient', () => {
       expect(result.error).toBe('Ollama 不支持语音生成')
     })
   })
+
+  describe('多模态消息处理', () => {
+    it('应该处理包含图片的消息', async () => {
+      const mockResponse = {
+        message: {
+          content: '这是一只猫',
+          role: 'assistant',
+        },
+        prompt_eval_count: 50,
+        eval_count: 20,
+      }
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockResponse,
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      const result = await client.generateText({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: '这是什么？' },
+              { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,abcd1234' } },
+            ],
+          },
+        ],
+      })
+
+      expect(result.text).toBe('这是一只猫')
+
+      // 验证请求体包含图片
+      const callArgs = mockFetch.mock.calls[0][1] as RequestInit
+      const body = JSON.parse(callArgs.body as string)
+      expect(body.messages[0].images).toEqual(['abcd1234'])
+    })
+
+    it('应该处理多张图片', async () => {
+      const mockResponse = {
+        message: { content: '图片内容', role: 'assistant' },
+        prompt_eval_count: 100,
+        eval_count: 30,
+      }
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockResponse,
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateText({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: '比较这两张图片' },
+              { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,abc' } },
+              { type: 'image_url', image_url: { url: 'data:image/png;base64,xyz' } },
+            ],
+          },
+        ],
+      })
+
+      const callArgs = mockFetch.mock.calls[0][1] as RequestInit
+      const body = JSON.parse(callArgs.body as string)
+      expect(body.messages[0].images).toEqual(['abc', 'xyz'])
+    })
+
+    it('应该处理普通文本消息', async () => {
+      const mockResponse = {
+        message: { content: 'Response', role: 'assistant' },
+        prompt_eval_count: 10,
+        eval_count: 10,
+      }
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockResponse,
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateText({
+        messages: [{ role: 'user', content: 'Hello' }],
+      })
+
+      const callArgs = mockFetch.mock.calls[0][1] as RequestInit
+      const body = JSON.parse(callArgs.body as string)
+      expect(body.messages[0].content).toBe('Hello')
+      expect(body.messages[0].images).toBeUndefined()
+    })
+
+    it('应该处理非 base64 的 URL 并记录警告', async () => {
+      const mockResponse = {
+        message: { content: 'Response', role: 'assistant' },
+        prompt_eval_count: 10,
+        eval_count: 10,
+      }
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => mockResponse,
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      await client.generateText({
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: '这是什么？' },
+              { type: 'image_url', image_url: { url: 'https://example.com/image.jpg' } },
+            ],
+          },
+        ],
+      })
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        '[Ollama] 普通图片 URL 需要下载后才能使用:',
+        'https://example.com/image.jpg'
+      )
+
+      consoleWarnSpy.mockRestore()
+    })
+  })
+
+  describe('流式输出', () => {
+    it('应该处理流式输出中的 done 标记', async () => {
+      const mockChunks = [
+        '{"message": {"content": "Hello", "role": "assistant"}}\n',
+        '{"message": {"content": "", "role": "assistant"}, "done": true, "prompt_eval_count": 5, "eval_count": 10}\n',
+      ]
+      let chunkIndex = 0
+
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          body: {
+            getReader: () => ({
+              read: async () => {
+                if (chunkIndex < mockChunks.length) {
+                  return { value: new TextEncoder().encode(mockChunks[chunkIndex++]), done: false }
+                }
+                return { done: true }
+              },
+              releaseLock: () => {},
+            }),
+          },
+          text: async () => '',
+          headers: new Headers(),
+        } as unknown as Response)
+      )
+
+      const onStream = vi.fn()
+      const result = await client.generateText(
+        { messages: [{ role: 'user', content: 'Hello' }], stream: true },
+        onStream
+      )
+
+      expect(result.text).toBe('Hello')
+      expect(result.usage?.promptTokens).toBe(5)
+      expect(result.usage?.completionTokens).toBe(10)
+    })
+
+    it('应该处理流式输出中的错误响应', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: false,
+          status: 500,
+          body: {
+            getReader: () => ({
+              read: async () => ({ done: true }),
+              releaseLock: () => {},
+            }),
+          },
+          text: async () => 'Internal error',
+          headers: new Headers(),
+        } as unknown as Response)
+      )
+
+      const onStream = vi.fn()
+      await expect(
+        client.generateText(
+          { messages: [{ role: 'user', content: 'Hello' }], stream: true },
+          onStream
+        )
+      ).rejects.toThrow()
+    })
+  })
 })

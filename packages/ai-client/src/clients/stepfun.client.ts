@@ -1,8 +1,8 @@
 /**
- * 零一万物 Yi (Lingyi) 客户端实现
+ * 阶跃星辰 StepFun (跃问) 客户端实现
  *
  * 支持：
- * - yi-34b/yi-large/yi-medium
+ * - step-1v/step-1k
  * - 开放平台 API
  * - 流式输出
  */
@@ -25,18 +25,14 @@ import type {
 import { BaseAIClient } from '../base'
 import { createAIError } from '../errors'
 
-// 重新导出 KlingClient 和 StepfunClient 以保持向后兼容
-export { KlingClient } from './kling.client'
-export { StepfunClient } from './stepfun.client'
-
 /**
- * 零一万物 Yi 客户端
+ * 阶跃星辰 StepFun 客户端
  */
-export class LingyiClient extends BaseAIClient {
+export class StepfunClient extends BaseAIClient {
   constructor(config: AIModelConfig) {
     super({
       ...config,
-      baseURL: config.baseURL || 'https://api.lingyiwanwu.com/v1',
+      baseURL: config.baseURL || 'https://api.stepfun.com/v1',
     })
   }
 
@@ -48,7 +44,7 @@ export class LingyiClient extends BaseAIClient {
       const { messages, stream, temperature, maxTokens, topP } = params
 
       const body: Record<string, unknown> = {
-        model: this.modelId || 'yi-large',
+        model: this.modelId || 'step-1v-8k',
         messages: this.normalizeMessages(messages),
         temperature: temperature ?? 0.7,
         max_tokens: maxTokens,
@@ -140,7 +136,7 @@ export class LingyiClient extends BaseAIClient {
   private parseTextResponse(data: Record<string, unknown>): TextGenerateResult {
     const choices = data.choices as Array<Record<string, unknown>> | undefined
     if (!choices || choices.length === 0) {
-      throw createAIError('EMPTY_RESPONSE', '零一万物未返回任何内容', {
+      throw createAIError('EMPTY_RESPONSE', '阶跃星辰未返回任何内容', {
         provider: this.provider as AIProvider,
       })
     }
@@ -167,14 +163,14 @@ export class LingyiClient extends BaseAIClient {
   }
 
   async generateImage(_params: ImageGenerateParams): Promise<ImageGenerateResult> {
-    return { success: false, error: '零一万物不支持图像生成' }
+    return { success: false, error: '阶跃星辰不支持图像生成' }
   }
 
   async generateVideo(_params: VideoGenerateParams): Promise<VideoGenerateResult> {
-    return { success: false, error: '零一万物不支持视频生成' }
+    return { success: false, error: '阶跃星辰不支持视频生成' }
   }
 
   async generateAudio(_params: AudioGenerateParams): Promise<AudioGenerateResult> {
-    return { success: false, error: '零一万物不支持语音生成' }
+    return { success: false, error: '阶跃星辰不支持语音生成' }
   }
 }

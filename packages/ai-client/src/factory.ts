@@ -6,7 +6,9 @@
  *           百度文心一言，腾讯混元，科大讯飞星火，智谱 AI, 月之暗面 Kimi, MiniMax, 零一万物，可灵，阶跃星辰
  */
 
-import type { AIModelConfig, AIProvider } from './types'
+import type { AIModelConfig, AIProvider, ProxyConfig } from './types'
+import { validateModelConfig, validationErrorToAIError, ValidationError } from './validation'
+import { getLogger } from './logger'
 import { OpenAIClient } from './clients/openai.client'
 import { AnthropicClient } from './clients/anthropic.client'
 import { GeminiClient } from './clients/gemini.client'
@@ -22,7 +24,9 @@ import { IflytekClient } from './clients/iflytek.client'
 import { ZhipuClient } from './clients/zhipu.client'
 import { MoonshotClient } from './clients/moonshot.client'
 import { MiniMaxClient } from './clients/minimax.client'
-import { LingyiClient, KlingClient, StepfunClient } from './clients/lingyi.client'
+import { LingyiClient } from './clients/lingyi.client'
+import { KlingClient } from './clients/kling.client'
+import { StepfunClient } from './clients/stepfun.client'
 import { BaichuanClient } from './clients/baichuan.client'
 import { SenseTimeClient } from './clients/sensetime.client'
 // 国际 AI 厂商客户端
@@ -41,8 +45,8 @@ import type { BaseAIClient } from './base'
  * 客户端创建选项
  */
 export interface ClientFactoryOptions {
-  /** 提供商 */
-  provider: AIProvider | string
+  /** 提供商 - 支持标准提供商名称或别名 */
+  provider: AIProvider
   /** 模型 ID */
   modelId: string
   /** API Key */
@@ -51,8 +55,12 @@ export interface ClientFactoryOptions {
   baseURL?: string
   /** 超时时间 (毫秒) */
   timeout?: number
+  /** HTTP 代理配置 (用于国内访问国外 API) */
+  proxy?: ProxyConfig
   /** 额外配置 */
   extra?: Record<string, unknown>
+  /** 是否跳过验证（默认 false） */
+  skipValidation?: boolean
 }
 
 /**
@@ -121,12 +129,38 @@ export type AIClientType =
  * ```
  */
 export function createAIClient(options: ClientFactoryOptions): AIClientType {
+  // 规范化提供商名称
+  const normalizedProvider = normalizeProvider(options.provider)
+
+  // 验证配置（除非明确跳过）
+  if (!options.skipValidation) {
+    try {
+      validateModelConfig({
+        provider: normalizedProvider,
+        modelId: options.modelId,
+        apiKey: options.apiKey,
+        baseURL: options.baseURL,
+        timeout: options.timeout,
+        proxy: options.proxy,
+        extra: options.extra,
+      })
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw validationErrorToAIError(error as ValidationError, normalizedProvider)
+      }
+      throw error
+    }
+  } else {
+    getLogger().debug(`[createAIClient] 跳过配置验证: ${normalizedProvider}`)
+  }
+
   const config: AIModelConfig = {
-    provider: normalizeProvider(options.provider),
+    provider: normalizedProvider,
     modelId: options.modelId,
     apiKey: options.apiKey,
     baseURL: options.baseURL,
     timeout: options.timeout,
+    proxy: options.proxy,
     extra: options.extra,
   }
 
@@ -315,9 +349,19 @@ export function normalizeProvider(provider: string): AIProvider {
     return 'comfyui'
   }
 
+  // 百度文心一格别名（必须在百度文心一言之前检查）
+  if (
+    normalized === 'gewang' ||
+    normalized === 'yige' ||
+    normalized.includes('文心一格') ||
+    normalized.includes('wenxin-yige')
+  ) {
+    return 'gewang'
+  }
+
   // 百度文心一言别名
   if (
-    normalized.includes('baidu') ||
+    normalized === 'baidu' ||
     normalized.includes('ernie') ||
     normalized.includes('wenxin') ||
     normalized.includes('qianfan')
@@ -325,9 +369,19 @@ export function normalizeProvider(provider: string): AIProvider {
     return 'baidu'
   }
 
+  // 腾讯混元图像别名（必须在腾讯混元之前检查）
+  if (
+    normalized === 'hunyuan-image' ||
+    normalized.includes('hunyuan_image') ||
+    normalized.includes('混元图像') ||
+    normalized.includes('hunyuan-tuxiang')
+  ) {
+    return 'hunyuan-image'
+  }
+
   // 腾讯混元别名
   if (
-    normalized.includes('tencent') ||
+    normalized === 'tencent' ||
     normalized.includes('hunyuan') ||
     normalized.includes('yun')
   ) {
@@ -420,26 +474,6 @@ export function normalizeProvider(provider: string): AIProvider {
     normalized.includes('aliyun-wanxiang')
   ) {
     return 'wanxiang'
-  }
-
-  // 腾讯混元图像别名
-  if (
-    normalized.includes('hunyuan-image') ||
-    normalized.includes('hunyuan_image') ||
-    normalized.includes('混元图像') ||
-    normalized.includes('hunyuan-tuxiang')
-  ) {
-    return 'hunyuan-image'
-  }
-
-  // 百度文心一格别名
-  if (
-    normalized.includes('gewang') ||
-    normalized.includes('文心一格') ||
-    normalized.includes('wenxin-yige') ||
-    normalized.includes('yige')
-  ) {
-    return 'gewang'
   }
 
   // Mistral AI 别名

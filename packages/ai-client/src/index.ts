@@ -202,6 +202,20 @@ export {
 } from './factory'
 
 // ============================================================
+// 代理工具导出
+// ============================================================
+
+export type {
+  ProxyConfig,
+} from './types'
+
+export {
+  createProxyFromEnv,
+  isValidProxyConfig,
+  getProxyUrl,
+} from './proxy'
+
+// ============================================================
 // 负载均衡器导出
 // ============================================================
 
@@ -228,6 +242,40 @@ export {
   MultiAccountBalancer,
   createMultiAccountBalancer,
 } from './multi-account-balancer'
+
+// ============================================================
+// 日志器导出
+// ============================================================
+
+export type {
+  Logger,
+  LogLevel,
+} from './logger'
+
+export {
+  setGlobalLogger,
+  getLogger,
+  resetLogger,
+  defaultLogger,
+} from './logger'
+
+// ============================================================
+// 验证模块导出
+// ============================================================
+
+export type {
+  ValidationError,
+} from './validation'
+
+export {
+  validateModelConfig,
+  validateApiKey,
+  validateBaseURL,
+  validateProxyConfig,
+  validateModelId,
+  validateProvider,
+  SUPPORTED_PROVIDERS,
+} from './validation'
 
 // ============================================================
 // 默认导出

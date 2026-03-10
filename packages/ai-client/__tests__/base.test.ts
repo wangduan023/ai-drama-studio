@@ -250,5 +250,151 @@ describe('BaseAIClient', () => {
       } as Response
       await expect(client.validateResponse(mockResponse)).rejects.toThrow()
     })
+
+    it('应该在 response.text() 抛出错误时使用默认错误消息', async () => {
+      const mockResponse = {
+        ok: false,
+        status: 500,
+        text: async () => { throw new Error('Failed to read text') },
+      } as unknown as Response
+      await expect(client.validateResponse(mockResponse)).rejects.toThrow('HTTP 500')
+    })
+  })
+
+  describe('handleStreamResponse', () => {
+    it('应该在信号已中止时不抛出错误', async () => {
+      const mockBody = {
+        getReader: () => ({
+          read: async () => ({ done: false, value: new Uint8Array([1, 2, 3]) }),
+          releaseLock: vi.fn(),
+        }),
+      } as ReadableStream
+      const mockResponse = { body: mockBody } as Response
+      const abortController = new AbortController()
+      abortController.abort() // 提前中止
+
+      await expect(client.handleStreamResponse(
+        mockResponse,
+        () => {},
+        abortController.signal
+      )).resolves.toBeUndefined()
+    })
+
+    it('应该处理流式数据块', async () => {
+      const chunks: string[] = []
+      const mockBody = {
+        getReader: () => ({
+          read: vi.fn()
+            .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode('hello') })
+            .mockResolvedValueOnce({ done: false, value: new TextEncoder().encode(' world') })
+            .mockResolvedValueOnce({ done: true, value: undefined }),
+          releaseLock: vi.fn(),
+        }),
+      } as unknown as ReadableStream
+      const mockResponse = { body: mockBody } as Response
+
+      await client.handleStreamResponse(
+        mockResponse,
+        (chunk) => chunks.push(chunk),
+        undefined
+      )
+
+      expect(chunks).toEqual(['hello', ' world'])
+    })
+
+    it('应该抛出非中止相关的错误', async () => {
+      const mockBody = {
+        getReader: () => ({
+          read: async () => { throw new Error('Stream error') },
+          releaseLock: vi.fn(),
+        }),
+      } as ReadableStream
+      const mockResponse = { body: mockBody } as Response
+
+      await expect(client.handleStreamResponse(
+        mockResponse,
+        () => {},
+        undefined
+      )).rejects.toThrow('Stream error')
+    })
+  })
+
+  describe('clearAbortTimeout', () => {
+    it('应该清理超时定时器', () => {
+      const timeoutId = setTimeout(() => {}, 1000)
+      const spy = vi.spyOn(global, 'clearTimeout')
+      client.clearAbortTimeout(timeoutId)
+      expect(spy).toHaveBeenCalledWith(timeoutId)
+      spy.mockRestore()
+    })
+
+    it('应该处理未定义的时间 ID', () => {
+      expect(() => client.clearAbortTimeout(undefined)).not.toThrow()
+    })
+  })
+
+  describe('createStreamController', () => {
+    it('应该创建流式控制器', () => {
+      const controller = client.createStreamController()
+      expect(controller).toBeDefined()
+      expect(typeof controller.abort).toBe('function')
+      expect(controller.signal).toBeDefined()
+    })
+  })
+
+  describe('proxy 配置', () => {
+    it('应该处理带用户名的代理配置', () => {
+      const clientWithProxy = new TestAIClient({
+        provider: 'test',
+        modelId: 'test-model',
+        apiKey: 'test-key',
+        proxy: {
+          host: 'http://proxy.example.com',
+          port: 8080,
+          username: 'user',
+          password: 'pass',
+        },
+      })
+      expect(clientWithProxy).toBeDefined()
+    })
+
+    it('应该处理不带用户名的代理配置', () => {
+      const clientWithProxy = new TestAIClient({
+        provider: 'test',
+        modelId: 'test-model',
+        apiKey: 'test-key',
+        proxy: {
+          host: 'proxy.example.com',
+          port: 8080,
+        },
+      })
+      expect(clientWithProxy).toBeDefined()
+    })
+
+    it('应该处理带 http:// 前缀的代理主机', () => {
+      const clientWithProxy = new TestAIClient({
+        provider: 'test',
+        modelId: 'test-model',
+        apiKey: 'test-key',
+        proxy: {
+          host: 'http://proxy.example.com',
+          port: 8080,
+        },
+      })
+      expect(clientWithProxy).toBeDefined()
+    })
+
+    it('应该处理带 https:// 前缀的代理主机', () => {
+      const clientWithProxy = new TestAIClient({
+        provider: 'test',
+        modelId: 'test-model',
+        apiKey: 'test-key',
+        proxy: {
+          host: 'https://proxy.example.com',
+          port: 8080,
+        },
+      })
+      expect(clientWithProxy).toBeDefined()
+    })
   })
 })

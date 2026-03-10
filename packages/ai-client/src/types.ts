@@ -48,6 +48,18 @@ export type AIProvider =
   | 'hunyuan-image' // 腾讯混元图像
   | 'gewang'        // 百度文心一格
 
+/** 代理配置 */
+export interface ProxyConfig {
+  /** 代理服务器地址 (如：http://proxy.example.com) */
+  host: string
+  /** 代理端口 */
+  port: number
+  /** 代理用户名 (可选) */
+  username?: string
+  /** 代理密码 (可选) */
+  password?: string
+}
+
 /** 模型配置 */
 export interface AIModelConfig {
   /** 提供商 */
@@ -60,6 +72,8 @@ export interface AIModelConfig {
   baseURL?: string
   /** 超时时间 (毫秒) */
   timeout?: number
+  /** HTTP 代理配置 (用于国内访问国外 API) */
+  proxy?: ProxyConfig
   /** 额外配置 */
   extra?: Record<string, unknown>
 }

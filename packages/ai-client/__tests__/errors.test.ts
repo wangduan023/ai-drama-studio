@@ -204,4 +204,80 @@ describe('errors', () => {
       }
     })
   })
+
+  describe('isFetchError', () => {
+    it('应该识别 FetchError', () => {
+      // 创建一个带有 type 属性的 Error 对象来模拟 FetchError
+      const fetchError = new Error('fetch failed') as Error & { type?: string }
+      fetchError.type = 'system'
+
+      const result = toAIError(fetchError, { provider: 'openai' })
+      expect(result.code).toBe('NETWORK_ERROR')
+      expect(result.retryable).toBe(true)
+    })
+
+    it('应该处理不带 type 属性的 Error', () => {
+      const error = new Error('regular error')
+      const result = toAIError(error, { provider: 'openai' })
+      expect(result).toBeDefined()
+    })
+
+    it('应该处理 null 值', () => {
+      const result = toAIError(null, { provider: 'openai' })
+      expect(result.code).toBe('INTERNAL_ERROR')
+      expect(result.message).toBe('null')
+    })
+
+    it('应该处理空对象', () => {
+      const result = toAIError({}, { provider: 'openai' })
+      expect(result.code).toBe('INTERNAL_ERROR')
+      expect(result.message).toBe('{}')
+    })
+  })
+
+  describe('inferErrorCodeFromMessage', () => {
+    it('应该从包含 connection 的消息中推断网络错误', () => {
+      const error = new Error('connection refused')
+      const aiError = toAIError(error, { provider: 'openai' })
+      expect(aiError.code).toBe('NETWORK_ERROR')
+    })
+
+    it('应该从包含 empty 的消息中推断空响应错误', () => {
+      const error = new Error('empty response body')
+      const aiError = toAIError(error, { provider: 'openai' })
+      expect(aiError.code).toBe('EMPTY_RESPONSE')
+    })
+
+    it('应该从包含 no content 的消息中推断空响应错误', () => {
+      const error = new Error('no content returned')
+      const aiError = toAIError(error, { provider: 'openai' })
+      expect(aiError.code).toBe('EMPTY_RESPONSE')
+    })
+
+    it('应该从包含 json 的消息中推断解析错误', () => {
+      const error = new Error('invalid json response')
+      const aiError = toAIError(error, { provider: 'openai' })
+      expect(aiError.code).toBe('PARSE_ERROR')
+    })
+
+    it('应该从包含 invalid 的消息中推断解析错误', () => {
+      const error = new Error('invalid response format')
+      const aiError = toAIError(error, { provider: 'openai' })
+      expect(aiError.code).toBe('PARSE_ERROR')
+    })
+  })
+
+  describe('isRetryableError edge cases', () => {
+    it('应该返回 false 对于无效请求错误', () => {
+      expect(isRetryableError({ code: 'INVALID_REQUEST', message: 'Invalid request', retryable: false })).toBe(false)
+    })
+
+    it('应该返回 false 对于敏感内容错误', () => {
+      expect(isRetryableError({ code: 'SENSITIVE_CONTENT', message: 'Content policy violation', retryable: false })).toBe(false)
+    })
+
+    it('应该返回 false 对于解析错误', () => {
+      expect(isRetryableError({ code: 'PARSE_ERROR', message: 'JSON parse error', retryable: false })).toBe(false)
+    })
+  })
 })

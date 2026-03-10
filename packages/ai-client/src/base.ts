@@ -18,11 +18,26 @@ import type {
   StreamController,
   RetryConfig,
   AIError,
+  ProxyConfig,
 } from './types'
 import {
   DEFAULT_RETRY_CONFIG,
 } from './types'
 import { toAIError, createAIError } from './errors'
+import { getLogger } from './logger'
+
+// Node.js 22.x 内置 undici，支持代理
+let ProxyAgent: any
+let setGlobalDispatcher: any
+try {
+  const undici = require('undici')
+  ProxyAgent = undici.ProxyAgent
+  setGlobalDispatcher = undici.setGlobalDispatcher
+} catch {
+  // 在非 Node.js 环境中，ProxyAgent 不可用
+  ProxyAgent = null
+  setGlobalDispatcher = null
+}
 
 /**
  * 计算指数退避延迟
@@ -46,6 +61,7 @@ function calculateBackoffDelay(
  * - 重试逻辑（指数退避）
  * - 错误处理
  * - 流式输出支持
+ * - HTTP 代理支持
  */
 export abstract class BaseAIClient {
   /** 提供商名称 */
@@ -63,6 +79,9 @@ export abstract class BaseAIClient {
   /** 超时时间 */
   protected readonly timeout: number
 
+  /** 代理配置 */
+  protected readonly proxy?: ProxyConfig
+
   /** 额外配置 */
   protected readonly extra?: Record<string, unknown>
 
@@ -72,7 +91,30 @@ export abstract class BaseAIClient {
     this.apiKey = config.apiKey
     this.baseURL = config.baseURL
     this.timeout = config.timeout || 120000 // 默认 2 分钟
+    this.proxy = config.proxy
     this.extra = config.extra
+
+    // 如果配置了代理，设置全局 dispatcher
+    if (this.proxy && ProxyAgent && setGlobalDispatcher) {
+      const proxyUrl = this.buildProxyUrl(this.proxy)
+      const proxyAgent = new ProxyAgent(proxyUrl)
+      setGlobalDispatcher(proxyAgent)
+    }
+  }
+
+  /**
+   * 构建代理 URL
+   */
+  private buildProxyUrl(proxy: ProxyConfig): string {
+    const { host, port, username, password } = proxy
+    const protocol = host.startsWith('http://') || host.startsWith('https://')
+      ? ''
+      : 'http://'
+
+    if (username && password) {
+      return `${protocol}${username}:${password}@${host}:${port}`
+    }
+    return `${protocol}${host}:${port}`
   }
 
   // ============================================================
@@ -164,8 +206,8 @@ export abstract class BaseAIClient {
         )
 
         // 记录重试日志
-        console.log(
-          `[${this.provider}] 尝试 ${attempt}/${maxRetries} 失败：${aiError.message}, ` +
+        getLogger().warn(
+          `[${this.provider}] 尝试 ${attempt}/${maxRetries} 失败：${aiError.message}，` +
           `${delay.toFixed(0)}ms 后重试...`
         )
 

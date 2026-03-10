@@ -147,14 +147,14 @@
       "require": "./src/clients/lingyi.client.ts"
     },
     "./clients/kling": {
-      "types": "./src/clients/lingyi.client.ts",
-      "import": "./src/clients/lingyi.client.ts",
-      "require": "./src/clients/lingyi.client.ts"
+      "types": "./src/clients/kling.client.ts",
+      "import": "./src/clients/kling.client.ts",
+      "require": "./src/clients/kling.client.ts"
     },
     "./clients/stepfun": {
-      "types": "./src/clients/lingyi.client.ts",
-      "import": "./src/clients/lingyi.client.ts",
-      "require": "./src/clients/lingyi.client.ts"
+      "types": "./src/clients/stepfun.client.ts",
+      "import": "./src/clients/stepfun.client.ts",
+      "require": "./src/clients/stepfun.client.ts"
     },
     "./clients/baichuan": {
       "types": "./src/clients/baichuan.client.ts",
@@ -210,6 +210,16 @@
       "types": "./src/clients/huggingface.client.ts",
       "import": "./src/clients/huggingface.client.ts",
       "require": "./src/clients/huggingface.client.ts"
+    },
+    "./logger": {
+      "types": "./src/logger.ts",
+      "import": "./src/logger.ts",
+      "require": "./src/logger.ts"
+    },
+    "./validation": {
+      "types": "./src/validation.ts",
+      "import": "./src/validation.ts",
+      "require": "./src/validation.ts"
     }
   }
 }

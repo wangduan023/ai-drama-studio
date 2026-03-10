@@ -272,6 +272,137 @@ describe('BaiduClient', () => {
       expect(body.height).toBe(512)
     }, 15000)
 
+    it('应该处理 9:16 宽高比', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '9:16',
+      }, 15000)
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(720)
+      expect(body.height).toBe(1280)
+    }, 15000)
+
+    it('应该处理 4:3 宽高比', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '4:3',
+      }, 15000)
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(1024)
+      expect(body.height).toBe(768)
+    }, 15000)
+
+    it('应该处理 3:4 宽高比', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '3:4',
+      }, 15000)
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(768)
+      expect(body.height).toBe(1024)
+    }, 15000)
+
+    it('应该处理 2K 分辨率', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '16:9',
+        resolution: '2K',
+      }, 15000)
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(1920)
+      expect(body.height).toBe(1080)
+    }, 15000)
+
+    it('应该处理 negativePrompt 参数', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        negativePrompt: 'blurry',
+      }, 15000)
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.negative_prompt).toBe('blurry')
+    }, 15000)
+
+    it('应该处理 n 参数', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        n: 2,
+      }, 15000)
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.n).toBe(2)
+    }, 15000)
+
     it('应该处理空响应', async () => {
       // Mock 返回空响应（因为重试逻辑，会重试 3 次）
       mockFetch.mockImplementation(() =>
@@ -306,6 +437,25 @@ describe('BaiduClient', () => {
           prompt: 'Test',
         }, 15000)
       ).rejects.toThrow()
+    }, 15000)
+
+    it('应该处理 base64 响应', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: { imgUrls: ['https://example.com/image.png'] } }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      const result = await client.generateImage({
+        prompt: 'Test',
+      }, 15000)
+
+      expect(result.success).toBe(true)
+      expect(result.imageUrl).toBe('https://example.com/image.png')
     }, 15000)
   })
 

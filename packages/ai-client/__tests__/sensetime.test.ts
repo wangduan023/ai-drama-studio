@@ -260,6 +260,135 @@ describe('SenseTimeClient', () => {
       expect(body.width).toBe(1024)
       expect(body.height).toBe(576)
     })
+
+    it('应该解析 9:16 分辨率', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ images: [{ url: 'https://example.com/image.png' }] }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '9:16',
+      })
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(576)
+      expect(body.height).toBe(1024)
+    })
+
+    it('应该解析 4:3 分辨率', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ images: [{ url: 'https://example.com/image.png' }] }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '4:3',
+      })
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(1024)
+      expect(body.height).toBe(768)
+    })
+
+    it('应该解析 3:4 分辨率', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ images: [{ url: 'https://example.com/image.png' }] }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        aspectRatio: '3:4',
+      })
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(768)
+      expect(body.height).toBe(1024)
+    })
+
+    it('应该使用自定义分辨率', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ images: [{ url: 'https://example.com/image.png' }] }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        resolution: '2048x2048',
+      })
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.width).toBe(2048)
+      expect(body.height).toBe(2048)
+    })
+
+    it('应该处理只返回 base64 的响应', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ images: [{ image_base64: 'base64-data' }] }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      const result = await client.generateImage({
+        prompt: 'Test',
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.imageUrl).toBeUndefined()
+      expect(result.imageBase64).toBe('base64-data')
+    })
+
+    it('应该处理 n 参数', async () => {
+      mockFetch.mockImplementationOnce(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ images: [{ url: 'https://example.com/image.png' }] }),
+          text: async () => '',
+          headers: new Headers(),
+        } as Response)
+      )
+
+      await client.generateImage({
+        prompt: 'Test',
+        n: 2,
+      })
+
+      const callArgs = mockFetch.mock.calls[0]
+      const body = JSON.parse(callArgs[1]?.body as string)
+      expect(body.n).toBe(2)
+    })
   })
 
   describe('generateVideo', () => {
