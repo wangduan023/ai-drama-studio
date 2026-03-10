@@ -583,9 +583,13 @@ model TaskEvent {
 }
 
 enum TaskType {
+  // 分析类任务
+  NOVEL_ANALYZE
+
   // 生成类任务
   SCRIPT_GENERATE
   SCRIPT_EDIT
+  SCRIPT_MODIFY
   SCRIPT_REGENERATE
 
   STORYBOARD_GENERATE

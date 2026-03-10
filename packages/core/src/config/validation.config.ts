@@ -3,54 +3,23 @@
  * 可外部化到配置文件或数据库
  */
 
-/** 鞋子关键词列表 */
-export const SHOES_KEYWORDS = [
-  '鞋',
-  '靴',
-  '高跟鞋',
-  '马丁靴',
-  '帆布鞋',
-  '牛津鞋',
-  '运动鞋',
-  '凉鞋',
-  '拖鞋',
-  '皮鞋',
-  '布鞋',
-  '战靴',
-  '靴子',
-  '短靴',
-  '长靴',
-  '过膝靴',
-  '铆钉靴',
-  '骑士靴',
-  '木屐',
-  '草鞋',
-]
+import {
+  loadKeywordsConfig,
+  type KeywordsConfig,
+  type KeywordsLoadOptions,
+  type SupportedLocale,
+  KEYWORDS_BY_LOCALE,
+} from './keywords.config'
 
-/** 奢华关键词列表 */
-export const LUXURY_KEYWORDS = [
-  '华丽',
-  '精致',
-  '奢华',
-  '高档',
-  '定制',
-  '刺绣',
-  '镶嵌',
-  '丝绸',
-  '天鹅绒',
-  '蕾丝',
-  '皮草',
-  '珠宝',
-  '金银',
-  '珠片',
-  '镶钻',
-  '鎏金',
-  '锦缎',
-  '云锦',
-  '蜀锦',
-  '龙袍',
-  '凤冠',
-]
+// 重新导出关键词配置相关类型和函数
+export { type KeywordsConfig, type KeywordsLoadOptions, type SupportedLocale } from './keywords.config'
+export { loadKeywordsConfig, KEYWORDS_BY_LOCALE } from './keywords.config'
+
+/** 中文鞋子关键词（默认） */
+export const SHOES_KEYWORDS: string[] = KEYWORDS_BY_LOCALE.zh.shoesKeywords
+
+/** 中文奢华关键词（默认） */
+export const LUXURY_KEYWORDS: string[] = KEYWORDS_BY_LOCALE.zh.luxuryKeywords
 
 /** 验证配置接口 */
 export interface ValidationConfig {
@@ -64,18 +33,43 @@ export interface ValidationConfig {
 
 /** 默认验证配置 */
 export const DEFAULT_VALIDATION_CONFIG: ValidationConfig = {
-  shoesKeywords: SHOES_KEYWORDS,
-  luxuryKeywords: LUXURY_KEYWORDS,
+  shoesKeywords: loadKeywordsConfig({ locale: 'zh' }).shoesKeywords,
+  luxuryKeywords: loadKeywordsConfig({ locale: 'zh' }).luxuryKeywords,
   luxuryThreshold: 4,
+}
+
+/** 验证配置加载选项 */
+export interface ValidationLoadOptions extends KeywordsLoadOptions {
+  /** 服装华丽度阈值 */
+  luxuryThreshold?: number
 }
 
 /**
  * 从环境变量加载验证配置
+ * @param options - 加载选项，支持国际化
+ * @returns 验证配置
  */
-export function loadValidationConfig(): ValidationConfig {
+export function loadValidationConfig(options: ValidationLoadOptions = {}): ValidationConfig {
+  const keywordsConfig = loadKeywordsConfig(options)
+  
   return {
-    shoesKeywords: process.env.SHOES_KEYWORDS?.split(',') || SHOES_KEYWORDS,
-    luxuryKeywords: process.env.LUXURY_KEYWORDS?.split(',') || LUXURY_KEYWORDS,
-    luxuryThreshold: parseInt(process.env.LUXURY_THRESHOLD || '4', 10),
+    shoesKeywords: keywordsConfig.shoesKeywords,
+    luxuryKeywords: keywordsConfig.luxuryKeywords,
+    luxuryThreshold: options.luxuryThreshold ?? parseInt(process.env.LUXURY_THRESHOLD || '4', 10),
+  }
+}
+
+/**
+ * 获取指定语言的默认验证配置
+ * @param locale - 语言代码
+ * @returns 验证配置
+ */
+export function getValidationConfigByLocale(locale: SupportedLocale): ValidationConfig {
+  const keywordsConfig = loadKeywordsConfig({ locale })
+  
+  return {
+    shoesKeywords: keywordsConfig.shoesKeywords,
+    luxuryKeywords: keywordsConfig.luxuryKeywords,
+    luxuryThreshold: 4,
   }
 }

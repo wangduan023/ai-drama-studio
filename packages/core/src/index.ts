@@ -37,5 +37,20 @@ export {
   type ValidationConfig,
 } from './config/validation.config'
 
-// ===== 工具函数导出 =====
-export { validateCharacterData, validateLocationData } from './services/character.service'
+// ===== 服务导出（抛出错误的版本） =====
+export {
+  validateCharacterData,
+  validateLocationData,
+} from './services/character.service'
+
+// ===== 工具函数导出（从 helpers） =====
+export {
+  validateCharacterName,
+  validateLocationName,
+  buildLocationsIntroduction,
+  buildLocationsIntroductionEn,
+  formatLocationDisplay,
+  formatCharacterDisplay,
+  buildCharacterIntroduction,
+  type ValidationResult,
+} from './services/helpers'

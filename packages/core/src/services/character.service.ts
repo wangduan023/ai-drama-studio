@@ -11,6 +11,7 @@ import type { CharacterProfile, CharacterAppearance, LocationProfile } from '../
 import { CharacterRoleLevel } from '../types'
 import type { PrismaClient, Prisma } from '@prisma/client'
 import { DEFAULT_VALIDATION_CONFIG, type ValidationConfig } from '../config/validation.config'
+import * as helpers from './helpers'
 
 /** 角色外观映射 */
 export interface AppearanceMap {
@@ -55,21 +56,6 @@ export class CharacterServiceError extends Error {
   ) {
     super(message)
     this.name = 'CharacterServiceError'
-  }
-}
-
-/**
- * 验证角色输入数据
- */
-export function validateCharacterData(data: Partial<CharacterProfile> & { name: string }): void {
-  if (!data.name || data.name.trim().length === 0) {
-    throw new CharacterServiceError('INVALID_NAME', '角色名称不能为空')
-  }
-  if (data.name.length > 100) {
-    throw new CharacterServiceError('INVALID_NAME', '角色名称不能超过 100 个字符')
-  }
-  if (data.costumeTier != null && (data.costumeTier < 1 || data.costumeTier > 5)) {
-    throw new CharacterServiceError('INVALID_COSTUME_TIER', '服装华丽度必须在 1-5 之间')
   }
 }
 
@@ -544,14 +530,26 @@ export class CharacterProfileService {
 }
 
 /**
- * 验证场景输入数据
+ * 验证角色输入数据（向后兼容的包装函数）
+ * @param data - 角色数据
+ * @throws CharacterServiceError 验证失败时抛出
+ */
+export function validateCharacterData(data: Partial<CharacterProfile> & { name: string }): void {
+  const result = helpers.validateCharacterData(data)
+  if (!result.valid) {
+    throw new CharacterServiceError(result.code || 'INVALID_DATA', result.error!)
+  }
+}
+
+/**
+ * 验证场景输入数据（向后兼容的包装函数）
+ * @param data - 场景数据
+ * @throws CharacterServiceError 验证失败时抛出
  */
 export function validateLocationData(data: Partial<LocationProfile> & { name: string }): void {
-  if (!data.name || data.name.trim().length === 0) {
-    throw new CharacterServiceError('INVALID_NAME', '场景名称不能为空')
-  }
-  if (data.name.length > 100) {
-    throw new CharacterServiceError('INVALID_NAME', '场景名称不能超过 100 个字符')
+  const result = helpers.validateLocationData(data)
+  if (!result.valid) {
+    throw new CharacterServiceError('INVALID_NAME', result.error!)
   }
 }
 
@@ -710,16 +708,9 @@ export class LocationProfileService {
 
   /**
    * 构建场景介绍字符串
+   * @deprecated 请使用 helpers/buildLocationsIntroduction
    */
   buildLocationsIntroduction(locations: LocationProfile[]): string {
-    if (locations.length === 0) return '暂无场景介绍'
-
-    const introductions = locations
-      .filter((l) => l.description)
-      .map((l) => `- ${l.name}：${l.description}`)
-
-    return introductions.length > 0
-      ? introductions.join('\n')
-      : '暂无场景介绍'
+    return helpers.buildLocationsIntroduction(locations)
   }
 }

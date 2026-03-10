@@ -55,5 +55,4 @@ RUN mkdir -p /app/data/uploads /app/logs && touch /app/.env
 WORKDIR /app
 
 ENTRYPOINT ["/sbin/tini", "--"]
-ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["npm", "run", "start", "--prefix", "apps/worker"]
