@@ -4,7 +4,7 @@
  */
 
 import { PROMPT_IDS } from './prompt-ids'
-import type { PromptCatalog, PromptCatalogEntry } from './types'
+import type { PromptCatalog } from './types'
 
 /** 提示词目录注册表 */
 export const PROMPT_CATALOG: PromptCatalog = {

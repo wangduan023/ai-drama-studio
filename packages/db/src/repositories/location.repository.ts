@@ -130,40 +130,7 @@ export class LocationRepository extends BaseRepository<'locationProfile', Locati
     })
   }
 
-  /**
-   * 软删除场景
-   */
-  async softDelete(id: string, deletedBy?: string): Promise<LocationProfile> {
-    return this.prisma.locationProfile.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy,
-      },
-    })
-  }
-
-  /**
-   * 恢复已删除的场景
-   */
-  async restore(id: string): Promise<LocationProfile> {
-    return this.prisma.locationProfile.update({
-      where: { id },
-      data: {
-        deletedAt: null,
-        deletedBy: null,
-      },
-    })
-  }
-
-  /**
-   * 硬删除场景
-   */
-  async hardDelete(id: string): Promise<LocationProfile> {
-    return this.prisma.locationProfile.delete({
-      where: { id },
-    })
-  }
+  // 注意：软删除、恢复、硬删除功能继承自 BaseRepository
 
   /**
    * 确认场景档案

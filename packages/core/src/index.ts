@@ -6,6 +6,7 @@
 export {
   CharacterProfileService,
   LocationProfileService,
+  CharacterServiceError,
   type CharacterServiceOptions,
   type AppearanceMap,
   type ConsistencyValidationResult,
@@ -18,4 +19,23 @@ export type {
   CharacterAppearance,
   LocationProfile,
   PipelineContext,
+  ExpectedAppearance,
 } from './types'
+
+// ===== 枚举导出 =====
+export {
+  CharacterRoleLevel,
+  LocationType,
+} from './types'
+
+// ===== 配置导出 =====
+export {
+  SHOES_KEYWORDS,
+  LUXURY_KEYWORDS,
+  DEFAULT_VALIDATION_CONFIG,
+  loadValidationConfig,
+  type ValidationConfig,
+} from './config/validation.config'
+
+// ===== 工具函数导出 =====
+export { validateCharacterData, validateLocationData } from './services/character.service'

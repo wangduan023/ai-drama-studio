@@ -194,3 +194,33 @@ export type CreateTaskInput = {
   priority?: number
   billingInfo?: TaskBillingInfo | null
 }
+
+// ============================================
+// Enhanced Progress Reporter Options
+// ============================================
+
+export interface EnhancedProgressReporterOptions {
+  /**
+   * Minimum progress difference required to emit an update
+   * @default 1
+   */
+  minProgressDelta?: number
+
+  /**
+   * Whether to debounce progress updates
+   * @default true
+   */
+  debounceUpdates?: boolean
+
+  /**
+   * Whether to persist events to database
+   * @default true
+   */
+  persist?: boolean
+
+  /**
+   * Whether to log progress to console
+   * @default false
+   */
+  verbose?: boolean
+}

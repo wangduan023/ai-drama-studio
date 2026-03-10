@@ -6,10 +6,11 @@
 
 import { UnrecoverableError, type Job } from 'bullmq'
 import type { TaskJobData, TaskBillingInfo, LLMStreamChunk } from './types'
+import { reportTaskProgressEnhanced, reportTaskStreamChunkEnhanced } from '@ai-drama-studio/sse/worker'
 
 /**
- * 任务进度报告
- * 用于在 Worker 执行过程中更新任务进度
+ * 任务进度报告（增强版）
+ * 用于在 Worker 执行过程中更新任务进度，带去重和防抖功能
  */
 export async function reportTaskProgress(
   job: Job<TaskJobData>,
@@ -17,17 +18,31 @@ export async function reportTaskProgress(
   payload?: Record<string, unknown>,
 ): Promise<void> {
   const value = Math.max(0, Math.min(99, Math.floor(progress)))
-  const nextPayload: Record<string, unknown> = {
-    ...payload,
-    progress: value,
+
+  // 使用增强版进度报告功能
+  const success = await reportTaskProgressEnhanced(
+    job.data,
+    value,
+    {
+      ...payload,
+      progress: value,
+    },
+    {
+      minProgressDelta: 2,      // 只有当进度变化超过2%时才报告
+      debounceUpdates: true,    // 启用防抖
+      verbose: false,          // 生产环境中不输出详细日志
+    }
+  )
+
+  if (!success) {
+    // 如果增强版报告失败，退回到原始方法
+    const nextPayload: Record<string, unknown> = {
+      ...payload,
+      progress: value,
+    }
+    await job.updateProgress(value)
+    console.log(`[Task Progress] ${job.data.taskId}: ${value}%`, nextPayload)
   }
-
-  // 更新 BullMQ 作业进度
-  await job.updateProgress(value)
-
-  // 这里可以集成 SSE 推送
-  // 通过事件总线将进度推送给前端
-  console.log(`[Task Progress] ${job.data.taskId}: ${value}%`, nextPayload)
 }
 
 /**
@@ -115,7 +130,7 @@ export async function touchTaskHeartbeat(taskId: string): Promise<void> {
 }
 
 /**
- * 报告 LLM 流式输出
+ * 报告 LLM 流式输出（增强版）
  * 用于实时推送 LLM 生成的内容
  */
 export async function reportLLMStreamChunk(
@@ -123,14 +138,28 @@ export async function reportLLMStreamChunk(
   chunk: LLMStreamChunk,
   payload?: Record<string, unknown>,
 ): Promise<void> {
-  const mergedPayload = {
-    ...payload,
-    stream: chunk,
-    displayMode: 'detail',
-  }
+  // 使用增强版流式报告功能
+  const success = await reportTaskStreamChunkEnhanced(
+    job.data,
+    {
+      kind: chunk.kind,
+      delta: chunk.delta,
+      seq: chunk.seq,
+      lane: chunk.lane,
+    },
+    {
+      ...payload,
+      displayMode: 'detail',
+    },
+    {
+      verbose: false,  // 生产环境中不输出详细日志
+    }
+  )
 
-  // 这里可以通过 SSE 推送流式内容
-  console.debug(`[LLM Stream] Task ${job.data.taskId}:`, chunk.delta)
+  if (!success) {
+    // 如果增强版报告失败，退回到原始方法
+    console.debug(`[LLM Stream] Task ${job.data.taskId}:`, chunk.delta)
+  }
 }
 
 /**

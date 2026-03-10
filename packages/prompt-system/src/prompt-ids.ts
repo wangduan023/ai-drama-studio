@@ -1,9 +1,12 @@
 /**
  * 提示词 ID 定义
  * 基于 waoowaoo 项目迁移
+ * 
+ * 设计原则：
+ * 1. 所有 Prompt ID 在此文件统一定义，避免分散在多处
+ * 2. 使用 as const 确保类型推断为字面量类型
+ * 3. PromptId 类型从 PROMPT_IDS 推断，保证单一数据源
  */
-
-import type { PromptId } from './types'
 
 /** 提示词 ID 常量映射 */
 export const PROMPT_IDS = {
@@ -48,9 +51,12 @@ export const PROMPT_IDS = {
   NP_VOICE_ANALYSIS: 'np_voice_analysis' as const,
 } as const
 
+/** 提示词 ID 类型（从常量推断） */
+export type PromptId = typeof PROMPT_IDS[keyof typeof PROMPT_IDS]
+
 /** 获取所有提示词 ID 列表 */
 export function getAllPromptIds(): PromptId[] {
-  return Object.values(PROMPT_IDS) as PromptId[]
+  return Object.values(PROMPT_IDS)
 }
 
 /** 检查是否为有效的提示词 ID */

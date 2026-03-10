@@ -22,6 +22,51 @@ export class OptimisticLockError extends Error {
 }
 
 /**
+ * 唯一性约束冲突错误
+ * Prisma 错误码 P2002
+ */
+export class UniqueConstraintError extends Error {
+  public readonly fields: string[]
+  
+  constructor(entityName: string, fields: string[]) {
+    super(`${entityName} 已存在，重复字段: ${fields.join(', ')}`)
+    this.name = 'UniqueConstraintError'
+    this.fields = fields
+  }
+}
+
+/**
+ * 外键约束冲突错误
+ * Prisma 错误码 P2003
+ */
+export class ForeignKeyConstraintError extends Error {
+  constructor(entityName: string, fieldName: string) {
+    super(`${entityName} 关联的 ${fieldName} 不存在`)
+    this.name = 'ForeignKeyConstraintError'
+  }
+}
+
+/**
+ * 记录未找到错误
+ * Prisma 错误码 P2025
+ */
+export class RecordNotFoundError extends Error {
+  constructor(entityName: string, id: string) {
+    super(`${entityName}(id=${id}) 不存在`)
+    this.name = 'RecordNotFoundError'
+  }
+}
+
+/**
+ * Prisma 错误码枚举
+ */
+export enum PrismaErrorCode {
+  UNIQUE_CONSTRAINT = 'P2002',
+  FOREIGN_KEY_CONSTRAINT = 'P2003',
+  RECORD_NOT_FOUND = 'P2025',
+}
+
+/**
  * 基础 Repository 接口
  */
 export interface IRepository<T, K = string> {
@@ -52,20 +97,36 @@ export interface VersionedEntity {
 
 /**
  * Prisma 模型映射类型
+ * 包含所有数据库模型，确保类型完整性
  */
 export type PrismaModelMap = {
+  // 核心模型
+  user: Prisma.UserDelegate
+  refreshToken: Prisma.RefreshTokenDelegate
+  config: Prisma.ConfigDelegate
+  
+  // AI 渠道相关
+  aiProvider: Prisma.AiProviderDelegate
+  aiModel: Prisma.AiModelDelegate
+  aiUsageLog: Prisma.AiUsageLogDelegate
+  
+  // 项目相关
   project: Prisma.ProjectDelegate
   episode: Prisma.EpisodeDelegate
+  script: Prisma.ScriptDelegate
+  storyboard: Prisma.StoryboardDelegate
+  clip: Prisma.ClipDelegate
+  
+  // 角色和场景
   characterProfile: Prisma.CharacterProfileDelegate
   characterAppearance: Prisma.CharacterAppearanceDelegate
   locationProfile: Prisma.LocationProfileDelegate
-  aiProvider: Prisma.AiProviderDelegate
-  aiModel: Prisma.AiModelDelegate
-  aiProxy: Prisma.AiProxyDelegate
-  aiUsageLog: Prisma.AiUsageLogDelegate
-  task: Prisma.TaskDelegate
+  
+  // 资产和任务
   asset: Prisma.AssetDelegate
-  user: Prisma.UserDelegate
+  task: Prisma.TaskDelegate
+  taskEvent: Prisma.TaskEventDelegate
+  usageCost: Prisma.UsageCostDelegate
 }
 
 /**
@@ -119,6 +180,11 @@ export abstract class BaseRepository<
   }
 
   /**
+   * 最大查询数量限制（防止查询过多数据）
+   */
+  protected readonly maxTakeLimit = 1000
+
+  /**
    * 查询多条记录（默认排除已删除）
    */
   async findMany(params: FindManyParams = {}): Promise<T[]> {
@@ -141,6 +207,9 @@ export abstract class BaseRepository<
       }) => Promise<T[]>
     }
 
+    // 限制最大查询数量，防止查询过多数据
+    const safeTake = Math.min(take, this.maxTakeLimit)
+
     // 如果模型支持软删除且未指定 withDeleted，添加 deletedAt 过滤
     const filterWhere = withDeleted ? where : { ...where, deletedAt: null }
 
@@ -149,7 +218,7 @@ export abstract class BaseRepository<
       include,
       orderBy,
       skip,
-      take,
+      take: safeTake,
     })
   }
 
@@ -334,5 +403,36 @@ export abstract class BaseRepository<
     })
 
     return record?.version ?? null
+  }
+
+  /**
+   * 处理 Prisma 错误，转换为特定异常类型
+   */
+  protected handlePrismaError(error: unknown, id?: K): never {
+    // Prisma 错误对象
+    const prismaError = error as { code?: string; meta?: { target?: string[] }; message?: string }
+    
+    switch (prismaError.code) {
+      case PrismaErrorCode.UNIQUE_CONSTRAINT:
+        throw new UniqueConstraintError(
+          this.entityName,
+          prismaError.meta?.target || ['unknown']
+        )
+      
+      case PrismaErrorCode.FOREIGN_KEY_CONSTRAINT:
+        throw new ForeignKeyConstraintError(
+          this.entityName,
+          '关联字段'
+        )
+      
+      case PrismaErrorCode.RECORD_NOT_FOUND:
+        if (id !== undefined) {
+          throw new RecordNotFoundError(this.entityName, String(id))
+        }
+        break
+    }
+    
+    // 未知错误，原样抛出
+    throw error
   }
 }

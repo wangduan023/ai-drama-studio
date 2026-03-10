@@ -5,6 +5,7 @@
 import type { Prisma, PrismaClient, AiModelType, AiProvider, AiModel } from '@prisma/client'
 import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
+import { encrypt, decrypt, decryptFields } from '../utils/crypto'
 
 export interface CreateAiProviderInput {
   name: string
@@ -47,6 +48,7 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
 
   /**
    * 根据 ID 查找渠道商
+   * API Key 会自动解密
    */
   async findById(
     id: string,
@@ -56,20 +58,23 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
 
     // 如果需要过滤活跃状态，使用 findFirst
     if (options.onlyActive) {
-      return this.prisma.aiProvider.findFirst({
+      const provider = await this.prisma.aiProvider.findFirst({
         where: { id, isActive: true },
         include,
       })
+      return provider ? this.decryptProvider(provider) : null
     }
 
-    return this.prisma.aiProvider.findUnique({
+    const provider = await this.prisma.aiProvider.findUnique({
       where: { id },
       include,
     })
+    return provider ? this.decryptProvider(provider) : null
   }
 
   /**
    * 根据名称查找渠道商
+   * API Key 会自动解密
    */
   async findByName(
     name: string,
@@ -79,41 +84,61 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
 
     // 如果需要过滤活跃状态，使用 findFirst
     if (options.onlyActive) {
-      return this.prisma.aiProvider.findFirst({
+      const provider = await this.prisma.aiProvider.findFirst({
         where: { name, isActive: true },
         include,
       })
+      return provider ? this.decryptProvider(provider) : null
     }
 
-    return this.prisma.aiProvider.findUnique({
+    const provider = await this.prisma.aiProvider.findUnique({
       where: { name },
       include,
     })
+    return provider ? this.decryptProvider(provider) : null
   }
 
   /**
    * 查找所有渠道商
+   * API Key 会自动解密
    */
   async findAll(
     options: FindAiProviderOptions = {}
   ): Promise<AiProvider[]> {
     const include = this.buildInclude(options)
 
-    return this.prisma.aiProvider.findMany({
+    const providers = await this.prisma.aiProvider.findMany({
       where: options.onlyActive ? { isActive: true } : {},
       include,
       orderBy: [{ priority: 'asc' }, { name: 'asc' }],
     })
+
+    return providers.map(provider => this.decryptProvider(provider))
+  }
+
+  /**
+   * 查找所有活跃的渠道商（用于 AI 调用）
+   * 返回的 API Key 已解密，可直接使用
+   */
+  async findActive(): Promise<AiProvider[]> {
+    const providers = await this.prisma.aiProvider.findMany({
+      where: { isActive: true },
+      include: { models: true },
+      orderBy: [{ priority: 'asc' }, { weight: 'desc' }],
+    })
+
+    return providers.map(provider => this.decryptProvider(provider))
   }
 
   /**
    * 创建渠道商
+   * API Key 会自动加密存储
    */
   async create(input: CreateAiProviderInput): Promise<AiProvider> {
     const data: Prisma.AiProviderCreateInput = {
       name: input.name,
       baseUrl: input.baseUrl,
-      apiKey: input.apiKey,
+      apiKey: encrypt(input.apiKey),
       isActive: input.isActive ?? true,
       priority: input.priority ?? 0,
       weight: input.weight ?? 1,
@@ -123,17 +148,19 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
       description: input.description,
     }
 
-    return this.prisma.aiProvider.create({ data })
+    const provider = await this.prisma.aiProvider.create({ data })
+    return this.decryptProvider(provider)
   }
 
   /**
    * 更新渠道商
+   * API Key 会自动加密存储
    */
   async update(id: string, input: UpdateAiProviderInput): Promise<AiProvider> {
     const data: Prisma.AiProviderUpdateInput = {}
 
     if (input.baseUrl !== undefined) data.baseUrl = input.baseUrl
-    if (input.apiKey !== undefined) data.apiKey = input.apiKey
+    if (input.apiKey !== undefined) data.apiKey = encrypt(input.apiKey)
     if (input.isActive !== undefined) data.isActive = input.isActive
     if (input.priority !== undefined) data.priority = input.priority
     if (input.weight !== undefined) data.weight = input.weight
@@ -142,19 +169,21 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
     if (input.metadata !== undefined) data.metadata = input.metadata
     if (input.description !== undefined) data.description = input.description
 
-    return this.prisma.aiProvider.update({
+    const provider = await this.prisma.aiProvider.update({
       where: { id },
       data,
     })
+    return this.decryptProvider(provider)
   }
 
   /**
-   * 删除渠道商
+   * 删除渠道商（硬删除）
    */
   async delete(id: string): Promise<AiProvider> {
-    return this.prisma.aiProvider.delete({
+    const provider = await this.prisma.aiProvider.delete({
       where: { id },
     })
+    return this.decryptProvider(provider)
   }
 
   /**
@@ -168,10 +197,11 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
    * 启用/禁用渠道商
    */
   async toggleStatus(id: string, isActive: boolean): Promise<AiProvider> {
-    return this.prisma.aiProvider.update({
+    const provider = await this.prisma.aiProvider.update({
       where: { id },
       data: { isActive },
     })
+    return this.decryptProvider(provider)
   }
 
   /**
@@ -185,6 +215,24 @@ export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvide
       },
       orderBy: { name: 'asc' },
     })
+  }
+
+  /**
+   * 验证 API Key 是否有效（仅检查是否存在，不返回实际值）
+   */
+  async hasApiKey(id: string): Promise<boolean> {
+    const provider = await this.prisma.aiProvider.findUnique({
+      where: { id },
+      select: { apiKey: true },
+    })
+    return !!provider?.apiKey
+  }
+
+  /**
+   * 解密渠道商的 API Key
+   */
+  private decryptProvider<T extends { apiKey: string | null }>(provider: T): T {
+    return decryptFields(provider, ['apiKey']) as T
   }
 
   /**

@@ -126,7 +126,7 @@ export class ProjectRepository extends BaseRepository<'project', Project> {
         name: input.name,
         description: input.description,
         userId: input.userId,
-        status: input.status ?? 'DRAFT',
+        status: input.status ?? 'DRAFT' satisfies ProjectStatus,
       },
       include: {
         episodes: includeEpisodes,
@@ -147,40 +147,10 @@ export class ProjectRepository extends BaseRepository<'project', Project> {
     })
   }
 
-  /**
-   * 软删除项目
-   */
-  async softDelete(id: string, deletedBy?: string): Promise<Project> {
-    return this.prisma.project.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy,
-      },
-    })
-  }
-
-  /**
-   * 恢复已删除的项目
-   */
-  async restore(id: string): Promise<Project> {
-    return this.prisma.project.update({
-      where: { id },
-      data: {
-        deletedAt: null,
-        deletedBy: null,
-      },
-    })
-  }
-
-  /**
-   * 硬删除项目（谨慎使用）
-   */
-  async hardDelete(id: string): Promise<Project> {
-    return this.prisma.project.delete({
-      where: { id },
-    })
-  }
+  // 注意：软删除、恢复、硬删除功能继承自 BaseRepository
+  // - softDelete(id, deletedBy) 
+  // - restore(id)
+  // - hardDelete(id)
 
   /**
    * 创建项目并附带初始剧集

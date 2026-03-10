@@ -7,10 +7,15 @@ import fs from 'fs'
 import path from 'path'
 import { PROMPT_CATALOG } from './catalog'
 import { PromptError } from './types'
-import type { PromptId, Locale } from './types'
+import { LRUCache } from './lru-cache'
+import type { Locale } from './types'
+import type { PromptId } from './prompt-ids'
 
-/** 模板缓存 */
-const templateCache = new Map<string, string>()
+/** 最大缓存条目数 */
+const MAX_CACHE_SIZE = parseInt(process.env.PROMPT_CACHE_SIZE || '100', 10)
+
+/** 模板缓存（LRU 策略） */
+const templateCache = new LRUCache<string, string>({ maxSize: MAX_CACHE_SIZE })
 
 /** 提示词模板根目录（可通过环境变量配置） */
 const PROMPT_TEMPLATE_ROOT = process.env.PROMPT_TEMPLATE_ROOT || 'packages/prompt-system/templates'
@@ -38,7 +43,7 @@ function buildCacheKey(promptId: PromptId, locale: Locale): string {
 }
 
 /**
- * 获取提示词模板内容
+ * 获取提示词模板内容（同步）
  * @param promptId - 提示词 ID
  * @param locale - 语言
  * @param options - 选项
@@ -71,6 +76,56 @@ export function getPromptTemplate(
   let template: string
   try {
     template = fs.readFileSync(filePath, 'utf-8')
+  } catch (error) {
+    throw new PromptError(
+      'PROMPT_TEMPLATE_NOT_FOUND',
+      promptId,
+      `提示词模板文件未找到：${filePath}`,
+      { filePath, locale, originalError: error }
+    )
+  }
+
+  // 更新缓存
+  templateCache.set(cacheKey, template)
+
+  return template
+}
+
+/**
+ * 获取提示词模板内容（异步）
+ * 推荐使用，避免阻塞事件循环
+ * @param promptId - 提示词 ID
+ * @param locale - 语言
+ * @param options - 选项
+ * @returns 模板内容字符串
+ */
+export async function getPromptTemplateAsync(
+  promptId: PromptId,
+  locale: Locale,
+  options?: { forceReload?: boolean }
+): Promise<string> {
+  const entry = PROMPT_CATALOG[promptId]
+  if (!entry) {
+    throw new PromptError(
+      'PROMPT_ID_UNREGISTERED',
+      promptId,
+      `提示词 ID 未注册：${promptId}`
+    )
+  }
+
+  const cacheKey = buildCacheKey(promptId, locale)
+  const cached = templateCache.get(cacheKey)
+
+  // 如果已缓存且不需要强制重载，直接返回
+  if (cached && !options?.forceReload) {
+    return cached
+  }
+
+  const filePath = buildTemplatePath(promptId, locale)
+
+  let template: string
+  try {
+    template = await fs.promises.readFile(filePath, 'utf-8')
   } catch (error) {
     throw new PromptError(
       'PROMPT_TEMPLATE_NOT_FOUND',
@@ -137,4 +192,19 @@ export function setTemplateRoot(customRoot: string): void {
   clearTemplateCache()
   // @ts-ignore - 允许运行时修改
   PROMPT_TEMPLATE_ROOT = customRoot
+}
+
+/**
+ * 获取缓存统计信息
+ */
+export function getCacheStats(): {
+  size: number
+  maxSize: number
+  keys: string[]
+} {
+  return {
+    size: templateCache.size,
+    maxSize: MAX_CACHE_SIZE,
+    keys: Array.from(templateCache.keys()),
+  }
 }

@@ -11,6 +11,14 @@ export {
   buildTaskProgressMessage,
 } from './progress-reporter'
 
+export {
+  reportTaskProgressEnhanced,
+  reportTaskStreamChunkEnhanced,
+  clearProgressCache,
+  getProgressCacheSize,
+  type EnhancedProgressReporterOptions,
+} from './enhanced-progress-reporter'
+
 export type {
   TaskJobData,
   StreamChunk,

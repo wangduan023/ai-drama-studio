@@ -191,40 +191,7 @@ export class CharacterRepository extends BaseRepository<'characterProfile', Char
     })
   }
 
-  /**
-   * 软删除角色
-   */
-  async softDelete(id: string, deletedBy?: string): Promise<CharacterProfile> {
-    return this.prisma.characterProfile.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy,
-      },
-    })
-  }
-
-  /**
-   * 恢复已删除的角色
-   */
-  async restore(id: string): Promise<CharacterProfile> {
-    return this.prisma.characterProfile.update({
-      where: { id },
-      data: {
-        deletedAt: null,
-        deletedBy: null,
-      },
-    })
-  }
-
-  /**
-   * 硬删除角色
-   */
-  async hardDelete(id: string): Promise<CharacterProfile> {
-    return this.prisma.characterProfile.delete({
-      where: { id },
-    })
-  }
+  // 注意：软删除、恢复、硬删除功能继承自 BaseRepository
 
   /**
    * 确认角色档案

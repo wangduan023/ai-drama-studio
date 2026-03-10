@@ -60,6 +60,10 @@ export {
   BaseRepository, 
   NOT_DELETED,
   OptimisticLockError,
+  UniqueConstraintError,
+  ForeignKeyConstraintError,
+  RecordNotFoundError,
+  PrismaErrorCode,
   type IRepository,
   type FindManyParams,
   type VersionedEntity,
@@ -72,8 +76,12 @@ export {
   disconnect, 
   healthCheck, 
   withRetry, 
-  withTransaction 
+  withTransaction,
+  queryRaw,
 } from './client'
 
 // Schemas 导出
 export * from './schemas'
+
+// 工具函数
+export { encrypt, decrypt, encryptFields, decryptFields } from './utils/crypto'

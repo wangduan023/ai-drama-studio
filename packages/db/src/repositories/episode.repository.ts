@@ -141,40 +141,7 @@ export class EpisodeRepository extends BaseRepository<'episode', Episode> {
     })
   }
 
-  /**
-   * 软删除剧集
-   */
-  async softDelete(id: string, deletedBy?: string): Promise<Episode> {
-    return this.prisma.episode.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedBy,
-      },
-    })
-  }
-
-  /**
-   * 恢复已删除的剧集
-   */
-  async restore(id: string): Promise<Episode> {
-    return this.prisma.episode.update({
-      where: { id },
-      data: {
-        deletedAt: null,
-        deletedBy: null,
-      },
-    })
-  }
-
-  /**
-   * 硬删除剧集
-   */
-  async hardDelete(id: string): Promise<Episode> {
-    return this.prisma.episode.delete({
-      where: { id },
-    })
-  }
+  // 注意：软删除、恢复、硬删除功能继承自 BaseRepository
 
   /**
    * 批量创建剧集

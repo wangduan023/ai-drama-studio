@@ -117,6 +117,10 @@ export async function disconnect(): Promise<void> {
 
 /**
  * 检查数据库连接健康
+ * 
+ * 注意：$queryRaw 使用模板字符串语法是安全的，Prisma 会自动参数化处理
+ * 避免使用字符串拼接：prisma.$queryRaw(`SELECT ${unsafe}`) ❌
+ * 始终使用模板字符串：prisma.$queryRaw`SELECT ${safe}` ✅
  */
 export async function healthCheck(): Promise<{ healthy: boolean; latency?: number; error?: string }> {
   const start = Date.now()
@@ -134,6 +138,21 @@ export async function healthCheck(): Promise<{ healthy: boolean; latency?: numbe
       error: error instanceof Error ? error.message : String(error),
     }
   }
+}
+
+/**
+ * 执行参数化原始查询（安全）
+ * 使用示例：
+ *   const results = await queryRaw`SELECT * FROM users WHERE id = ${userId}`
+ * 
+ * @param strings - SQL 模板字符串
+ * @param values - 参数值（自动转义）
+ */
+export async function queryRaw<T>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+): Promise<T> {
+  return prisma.$queryRaw<T>(strings, ...values)
 }
 
 /**

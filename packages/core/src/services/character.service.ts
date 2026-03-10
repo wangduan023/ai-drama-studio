@@ -8,7 +8,9 @@
  */
 
 import type { CharacterProfile, CharacterAppearance, LocationProfile } from '../types'
-import type { PrismaClient } from '@prisma/client'
+import { CharacterRoleLevel } from '../types'
+import type { PrismaClient, Prisma } from '@prisma/client'
+import { DEFAULT_VALIDATION_CONFIG, type ValidationConfig } from '../config/validation.config'
 
 /** 角色外观映射 */
 export interface AppearanceMap {
@@ -27,7 +29,7 @@ export interface ConsistencyViolation {
   severity: 'warning' | 'error'
   message: string
   characterId?: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 /** 角色服务配置 */
@@ -38,6 +40,37 @@ export interface CharacterServiceOptions {
   requirePrimaryIdentifier?: boolean
   /** 是否强制鞋子描述 */
   requireShoesDescription?: boolean
+  /** 验证配置 */
+  validationConfig?: ValidationConfig
+}
+
+/**
+ * 角色服务错误
+ */
+export class CharacterServiceError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly details?: Record<string, unknown>
+  ) {
+    super(message)
+    this.name = 'CharacterServiceError'
+  }
+}
+
+/**
+ * 验证角色输入数据
+ */
+export function validateCharacterData(data: Partial<CharacterProfile> & { name: string }): void {
+  if (!data.name || data.name.trim().length === 0) {
+    throw new CharacterServiceError('INVALID_NAME', '角色名称不能为空')
+  }
+  if (data.name.length > 100) {
+    throw new CharacterServiceError('INVALID_NAME', '角色名称不能超过 100 个字符')
+  }
+  if (data.costumeTier != null && (data.costumeTier < 1 || data.costumeTier > 5)) {
+    throw new CharacterServiceError('INVALID_COSTUME_TIER', '服装华丽度必须在 1-5 之间')
+  }
 }
 
 /**
@@ -46,6 +79,8 @@ export interface CharacterServiceOptions {
 export class CharacterProfileService {
   private prisma: PrismaClient
   private options: Required<CharacterServiceOptions>
+
+  private validationConfig: ValidationConfig
 
   constructor(
     prisma: PrismaClient,
@@ -56,7 +91,9 @@ export class CharacterProfileService {
       strictValidation: options.strictValidation ?? true,
       requirePrimaryIdentifier: options.requirePrimaryIdentifier ?? true,
       requireShoesDescription: options.requireShoesDescription ?? true,
+      validationConfig: options.validationConfig || DEFAULT_VALIDATION_CONFIG,
     }
+    this.validationConfig = this.options.validationConfig
   }
 
   /**
@@ -66,64 +103,171 @@ export class CharacterProfileService {
     projectId: string,
     data: Partial<CharacterProfile> & { name: string }
   ): Promise<CharacterProfile> {
-    const existing = await this.prisma.characterProfile.findUnique({
-      where: {
-        projectId_name: {
-          projectId,
-          name: data.name,
-        },
-      },
-    })
+    // 输入验证
+    validateCharacterData(data)
 
-    if (existing) {
-      // 更新现有角色
-      return this.prisma.characterProfile.update({
-        where: { id: existing.id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
+    try {
+      const existing = await this.prisma.characterProfile.findUnique({
+        where: {
+          projectId_name: {
+            projectId,
+            name: data.name,
+          },
         },
       })
-    }
 
-    // 创建新角色
-    return this.prisma.characterProfile.create({
-      data: {
-        projectId,
-        name: data.name,
-        profileConfirmed: false,
-      },
-    })
+      if (existing) {
+        // 更新现有角色
+        return await this.prisma.characterProfile.update({
+          where: { id: existing.id },
+          data: {
+            ...data,
+            updatedAt: new Date(),
+          },
+        })
+      }
+
+      // 创建新角色
+      return await this.prisma.characterProfile.create({
+        data: {
+          projectId,
+          name: data.name,
+          profileConfirmed: false,
+        },
+      })
+    } catch (error) {
+      if (error instanceof CharacterServiceError) {
+        throw error
+      }
+      // 处理 Prisma 唯一约束错误
+      const prismaError = error as { code?: string; message?: string }
+      if (prismaError.code === 'P2002') {
+        throw new CharacterServiceError(
+          'DUPLICATE_CHARACTER',
+          `项目中的角色 "${data.name}" 已存在`,
+          { projectId, name: data.name }
+        )
+      }
+      throw new CharacterServiceError(
+        'DATABASE_ERROR',
+        `保存角色档案失败: ${prismaError.message}`,
+        { projectId, name: data.name, originalError: error }
+      )
+    }
   }
 
   /**
    * 批量创建/更新角色档案
+   * 使用事务确保原子性，全部成功或全部失败
    */
   async batchUpsertCharacterProfiles(
     projectId: string,
     profiles: Array<Partial<CharacterProfile> & { name: string }>
   ): Promise<CharacterProfile[]> {
-    const results: CharacterProfile[] = []
-
-    for (const profile of profiles) {
-      const result = await this.upsertCharacterProfile(projectId, profile)
-      results.push(result)
+    if (!profiles || profiles.length === 0) {
+      return []
     }
 
-    return results
+    // 验证所有输入
+    for (const profile of profiles) {
+      validateCharacterData(profile)
+    }
+
+    // 检查重复名称
+    const names = profiles.map((p) => p.name)
+    const uniqueNames = new Set(names)
+    if (names.length !== uniqueNames.size) {
+      throw new CharacterServiceError(
+        'DUPLICATE_NAMES_IN_BATCH',
+        '批量操作中的角色名称不能重复'
+      )
+    }
+
+    try {
+      // 使用事务确保原子性
+      return await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const results: CharacterProfile[] = []
+
+        for (const profile of profiles) {
+          const existing = await tx.characterProfile.findUnique({
+            where: {
+              projectId_name: {
+                projectId,
+                name: profile.name,
+              },
+            },
+          })
+
+          if (existing) {
+            const updated = await tx.characterProfile.update({
+              where: { id: existing.id },
+              data: {
+                ...profile,
+                updatedAt: new Date(),
+              },
+            })
+            results.push(updated)
+          } else {
+            const created = await tx.characterProfile.create({
+              data: {
+                projectId,
+                name: profile.name,
+                profileConfirmed: false,
+              },
+            })
+            results.push(created)
+          }
+        }
+
+        return results
+      })
+    } catch (error) {
+      if (error instanceof CharacterServiceError) {
+        throw error
+      }
+      throw new CharacterServiceError(
+        'BATCH_OPERATION_FAILED',
+        '批量保存角色档案失败',
+        { projectId, count: profiles.length, originalError: error }
+      )
+    }
   }
 
   /**
    * 获取项目的所有角色档案
+   * @param projectId - 项目 ID
+   * @param options - 查询选项
    */
-  async getCharacterProfiles(projectId: string): Promise<CharacterProfile[]> {
+  async getCharacterProfiles(
+    projectId: string,
+    options?: {
+      includeDeleted?: boolean
+      confirmedOnly?: boolean
+      limit?: number
+      offset?: number
+    }
+  ): Promise<CharacterProfile[]> {
+    const where: { projectId: string; deletedAt?: null; profileConfirmed?: boolean } = { projectId }
+
+    // 软删除过滤
+    if (!options?.includeDeleted) {
+      where.deletedAt = null
+    }
+
+    // 只返回已确认的角色
+    if (options?.confirmedOnly) {
+      where.profileConfirmed = true
+    }
+
     return this.prisma.characterProfile.findMany({
-      where: { projectId },
+      where,
       include: {
         appearances: {
           orderBy: { appearanceIndex: 'asc' },
         },
       },
+      take: options?.limit,
+      skip: options?.offset,
     })
   }
 
@@ -155,7 +299,7 @@ export class CharacterProfileService {
       descriptions?: string[]
     }>
   ): Promise<CharacterProfile> {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 更新角色确认为 true
       const updated = await tx.characterProfile.update({
         where: { id: characterId },
@@ -217,10 +361,11 @@ export class CharacterProfileService {
       return map
     }
 
-    // 默认返回所有角色的初始形象 (appearanceIndex=1)
-    const whereClause = characterIds
-      ? { id: { in: characterIds } }
-      : {}
+    // 默认返回所有未删除角色的初始形象 (appearanceIndex=1)
+    const whereClause: { deletedAt: null; id?: { in: string[] } } = {
+      deletedAt: null,
+      ...(characterIds ? { id: { in: characterIds } } : {}),
+    }
 
     const characters = await this.prisma.characterProfile.findMany({
       where: whereClause,
@@ -261,7 +406,7 @@ export class CharacterProfileService {
     // 1. 检查 primary_identifier（S/A 级角色必须）
     if (
       this.options.requirePrimaryIdentifier &&
-      (character.roleLevel === 'S' || character.roleLevel === 'A') &&
+      (character.roleLevel === CharacterRoleLevel.S || character.roleLevel === CharacterRoleLevel.A) &&
       !character.primaryIdentifier
     ) {
       violations.push({
@@ -294,7 +439,10 @@ export class CharacterProfileService {
     }
 
     // 4. 检查服装华丽度匹配
-    if (character.costumeTier && character.costumeTier >= 4) {
+    if (
+      character.costumeTier &&
+      character.costumeTier >= this.validationConfig.luxuryThreshold
+    ) {
       if (!this.hasLuxuryKeywords(prompt)) {
         violations.push({
           type: 'costume_mismatch',
@@ -315,22 +463,18 @@ export class CharacterProfileService {
    * 检查提示词是否包含鞋子关键词
    */
   private hasShoesKeywords(prompt: string): boolean {
-    const shoesKeywords = [
-      '鞋', '靴', '高跟鞋', '马丁靴', '帆布鞋', '牛津鞋', '运动鞋',
-      '凉鞋', '拖鞋', '皮鞋', '布鞋', '战靴',
-    ]
-    return shoesKeywords.some((keyword) => prompt.includes(keyword))
+    return this.validationConfig.shoesKeywords.some((keyword) =>
+      prompt.includes(keyword)
+    )
   }
 
   /**
    * 检查提示词是否包含奢华关键词
    */
   private hasLuxuryKeywords(prompt: string): boolean {
-    const luxuryKeywords = [
-      '华丽', '精致', '奢华', '高档', '定制', '刺绣', '镶嵌',
-      '丝绸', '天鹅绒', '蕾丝', '皮草', '珠宝', '金银',
-    ]
-    return luxuryKeywords.some((keyword) => prompt.includes(keyword))
+    return this.validationConfig.luxuryKeywords.some((keyword) =>
+      prompt.includes(keyword)
+    )
   }
 
   /**
@@ -366,7 +510,10 @@ export class CharacterProfileService {
     const appearanceMap = await this.buildAppearanceMap(episodeId, characterIds)
 
     const characters = await this.prisma.characterProfile.findMany({
-      where: characterIds ? { id: { in: characterIds } } : undefined,
+      where: {
+        deletedAt: null,
+        ...(characterIds ? { id: { in: characterIds } } : {}),
+      },
       include: {
         appearances: {
           where: {
@@ -378,9 +525,11 @@ export class CharacterProfileService {
 
     // 构建外观列表字符串
     const appearanceList = characters
-      .map((char) => {
+      .map((char: CharacterProfile & { appearances: CharacterAppearance[] }) => {
         const appearanceIndex = appearanceMap[char.id] || 1
-        const appearance = char.appearances.find((a) => a.appearanceIndex === appearanceIndex)
+        const appearance = char.appearances.find(
+          (a: CharacterAppearance) => a.appearanceIndex === appearanceIndex
+        )
         const desc = appearance?.description || '默认外观'
         return `${char.name}: ${desc}`
       })
@@ -391,6 +540,18 @@ export class CharacterProfileService {
       characters,
       appearanceList,
     }
+  }
+}
+
+/**
+ * 验证场景输入数据
+ */
+export function validateLocationData(data: Partial<LocationProfile> & { name: string }): void {
+  if (!data.name || data.name.trim().length === 0) {
+    throw new CharacterServiceError('INVALID_NAME', '场景名称不能为空')
+  }
+  if (data.name.length > 100) {
+    throw new CharacterServiceError('INVALID_NAME', '场景名称不能超过 100 个字符')
   }
 }
 
@@ -411,32 +572,131 @@ export class LocationProfileService {
     projectId: string,
     data: Partial<LocationProfile> & { name: string }
   ): Promise<LocationProfile> {
-    const existing = await this.prisma.locationProfile.findUnique({
-      where: {
-        projectId_name: {
-          projectId,
-          name: data.name,
-        },
-      },
-    })
+    // 输入验证
+    validateLocationData(data)
 
-    if (existing) {
-      return this.prisma.locationProfile.update({
-        where: { id: existing.id },
-        data: {
-          ...data,
-          updatedAt: new Date(),
+    try {
+      const existing = await this.prisma.locationProfile.findUnique({
+        where: {
+          projectId_name: {
+            projectId,
+            name: data.name,
+          },
         },
       })
+
+      if (existing) {
+        return await this.prisma.locationProfile.update({
+          where: { id: existing.id },
+          data: {
+            ...data,
+            updatedAt: new Date(),
+          },
+        })
+      }
+
+      return await this.prisma.locationProfile.create({
+        data: {
+          projectId,
+          name: data.name,
+          locationConfirmed: false,
+        },
+      })
+    } catch (error) {
+      if (error instanceof CharacterServiceError) {
+        throw error
+      }
+      // 处理 Prisma 唯一约束错误
+      const prismaError = error as { code?: string; message?: string }
+      if (prismaError.code === 'P2002') {
+        throw new CharacterServiceError(
+          'DUPLICATE_LOCATION',
+          `项目中的场景 "${data.name}" 已存在`,
+          { projectId, name: data.name }
+        )
+      }
+      throw new CharacterServiceError(
+        'DATABASE_ERROR',
+        `保存场景档案失败: ${prismaError.message}`,
+        { projectId, name: data.name, originalError: error }
+      )
+    }
+  }
+
+  /**
+   * 批量创建/更新场景档案
+   */
+  async batchUpsertLocationProfiles(
+    projectId: string,
+    profiles: Array<Partial<LocationProfile> & { name: string }>
+  ): Promise<LocationProfile[]> {
+    if (!profiles || profiles.length === 0) {
+      return []
     }
 
-    return this.prisma.locationProfile.create({
-      data: {
-        projectId,
-        name: data.name,
-        locationConfirmed: false,
-      },
-    })
+    // 验证所有输入
+    for (const profile of profiles) {
+      validateLocationData(profile)
+    }
+
+    // 检查重复名称
+    const names = profiles.map((p) => p.name)
+    const uniqueNames = new Set(names)
+    if (names.length !== uniqueNames.size) {
+      throw new CharacterServiceError(
+        'DUPLICATE_NAMES_IN_BATCH',
+        '批量操作中的场景名称不能重复'
+      )
+    }
+
+    try {
+      // 使用事务确保原子性
+      return await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const results: LocationProfile[] = []
+
+        for (const profile of profiles) {
+          const existing = await tx.locationProfile.findUnique({
+            where: {
+              projectId_name: {
+                projectId,
+                name: profile.name,
+              },
+            },
+          })
+
+          if (existing) {
+            const updated = await tx.locationProfile.update({
+              where: { id: existing.id },
+              data: {
+                ...profile,
+                updatedAt: new Date(),
+              },
+            })
+            results.push(updated)
+          } else {
+            const created = await tx.locationProfile.create({
+              data: {
+                projectId,
+                name: profile.name,
+                locationConfirmed: false,
+              },
+            })
+            results.push(created)
+          }
+        }
+
+        return results
+      })
+    } catch (error) {
+      if (error instanceof CharacterServiceError) {
+        throw error
+      }
+      throw new CharacterServiceError(
+        'BATCH_OPERATION_FAILED',
+        '批量保存场景档案失败',
+        { projectId, count: profiles.length, originalError: error }
+      )
+    }
   }
 
   /**
@@ -444,7 +704,7 @@ export class LocationProfileService {
    */
   async getLocationProfiles(projectId: string): Promise<LocationProfile[]> {
     return this.prisma.locationProfile.findMany({
-      where: { projectId },
+      where: { projectId, deletedAt: null },
     })
   }
 

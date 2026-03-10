@@ -6,46 +6,9 @@
 /** 支持的 locale */
 export type Locale = 'zh' | 'en'
 
-/** 提示词 ID（类型安全） */
-export type PromptId =
-  // 角色参考
-  | 'character_image_to_description'
-  | 'character_reference_to_sheet'
-
-  // Novel Promotion (小说提升/分镜模式) - Agent 类
-  | 'np_agent_acting_direction'
-  | 'np_agent_character_profile'
-  | 'np_agent_character_visual'
-  | 'np_agent_cinematographer'
-  | 'np_agent_clip'
-  | 'np_agent_shot_variant_analysis'
-  | 'np_agent_shot_variant_generate'
-  | 'np_agent_storyboard_detail'
-  | 'np_agent_storyboard_insert'
-  | 'np_agent_storyboard_plan'
-
-  // Novel Promotion - 角色管理
-  | 'np_character_create'
-  | 'np_character_description_update'
-  | 'np_character_modify'
-  | 'np_character_regenerate'
-
-  // Novel Promotion - 场景管理
-  | 'np_location_create'
-  | 'np_location_description_update'
-  | 'np_location_modify'
-  | 'np_location_regenerate'
-
-  // Novel Promotion - 剧本/分镜
-  | 'np_episode_split'
-  | 'np_screenplay_conversion'
-  | 'np_select_location'
-  | 'np_single_panel_image'
-  | 'np_storyboard_edit'
-  | 'np_image_prompt_modify'
-
-  // Novel Promotion - 语音
-  | 'np_voice_analysis'
+// PromptId 类型从 prompt-ids.ts 导入，确保单一数据源
+import type { PromptId as ImportedPromptId } from './prompt-ids'
+export type PromptId = ImportedPromptId
 
 /** 提示词模板条目 */
 export interface PromptCatalogEntry {

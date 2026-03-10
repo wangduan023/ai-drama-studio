@@ -58,5 +58,14 @@ export {
   buildTaskProgressMessage,
 } from './worker/progress-reporter'
 
+// Enhanced Worker Utilities
+export {
+  reportTaskProgressEnhanced,
+  reportTaskStreamChunkEnhanced,
+  clearProgressCache,
+  getProgressCacheSize,
+  type EnhancedProgressReporterOptions,
+} from './worker/enhanced-progress-reporter'
+
 // React Hooks
 export * from './react'
