@@ -2,7 +2,8 @@
  * Character Repository
  * 角色档案仓储层，封装角色相关的数据库操作
  */
-import { Prisma, PrismaClient, CharacterRoleLevel, CharacterProfile, CharacterAppearance } from '@prisma/client'
+import type { Prisma, PrismaClient, CharacterRoleLevel, CharacterProfile, CharacterAppearance } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateCharacterInput {
@@ -51,11 +52,11 @@ export interface FindCharacterOptions {
   withDeleted?: boolean
 }
 
-export class CharacterRepository {
-  private prisma: PrismaClient
+export class CharacterRepository extends BaseRepository<'characterProfile', CharacterProfile> {
+  protected readonly modelName = 'characterProfile' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -69,13 +70,15 @@ export class CharacterRepository {
 
     if (options.includeAppearances) include.appearances = true
 
-    const where: Prisma.CharacterProfileWhereInput = {
-      id,
-      ...(options.withDeleted ? {} : { deletedAt: null }),
+    if (!options.withDeleted) {
+      return this.prisma.characterProfile.findFirst({
+        where: { id, deletedAt: null },
+        include,
+      })
     }
 
-    return this.prisma.characterProfile.findFirst({
-      where,
+    return this.prisma.characterProfile.findUnique({
+      where: { id },
       include,
     })
   }
@@ -147,7 +150,7 @@ export class CharacterRepository {
       suggestedColors: input.suggestedColors ? JSON.stringify(input.suggestedColors) : null,
       primaryIdentifier: input.primaryIdentifier,
       visualKeywords: input.visualKeywords ? JSON.stringify(input.visualKeywords) : null,
-      expectedAppearances: input.expectedAppearances,
+      expectedAppearances: input.expectedAppearances ? JSON.stringify(input.expectedAppearances) : undefined,
     }
 
     return this.prisma.characterProfile.create({ data })
@@ -173,7 +176,11 @@ export class CharacterRepository {
     if (input.suggestedColors !== undefined) data.suggestedColors = input.suggestedColors ? JSON.stringify(input.suggestedColors) : null
     if (input.primaryIdentifier !== undefined) data.primaryIdentifier = input.primaryIdentifier
     if (input.visualKeywords !== undefined) data.visualKeywords = input.visualKeywords ? JSON.stringify(input.visualKeywords) : null
-    if (input.expectedAppearances !== undefined) data.expectedAppearances = input.expectedAppearances
+    if (input.expectedAppearances !== undefined) {
+      data.expectedAppearances = input.expectedAppearances
+        ? { set: input.expectedAppearances as Prisma.InputJsonValue }
+        : { set: null }
+    }
     if (input.profileConfirmed !== undefined) data.profileConfirmed = input.profileConfirmed
     if (input.deletedAt !== undefined) data.deletedAt = input.deletedAt
     if (input.deletedBy !== undefined) data.deletedBy = input.deletedBy
@@ -207,6 +214,15 @@ export class CharacterRepository {
         deletedAt: null,
         deletedBy: null,
       },
+    })
+  }
+
+  /**
+   * 硬删除角色
+   */
+  async hardDelete(id: string): Promise<CharacterProfile> {
+    return this.prisma.characterProfile.delete({
+      where: { id },
     })
   }
 

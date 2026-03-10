@@ -2,7 +2,8 @@
  * Location Repository
  * 场景档案仓储层，封装场景相关的数据库操作
  */
-import { Prisma, PrismaClient, LocationType, LocationProfile } from '@prisma/client'
+import type { Prisma, PrismaClient, LocationType, LocationProfile } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateLocationInput {
@@ -30,11 +31,11 @@ export interface FindLocationOptions {
   withDeleted?: boolean
 }
 
-export class LocationRepository {
-  private prisma: PrismaClient
+export class LocationRepository extends BaseRepository<'locationProfile', LocationProfile> {
+  protected readonly modelName = 'locationProfile' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -44,13 +45,14 @@ export class LocationRepository {
     id: string,
     options: FindLocationOptions = {}
   ): Promise<LocationProfile | null> {
-    const where: Prisma.LocationProfileWhereUniqueInput = {
-      id,
-      ...(options.withDeleted ? {} : { deletedAt: null }),
+    if (!options.withDeleted) {
+      return this.prisma.locationProfile.findFirst({
+        where: { id, deletedAt: null },
+      })
     }
 
     return this.prisma.locationProfile.findUnique({
-      where,
+      where: { id },
     })
   }
 
@@ -151,6 +153,15 @@ export class LocationRepository {
         deletedAt: null,
         deletedBy: null,
       },
+    })
+  }
+
+  /**
+   * 硬删除场景
+   */
+  async hardDelete(id: string): Promise<LocationProfile> {
+    return this.prisma.locationProfile.delete({
+      where: { id },
     })
   }
 

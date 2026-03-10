@@ -2,7 +2,8 @@
  * AI Usage Repository
  * AI 使用记录仓储层，封装 AI API 调用记录相关的数据库操作
  */
-import { Prisma, PrismaClient, AiUsageStatus, AiUsageLog } from '@prisma/client'
+import type { Prisma, PrismaClient, AiUsageStatus, AiUsageLog } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateAiUsageInput {
@@ -43,11 +44,11 @@ export interface AiUsageStats {
   successRate: number
 }
 
-export class AiUsageRepository {
-  private prisma: PrismaClient
+export class AiUsageRepository extends BaseRepository<'aiUsageLog', AiUsageLog> {
+  protected readonly modelName = 'aiUsageLog' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -55,7 +56,7 @@ export class AiUsageRepository {
    */
   async findById(
     id: string,
-    options: FindAiUsageOptions = {}
+    _options: FindAiUsageOptions = {}
   ): Promise<AiUsageLog | null> {
     return this.prisma.aiUsageLog.findUnique({
       where: { id },
@@ -190,6 +191,22 @@ export class AiUsageRepository {
       }
       return created
     })
+  }
+
+  /**
+   * 删除使用记录
+   */
+  async delete(id: string): Promise<AiUsageLog> {
+    return this.prisma.aiUsageLog.delete({
+      where: { id },
+    })
+  }
+
+  /**
+   * 硬删除使用记录（别名）
+   */
+  async hardDelete(id: string): Promise<AiUsageLog> {
+    return this.delete(id)
   }
 
   /**

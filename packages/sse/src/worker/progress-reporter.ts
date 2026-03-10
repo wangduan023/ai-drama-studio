@@ -203,7 +203,7 @@ export async function tryUpdateTaskProgress(
       },
       data: {
         progress,
-        payload: payload as Record<string, unknown>,
+        payload: payload as any,
       },
     })
     return result.count > 0
@@ -219,6 +219,8 @@ export async function tryUpdateTaskProgress(
  * @param taskId - Task ID
  */
 export async function touchTaskHeartbeat(taskId: string): Promise<void> {
+  // Note: updatedAt is auto-updated by Prisma's @updatedAt attribute
+  // No need to explicitly update it
   try {
     await prisma.task.updateMany({
       where: {
@@ -228,7 +230,7 @@ export async function touchTaskHeartbeat(taskId: string): Promise<void> {
         },
       },
       data: {
-        updatedAt: new Date(),
+        progress: { increment: 0 }, // No-op to trigger updatedAt auto-update
       },
     })
   } catch (error) {

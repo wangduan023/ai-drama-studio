@@ -367,7 +367,7 @@ export async function publishTaskLifecycleEvent(params: {
             params.lifecycleType,
             params.taskType,
             params.payload || null
-          ),
+          ) as Record<string, unknown>,
         },
       })
     : null
@@ -452,7 +452,7 @@ export async function publishTaskStreamEvent(params: {
           projectId: params.projectId,
           userId: params.userId,
           eventType: TASK_SSE_EVENT_TYPE.STREAM,
-          payload: normalizedPayload,
+          payload: normalizedPayload as Record<string, unknown>,
         },
       })
     : null

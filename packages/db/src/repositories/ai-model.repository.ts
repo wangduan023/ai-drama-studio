@@ -2,7 +2,8 @@
  * AI Model Repository
  * AI 模型仓储层，封装 AI 模型配置相关的数据库操作
  */
-import { Prisma, PrismaClient, AiModelType, AiModel } from '@prisma/client'
+import type { Prisma, PrismaClient, AiModelType, AiModel } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateAiModelInput {
@@ -52,11 +53,11 @@ export interface FindAiModelOptions {
 
 type AiModelIncludeMap = Record<string, boolean>
 
-export class AiModelRepository {
-  private prisma: PrismaClient
+export class AiModelRepository extends BaseRepository<'aiModel', AiModel> {
+  protected readonly modelName = 'aiModel' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -213,6 +214,13 @@ export class AiModelRepository {
     return this.prisma.aiModel.delete({
       where: { id },
     })
+  }
+
+  /**
+   * 硬删除模型（别名）
+   */
+  async hardDelete(id: string): Promise<AiModel> {
+    return this.delete(id)
   }
 
   /**

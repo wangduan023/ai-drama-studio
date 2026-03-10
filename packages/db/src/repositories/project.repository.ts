@@ -2,7 +2,8 @@
  * Project Repository
  * 项目聚合根的仓储层，封装项目相关的数据库操作
  */
-import { Prisma, PrismaClient, ProjectStatus, Project, Episode } from '@prisma/client'
+import type { Prisma, PrismaClient, ProjectStatus, Project, Episode } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateProjectInput {
@@ -41,11 +42,11 @@ export type ProjectWithRelations = Prisma.ProjectGetPayload<{
 
 type ProjectIncludeMap = Record<string, boolean>
 
-export class ProjectRepository {
-  private prisma: PrismaClient
+export class ProjectRepository extends BaseRepository<'project', Project> {
+  protected readonly modelName = 'project' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -57,8 +58,19 @@ export class ProjectRepository {
   ): Promise<Project | null> {
     const include = this.buildInclude(options)
 
+    // 使用 withDeleted 参数控制是否包含已删除的项目
+    const where: Prisma.ProjectWhereUniqueInput = { id }
+    if (!options.withDeleted) {
+      // 如果需要排除已删除的，使用 findFirst 配合 where
+      const result = await this.prisma.project.findFirst({
+        where: { id, deletedAt: null },
+        include,
+      })
+      return result
+    }
+
     return this.prisma.project.findUnique({
-      where: { id },
+      where,
       include,
     })
   }

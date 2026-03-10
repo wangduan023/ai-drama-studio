@@ -1,0 +1,662 @@
+// packages/db/prisma/schema.prisma
+// AI Drama Studio 核心数据模型定义
+// 默认使用 SQLite
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// 项目聚合根
+// ============================================
+
+/// 用户模型
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects     Project[]
+  usageCosts   UsageCost[]
+  refreshTokens RefreshToken[]
+
+  @@index([email])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+/// 刷新令牌（用于认证）
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+/// 系统配置/模型配置
+model Config {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  category    String?  // "ai_model", "system", "feature_flag"
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("configs")
+}
+
+// ============================================
+// AI 渠道配置
+// ============================================
+
+/// AI 渠道商（Provider）配置
+model AiProvider {
+  id          String   @id @default(uuid())
+  name        String   @unique // 渠道商名称：openai, anthropic, qwen, doubao, etc.
+  baseUrl     String   // API 基础地址
+  apiKey      String?  // API Key（可为空，需要在应用层验证）
+  isActive    Boolean  @default(true)  // 是否启用
+  priority    Int      @default(0)     // 优先级（数字越小优先级越高）
+  weight      Int      @default(1)     // 权重（用于负载均衡）
+
+  // 速率限制配置
+  rateLimit   Int?     // 每分钟请求数限制
+  quotaDaily  Int?     // 每日配额
+
+  // 元数据
+  metadata    Json?    // 额外配置
+  description String? 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联的模型配置
+  models      AiModel[]
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([name])
+  @@map("ai_providers")
+}
+
+/// AI 模型配置
+model AiModel {
+  id          String   @id @default(uuid())
+  providerId  String
+  modelId     String   // 模型 ID：gpt-4o, claude-3-7-sonnet, qwen-max, etc.
+  name        String   // 显示名称
+  type        AiModelType  // 模型类型：text, image, video, voice
+
+  // 能力配置
+  isEnabled   Boolean  @default(true)
+  isDefault   Boolean  @default(false)  // 是否为该类型的默认模型
+
+  // 模型参数
+  maxTokens   Int?     // 最大 token 数
+  contextWindow Int?   // 上下文窗口大小
+
+  // 成本配置（每 1000 tokens 或每次调用）
+  inputCost   Float?   // 输入成本
+  outputCost  Float?   // 输出成本
+  imageCost   Float?   // 单图成本
+  videoCost   Float?   // 单视频成本
+  currency    String   @default("USD")  // 货币单位
+
+  // 速率限制
+  rateLimit   Int?     // 每分钟请求数
+  rpm         Int?     // 每分钟轮询数
+  tpm        Int?      // 每分钟 token 数
+
+  // 元数据
+  metadata    Json?    // 额外配置（支持的参数等）
+  description String? 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  provider    AiProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, modelId])
+  @@index([type])
+  @@index([isEnabled])
+  @@index([type, isDefault])
+  @@map("ai_models")
+}
+
+/// AI 模型类型
+enum AiModelType {
+  TEXT      // 文本生成
+  IMAGE     // 图像生成
+  VIDEO     // 视频生成
+  VOICE     // 语音合成
+  EMBEDDING // 嵌入模型
+}
+
+// ============================================
+// 使用记录（详细的 API 调用记录）
+// ============================================
+
+/// AI API 调用记录
+model AiUsageLog {
+  id          String   @id @default(uuid())
+  providerId  String
+  modelId     String?
+
+  // 调用信息
+  action      String   // generate_text, generate_image, generate_video
+  requestId   String?  // 外部 API 返回的请求 ID
+  externalId  String?  // 外部任务 ID
+
+  // 用量统计
+  inputTokens  Int?    // 输入 token 数
+  outputTokens Int?    // 输出 token 数
+  imageCount   Int?    // 生成图片数量
+  videoCount   Int?    // 生成视频数量
+  duration     Float?  // 视频时长（秒）
+
+  // 成本
+  cost        Float    // 实际成本
+  currency    String   @default("USD")
+
+  // 状态
+  status      AiUsageStatus @default(SUCCESS)
+  errorCode   String?
+  errorMessage String?
+
+  // 关联
+  projectId   String?
+  episodeId   String?
+  taskId      String?
+  userId      String?
+
+  // 响应时间
+  latency     Int?     // 响应时间（ms）
+  createdAt   DateTime @default(now())
+
+  @@index([providerId])
+  @@index([status])
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([taskId])
+  @@map("ai_usage_logs")
+}
+
+/// AI 使用状态
+enum AiUsageStatus {
+  SUCCESS
+  FAILED
+  RATE_LIMITED
+  TIMEOUT
+  CANCELLED
+}
+
+/// 资产库 - 通用的图片/视频资产管理
+model Asset {
+  id          String   @id @default(uuid())
+  projectId   String?
+  type        AssetType
+  url         String
+  thumbnailUrl String?
+  name        String
+  description String?
+  tags        String?   // JSON 数组
+  metadata    Json?    // 生成参数、模型信息等
+  size        Int?     // 文件大小（字节）
+  duration    Float?   // 视频时长（秒）
+  width       Int?     // 宽度
+  height      Int?     // 高度
+  status      ProcessStatus @default(COMPLETED)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 软删除支持
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: SetNull, name: "ProjectAssets")
+
+  @@index([projectId])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("assets")
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  CHARACTER_SHEET
+  LOCATION_SHEET
+}
+
+/// 项目 - 聚合根
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  userId      String
+  status      ProjectStatus @default(DRAFT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 软删除支持
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  // 剧集
+  episodes    Episode[]
+
+  // 资产库
+  characterProfiles CharacterProfile[]
+  locationProfiles  LocationProfile[]
+  assets            Asset[] @relation(name: "ProjectAssets")
+
+  // 任务追踪
+  tasks       Task[]
+
+  // 使用量统计
+  usageCosts  UsageCost[]
+
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, deletedAt])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+enum ProjectStatus {
+  DRAFT       // 草稿
+  PROCESSING  // 处理中
+  COMPLETED   // 已完成
+  FAILED      // 失败
+  PAUSED      // 暂停
+}
+
+// ============================================
+// 剧集（工作流执行单元）
+// ============================================
+
+/// 剧集
+model Episode {
+  id          String   @id @default(uuid())
+  projectId   String
+  number      Int      // 集数（从 1 开始）
+  name        String
+  novelText   String?   // 原始小说文本
+  script      Script?           // 剧本
+  storyboards Storyboard[]      // 分镜
+  clips       Clip[]            // 镜头/片段
+
+  // 任务追踪
+  tasks       Task[] @relation(name: "EpisodeTasks")
+
+  // 角色外观映射（用于多阶段一致性）
+  // 格式：{ characterId: appearanceId }
+  characterAppearanceMap Json?
+
+  // 软删除支持
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, number])
+  @@index([projectId])
+  @@index([projectId, deletedAt])
+  @@map("episodes")
+}
+
+// ============================================
+// 剧本
+// ============================================
+
+/// 剧本
+model Script {
+  id            String    @id @default(uuid())
+  episodeId     String    @unique
+  content       String     // 剧本内容（JSON 或纯文本）
+  characters    Json?               // 角色列表缓存
+  scenes        Json?               // 场景列表缓存
+  status        ProcessStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+
+  episode       Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId])
+  @@map("scripts")
+}
+
+// ============================================
+// 分镜
+// ============================================
+
+/// 分镜
+model Storyboard {
+  id            String   @id @default(uuid())
+  episodeId     String
+  clipId        String?
+  sequence      Int      // 分镜序号
+  description   String    // 分镜描述
+  imagePrompt   String?   // 图片生成提示词
+  imageUrl      String?           // 生成的图片 URL
+  videoPrompt   String?   // 视频生成提示词
+  videoUrl      String?           // 生成的视频 URL
+  duration      Float?            // 时长（秒）
+  status        ProcessStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+
+  episode       Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  clip          Clip?    @relation(fields: [clipId], references: [id], onDelete: SetNull)
+
+  @@index([episodeId, sequence])
+  @@map("storyboards")
+}
+
+// ============================================
+// 镜头/片段
+// ============================================
+
+/// 镜头/片段
+model Clip {
+  id          String   @id @default(uuid())
+  episodeId   String
+  sequence    Int      // 镜头序号
+  description String  
+  duration    Float?
+  status      ProcessStatus @default(PENDING)
+
+  storyboards Storyboard[]
+
+  episode     Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId, sequence])
+  @@map("clips")
+}
+
+// ============================================
+// 角色档案（多阶段一致性核心）
+// ============================================
+
+/// 角色档案 - 角色一致性的核心数据模型
+model CharacterProfile {
+  id                  String   @id @default(uuid())
+  projectId           String
+
+  // 基本信息
+  name                String
+  aliases             String?   // JSON 数组：["别名 1", "别名 2"]
+  introduction        String?   // 角色介绍：身份、关系、称呼映射
+
+  // 属性
+  gender              String?           // "男" | "女"
+  ageRange            String?           // "约二十五岁"
+  roleLevel           CharacterRoleLevel?
+  archetype           String?           // 角色原型
+  personalityTags     String?  // JSON 数组：["高冷", "腹黑"]
+  eraPeriod           String?           // 时代/时期
+  socialClass         String?           // 社会阶层
+  occupation          String?           // 职业
+  costumeTier         Int?              // 服装华丽度 1-5
+  suggestedColors     String?  // JSON 数组：["深蓝", "金色"]
+  primaryIdentifier   String?  // 主要辨识标志
+  visualKeywords      String?  // JSON 数组：["精英气质", "禁欲系"]
+
+  // 外观形态（多形态支持）
+  // 格式：[{ id, change_reason, descriptions: [] }]
+  expectedAppearances Json?
+
+  // 确认状态
+  profileConfirmed    Boolean  @default(false)
+
+  // 软删除支持
+  deletedAt           DateTime?
+  deletedBy           String?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // 关联
+  appearances         CharacterAppearance[]
+
+  project             Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([projectId, deletedAt])
+  @@map("character_profiles")
+}
+
+/// 角色重要性层级
+enum CharacterRoleLevel {
+  S  // 绝对主角
+  A  // 核心配角
+  B  // 重要配角
+  C  // 次要角色
+  D  // 群众演员
+}
+
+/// 角色外观形态（子形象）
+model CharacterAppearance {
+  id              String   @id @default(uuid())
+  characterId     String
+
+  appearanceIndex Int      @default(1)  // 外观序号，1=初始形象
+  changeReason    String                 // 变化原因
+  description     String       // 外观描述
+  descriptions    String?      // JSON 数组：多段描述
+  imageUrls       String?      // JSON 数组：生成的图片 URL
+  previousImageUrls String?    // JSON 数组：参考图片 URL
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  character       CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, appearanceIndex])
+  @@index([characterId])
+  @@map("character_appearances")
+}
+
+// ============================================
+// 场景档案
+// ============================================
+
+/// 场景档案
+model LocationProfile {
+  id              String   @id @default(uuid())
+  projectId       String
+
+  // 基本信息
+  name            String
+  description     String?   // 场景描述
+
+  // 属性
+  eraPeriod       String?           // 时代/时期
+  locationType    LocationType?     // 场景类型
+  moodColor       String?           // 氛围色调
+  keyElements     String?  // JSON 数组：关键视觉元素
+
+  // 确认状态
+  locationConfirmed Boolean @default(false)
+
+  // 软删除支持
+  deletedAt       DateTime?
+  deletedBy       String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project         Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([projectId, deletedAt])
+  @@map("location_profiles")
+}
+
+/// 场景类型
+enum LocationType {
+  INDOOR    // 室内
+  OUTDOOR   // 室外
+  NATURE    // 自然
+  BUILDING  // 建筑
+  FANTASY   // 幻想
+}
+
+// ============================================
+// 任务追踪
+// ============================================
+
+/// 任务 - 用于追踪所有 AI 生成任务
+model Task {
+  id           String      @id @default(uuid())
+  projectId    String
+  episodeId    String?
+  userId       String      // 任务所属用户
+  type         TaskType
+  targetType   String      // 目标类型：episode/script/storyboard/...
+  targetId     String      // 目标 ID
+  status       TaskStatus  @default(QUEUED)
+  progress     Int         @default(0)  // 进度 0-100
+  attempt      Int         @default(0)  // 重试次数
+  payload      Json?                   // 任务负载
+  result       Json?                   // 任务结果
+  errorCode    String?
+  errorMessage String?    
+  queuedAt     DateTime    @default(now())
+  startedAt    DateTime?
+  updatedAt    DateTime    @updatedAt
+  finishedAt   DateTime?
+
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  episode      Episode?    @relation(fields: [episodeId], references: [id], onDelete: SetNull, name: "EpisodeTasks")
+  events       TaskEvent[]
+
+  @@index([status, type])
+  @@index([projectId])
+  @@index([episodeId])
+  @@index([userId])
+  @@map("tasks")
+}
+
+/// 任务事件 - 用于 SSE 事件持久化和回放
+model TaskEvent {
+  id        Int       @id @default(autoincrement())
+  taskId    String
+  projectId String
+  userId    String
+  eventType String    // task.created, task.progress, task.completed, task.failed, task.stream
+  payload   Json?
+  createdAt DateTime  @default(now())
+
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@map("task_events")
+}
+
+enum TaskType {
+  // 生成类任务
+  SCRIPT_GENERATE
+  SCRIPT_EDIT
+  SCRIPT_REGENERATE
+
+  STORYBOARD_GENERATE
+  STORYBOARD_EDIT
+  STORYBOARD_REGENERATE
+
+  IMAGE_GENERATE
+  IMAGE_REGENERATE
+
+  VIDEO_GENERATE
+  VIDEO_REGENERATE
+
+  VOICE_GENERATE
+  VOICE_REGENERATE
+
+  // 分析类任务
+  CHARACTER_PROFILE_ANALYZE
+  CHARACTER_VISUAL_GENERATE
+  CHARACTER_VISUAL_REGENERATE
+
+  LOCATION_ANALYZE
+  LOCATION_VISUAL_GENERATE
+  LOCATION_VISUAL_REGENERATE
+
+  // 其他任务
+  EPISODE_EXPORT
+  PROJECT_ARCHIVE
+}
+
+enum TaskStatus {
+  QUEUED     // 已入队
+  PROCESSING // 处理中
+  COMPLETED  // 已完成
+  FAILED     // 失败
+  RETRYING   // 重试中
+}
+
+// ============================================
+// 使用量统计
+// ============================================
+
+/// 使用量/计费记录
+model UsageCost {
+  id         String   @id @default(uuid())
+  projectId  String
+  taskId     String?
+  userId     String
+  model      String
+  action     String
+  quantity   Float
+  unit       String
+  cost       Float
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, userId])
+  @@index([userId])
+  @@map("usage_costs")
+}
+
+// ============================================
+// 通用枚举
+// ============================================
+
+/// 处理状态
+enum ProcessStatus {
+  PENDING    // 待处理
+  PROCESSING // 处理中
+  COMPLETED  // 已完成
+  FAILED     // 失败
+}

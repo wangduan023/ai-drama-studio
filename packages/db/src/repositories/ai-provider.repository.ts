@@ -2,7 +2,8 @@
  * AI Provider Repository
  * AI 渠道商仓储层，封装 AI 渠道配置相关的数据库操作
  */
-import { Prisma, PrismaClient, AiModelType, AiProvider, AiModel } from '@prisma/client'
+import type { Prisma, PrismaClient, AiModelType, AiProvider, AiModel } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateAiProviderInput {
@@ -37,11 +38,11 @@ export interface FindAiProviderOptions {
 
 type AiProviderIncludeMap = Record<string, boolean>
 
-export class AiProviderRepository {
-  private prisma: PrismaClient
+export class AiProviderRepository extends BaseRepository<'aiProvider', AiProvider> {
+  protected readonly modelName = 'aiProvider' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -53,8 +54,16 @@ export class AiProviderRepository {
   ): Promise<AiProvider | null> {
     const include = this.buildInclude(options)
 
+    // 如果需要过滤活跃状态，使用 findFirst
+    if (options.onlyActive) {
+      return this.prisma.aiProvider.findFirst({
+        where: { id, isActive: true },
+        include,
+      })
+    }
+
     return this.prisma.aiProvider.findUnique({
-      where: { id, ...(options.onlyActive ? { isActive: true } : {}) },
+      where: { id },
       include,
     })
   }
@@ -68,8 +77,16 @@ export class AiProviderRepository {
   ): Promise<AiProvider | null> {
     const include = this.buildInclude(options)
 
+    // 如果需要过滤活跃状态，使用 findFirst
+    if (options.onlyActive) {
+      return this.prisma.aiProvider.findFirst({
+        where: { name, isActive: true },
+        include,
+      })
+    }
+
     return this.prisma.aiProvider.findUnique({
-      where: { name, ...(options.onlyActive ? { isActive: true } : {}) },
+      where: { name },
       include,
     })
   }
@@ -138,6 +155,13 @@ export class AiProviderRepository {
     return this.prisma.aiProvider.delete({
       where: { id },
     })
+  }
+
+  /**
+   * 硬删除渠道商（别名）
+   */
+  async hardDelete(id: string): Promise<AiProvider> {
+    return this.delete(id)
   }
 
   /**

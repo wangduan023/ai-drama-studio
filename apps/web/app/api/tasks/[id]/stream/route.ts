@@ -11,10 +11,15 @@ import {
   getProjectChannel,
   SharedSubscriber,
   getSharedSubscriber,
-  createScopedLogger,
+  logInfo,
+  logError,
 } from '@ai-drama-studio/sse'
 
-const logger = createScopedLogger('SSE:TaskStream')
+const logger = {
+  info: (message: string, details?: Record<string, unknown>) => logInfo(`SSE:TaskStream ${message}`, details),
+  warn: (message: string, details?: Record<string, unknown>) => logInfo(`SSE:TaskStream ${message}`, details),
+  error: (message: string, details?: Record<string, unknown>) => logError(`SSE:TaskStream ${message}`, details),
+}
 
 // Connection heartbeat interval (15 seconds)
 const HEARTBEAT_INTERVAL = 15000
@@ -128,8 +133,9 @@ export async function GET(
         // Start heartbeat
         heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
       } catch (error) {
-        logger.error('Failed to establish task stream connection:', error)
-        controller.error(error)
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        logger.error(`Failed to establish task stream connection: ${errorMessage}`)
+        controller.error(error instanceof Error ? error : new Error(String(error)))
       }
 
       // Cleanup on connection close
@@ -143,7 +149,7 @@ export async function GET(
 
         if (unsubscribe) {
           unsubscribe().catch((err) => {
-            logger.error('Error unsubscribing from Redis channel:', err)
+            logger.error(`Error unsubscribing from Redis channel: ${err instanceof Error ? err.message : String(err)}`)
           })
         }
 

@@ -1,0 +1,66 @@
+// packages/db/prisma/proxy-extension.prisma
+// 代理管理扩展模型
+
+// ============================================
+// HTTP 代理池管理
+// ============================================
+
+/// HTTP 代理服务器配置
+model AiProxy {
+  id          String   @id @default(uuid())
+  name        String   @unique // 代理名称："ClashX-Local", "Proxy-Server-1"
+
+  // 代理连接信息
+  host        String   // 代理服务器地址
+  port        Int      // 代理端口
+  protocol    String   @default("http") // http | https | socks5
+  username    String?  // 认证用户名（可选）
+  password    String?  // 认证密码（可选）
+
+  // 状态管理
+  isActive    Boolean  @default(true)   // 是否启用
+  isHealthy   Boolean? // 健康状态（null=未检测）
+  isSystem    Boolean  @default(false)  // 系统内置（不可删除）
+
+  // 健康检查
+  lastCheckAt DateTime?
+  checkLatency Int?    // 最后检测延迟（ms）
+  checkError  String?  // 最后检测错误信息
+  consecutiveFailures Int @default(0) // 连续失败次数
+
+  // 使用统计
+  totalRequests Int    @default(0) // 总请求数
+  failedRequests Int   @default(0) // 失败请求数
+  lastUsedAt  DateTime?
+
+  // 速率限制
+  maxConcurrent Int    @default(10) // 最大并发数
+  currentConcurrent Int @default(0) // 当前并发数
+
+  // 元数据
+  location    String?  // 代理地理位置
+  provider    String?  // 代理服务提供商
+  metadata    Json?    // 额外配置
+
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联的渠道商（多对多）
+  usedByProviders AiProvider[]
+
+  @@index([isActive])
+  @@index([isHealthy])
+  @@index([lastCheckAt])
+  @@map("ai_proxies")
+}
+
+// 扩展 AiProvider 添加代理关联
+model AiProvider {
+  // ... 现有字段保持不变
+
+  // 新增：代理配置
+  proxyMode   String @default("auto") // auto | manual | disabled
+  proxyId     String? // 手动指定的代理 ID
+  proxy       AiProxy? @relation(fields: [proxyId], references: [id])
+}

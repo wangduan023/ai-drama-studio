@@ -55,5 +55,25 @@ export { AiProviderRepository } from './repositories/ai-provider.repository'
 export { AiModelRepository } from './repositories/ai-model.repository'
 export { AiUsageRepository } from './repositories/ai-usage.repository'
 
+// Base Repository 导出
+export { 
+  BaseRepository, 
+  NOT_DELETED,
+  OptimisticLockError,
+  type IRepository,
+  type FindManyParams,
+  type VersionedEntity,
+  type PrismaModelMap,
+} from './repositories/base.repository'
+
+// Client 导出
+export { 
+  prisma, 
+  disconnect, 
+  healthCheck, 
+  withRetry, 
+  withTransaction 
+} from './client'
+
 // Schemas 导出
 export * from './schemas'

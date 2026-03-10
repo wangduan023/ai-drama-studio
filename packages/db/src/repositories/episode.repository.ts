@@ -2,7 +2,8 @@
  * Episode Repository
  * 剧集仓储层，封装剧集相关的数据库操作
  */
-import { Prisma, PrismaClient, Episode } from '@prisma/client'
+import type { Prisma, PrismaClient, Episode } from '@prisma/client'
+import { BaseRepository } from './base.repository'
 import { prisma } from '../client'
 
 export interface CreateEpisodeInput {
@@ -29,11 +30,11 @@ export interface FindEpisodeOptions {
   withDeleted?: boolean
 }
 
-export class EpisodeRepository {
-  private prisma: PrismaClient
+export class EpisodeRepository extends BaseRepository<'episode', Episode> {
+  protected readonly modelName = 'episode' as const
 
   constructor(prismaInstance?: PrismaClient) {
-    this.prisma = prismaInstance || prisma
+    super(prismaInstance)
   }
 
   /**
@@ -50,13 +51,16 @@ export class EpisodeRepository {
     if (options.includeClips) include.clips = true
     if (options.includeTasks) include.tasks = true
 
-    const where: Prisma.EpisodeWhereUniqueInput = {
-      id,
-      ...(options.withDeleted ? {} : { deletedAt: null }),
+    // 使用 findFirst 来支持软删除过滤
+    if (!options.withDeleted) {
+      return this.prisma.episode.findFirst({
+        where: { id, deletedAt: null },
+        include,
+      })
     }
 
     return this.prisma.episode.findUnique({
-      where,
+      where: { id },
       include,
     })
   }
@@ -160,6 +164,15 @@ export class EpisodeRepository {
         deletedAt: null,
         deletedBy: null,
       },
+    })
+  }
+
+  /**
+   * 硬删除剧集
+   */
+  async hardDelete(id: string): Promise<Episode> {
+    return this.prisma.episode.delete({
+      where: { id },
     })
   }
 

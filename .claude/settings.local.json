@@ -37,7 +37,25 @@
       "Bash(yarn add -D @vitest/coverage-v8 -W 2>&1 | tail -20)",
       "Bash(npm run typecheck 2>&1 | head -40)",
       "Bash(npm run typecheck 2>&1)",
-      "Bash(npm config set yes true && cat /home/wd/dev/docker-ai-shotlive/ai-drama-studio/package.json | head -10)"
+      "Bash(npm config set yes true && cat /home/wd/dev/docker-ai-shotlive/ai-drama-studio/package.json | head -10)",
+      "Bash(pnpm test 2>&1 | head -100)",
+      "Bash(pnpm test 2>&1 | tail -100)",
+      "Bash(pnpm test:coverage 2>&1 | tail -150)",
+      "Bash(cd packages/ai-client && pnpm test:coverage 2>&1 | tail -200)",
+      "Bash(npm test:*)",
+      "Bash(find . -name \"coverage-summary*.json\" -o -name \"coverage*.json\" 2>/dev/null | head -5)",
+      "Bash(find ./packages/ai-client/coverage -name \"*.html\" 2>/dev/null | head -5)",
+      "Bash(ls -la /home/wd/dev/docker-ai-shotlive/ai-drama-studio/*.md 2>/dev/null || echo \"No .md files in root\")",
+      "Bash(npx vitest:*)",
+      "Bash(pnpm install:*)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio && npm run test:coverage 2>&1 | tail -80)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/db && npm run test:coverage 2>&1 | tail -40)",
+      "Bash(pnpm test:*)",
+      "Bash(pnpm test:coverage 2>&1 | tail -50)",
+      "Bash(pnpm test:coverage 2>&1 | tail -60)",
+      "Bash(pnpm test:coverage 2>&1 | tail -40)",
+      "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/db && pnpm test:coverage 2>&1 | tail -30)",
+      "Bash(pnpm test:coverage 2>&1 | tail -35)"
     ]
   }
 }
