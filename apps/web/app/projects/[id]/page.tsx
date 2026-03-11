@@ -174,12 +174,14 @@ export default function ProjectDetailPage() {
                     onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
                     className="text-lg font-bold"
                     placeholder="项目名称"
+                    data-testid="edit-project-name-input"
                   />
                   <Textarea
                     value={editForm.description}
                     onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                     className="text-sm min-h-[60px]"
                     placeholder="项目描述"
+                    data-testid="edit-project-description-input"
                   />
                 </div>
               ) : (
@@ -194,11 +196,11 @@ export default function ProjectDetailPage() {
           <div className="flex items-center gap-2">
             {isEditing ? (
               <>
-                <Button variant="outline" onClick={handleCancelEdit}>
+                <Button variant="outline" onClick={handleCancelEdit} data-testid="cancel-button">
                   <X className="h-4 w-4 mr-2" />
                   取消
                 </Button>
-                <Button onClick={handleSaveEdit} disabled={updateProject.isPending}>
+                <Button onClick={handleSaveEdit} disabled={updateProject.isPending} data-testid="save-button">
                   {updateProject.isPending ? (
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   ) : (
@@ -217,7 +219,7 @@ export default function ProjectDetailPage() {
                     </Button>
                   </Link>
                 )}
-                <Button variant="outline" onClick={handleStartEdit}>
+                <Button variant="outline" onClick={handleStartEdit} data-testid="edit-button">
                   <Edit className="h-4 w-4 mr-2" />
                   编辑
                 </Button>
@@ -401,7 +403,7 @@ export default function ProjectDetailPage() {
             <div className="space-y-3">
               {episodes.map((episode, index) => (
                 <Link key={episode.id} href={`/projects/${project.id}/episodes/${episode.id}`}>
-                  <Card className="hover:shadow-md transition-all group cursor-pointer">
+                  <Card className="hover:shadow-md transition-all group cursor-pointer" data-testid="episode-card">
                     <CardContent className="p-4">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">

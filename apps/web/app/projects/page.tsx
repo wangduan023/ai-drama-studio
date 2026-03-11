@@ -65,7 +65,7 @@ export default function ProjectsPage() {
       const query = searchQuery.toLowerCase()
       result = result.filter(
         (p) =>
-          p.title.toLowerCase().includes(query) ||
+          (p.title?.toLowerCase() || '').includes(query) ||
           (p.description?.toLowerCase() || '').includes(query)
       )
     }
@@ -126,6 +126,12 @@ export default function ProjectsPage() {
             <h1 className="text-3xl font-bold mb-2">项目列表</h1>
             <p className="text-muted-foreground">管理和创建你的短剧项目</p>
           </div>
+          <Link href="/projects/new" data-testid="create-project-button">
+            <Button>
+              <Plus className="h-5 w-5 mr-2" />
+              新建项目
+            </Button>
+          </Link>
         </div>
         <ProjectListSkeleton viewMode={viewMode} />
       </div>
@@ -141,6 +147,12 @@ export default function ProjectsPage() {
             <h1 className="text-3xl font-bold mb-2">项目列表</h1>
             <p className="text-muted-foreground">管理和创建你的短剧项目</p>
           </div>
+          <Link href="/projects/new" data-testid="create-project-button">
+            <Button>
+              <Plus className="h-5 w-5 mr-2" />
+              新建项目
+            </Button>
+          </Link>
         </div>
         <ErrorState 
           message={error instanceof Error ? error.message : '加载项目失败'} 
@@ -162,12 +174,12 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold mb-2">项目列表</h1>
           <p className="text-muted-foreground">管理和创建你的短剧项目</p>
         </div>
-        <Button >
-          <Link href="/projects/new" className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
+        <Link href="/projects/new" data-testid="create-project-button">
+          <Button>
+            <Plus className="h-5 w-5 mr-2" />
             新建项目
-          </Link>
-        </Button>
+          </Button>
+        </Link>
       </motion.div>
 
       {/* 工具栏 */}
@@ -254,6 +266,7 @@ export default function ProjectsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              data-testid="project-card"
             >
               <ProjectCard 
                 project={project} 
@@ -334,6 +347,7 @@ function ProjectCard({ project, onDelete, isDeleting }: ProjectCardProps) {
                   onClick={onDelete}
                   disabled={isDeleting}
                   className="text-destructive focus:text-destructive"
+                  data-testid="delete-project-button"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   {isDeleting ? '删除中...' : '删除'}
@@ -344,7 +358,7 @@ function ProjectCard({ project, onDelete, isDeleting }: ProjectCardProps) {
         </div>
         <Link href={`/projects/${project.id}`}>
           <div className="p-6">
-            <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+            <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors" data-testid="project-title">
               {project.title}
             </h3>
             <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
@@ -384,7 +398,7 @@ function ProjectListItem({ project, onDelete, isDeleting }: ProjectListItemProps
               <Film className="h-6 w-6 text-muted-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+              <h3 className="font-semibold truncate group-hover:text-primary transition-colors" data-testid="project-title">
                 {project.title}
               </h3>
               <p className="text-muted-foreground text-sm truncate">
@@ -418,6 +432,7 @@ function ProjectListItem({ project, onDelete, isDeleting }: ProjectListItemProps
                 onClick={onDelete}
                 disabled={isDeleting}
                 className="text-destructive focus:text-destructive"
+                data-testid="delete-project-button"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 {isDeleting ? '删除中...' : '删除'}

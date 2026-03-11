@@ -159,7 +159,7 @@ export default function LocationsLibraryPage() {
           <h1 className="text-3xl font-bold mb-2">场景库</h1>
           <p className="text-muted-foreground">管理所有项目中的场景</p>
         </div>
-        <Button>
+        <Button data-testid="create-location-button">
           <Plus className="h-5 w-5 mr-2" />
           新建场景
         </Button>
@@ -323,7 +323,7 @@ function LocationCard({ location, selected, onSelect, onDelete, isDeleting }: Lo
   const TypeIcon = typeInfo.icon
 
   return (
-    <Card className={`group hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${selected ? 'ring-2 ring-primary' : ''}`}>
+    <Card className={`group hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${selected ? 'ring-2 ring-primary' : ''}`} data-testid="location-card">
       <CardContent className="p-0">
         <div className="aspect-video bg-muted flex items-center justify-center relative">
           <MapPin className="h-12 w-12 text-muted-foreground" />
@@ -397,7 +397,7 @@ function LocationListItem({ location, selected, onSelect, onDelete, isDeleting }
   const TypeIcon = typeInfo.icon
 
   return (
-    <Card className={`group hover:shadow-md transition-all cursor-pointer ${selected ? 'ring-2 ring-primary' : ''}`}>
+    <Card className={`group hover:shadow-md transition-all cursor-pointer ${selected ? 'ring-2 ring-primary' : ''}`} data-testid="location-card">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
           <Checkbox checked={selected} onCheckedChange={onSelect} />

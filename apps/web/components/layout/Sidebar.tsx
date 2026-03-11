@@ -12,6 +12,7 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
+  CheckSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,11 @@ const mainNavItems = [
     title: '场景库',
     href: '/library/locations',
     icon: MapPin,
+  },
+  {
+    title: '待办事项',
+    href: '/todos',
+    icon: CheckSquare,
   },
 ]
 
@@ -106,7 +112,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <ScrollArea className="h-[calc(100vh-8rem)] px-3 py-4">
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-2" data-testid="sidebar-nav">
           {mainNavItems.map((item) => (
             <NavItem
               key={item.href}
@@ -115,11 +121,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               collapsed={collapsed}
             />
           ))}
-        </nav>
 
-        <div className="my-4 border-t" />
+          <div className="my-4 border-t" />
 
-        <nav className="flex flex-col gap-2">
           {secondaryNavItems.map((item) => (
             <NavItem
               key={item.href}

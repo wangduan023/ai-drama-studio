@@ -40,7 +40,7 @@ export function AppBreadcrumb({ items }: AppBreadcrumbProps) {
   const breadcrumbItems = items || generateBreadcrumbItems(pathname)
 
   return (
-    <Breadcrumb>
+    <Breadcrumb data-testid="breadcrumb">
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink >

@@ -179,7 +179,7 @@ export default function CharactersLibraryPage() {
           <h1 className="text-3xl font-bold mb-2">角色库</h1>
           <p className="text-muted-foreground">管理所有项目中的角色</p>
         </div>
-        <Button>
+        <Button data-testid="create-character-button">
           <Plus className="h-5 w-5 mr-2" />
           新建角色
         </Button>
@@ -298,6 +298,7 @@ export default function CharactersLibraryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
+              data-testid="character-card"
             >
               <CharacterCard
                 character={character}
@@ -363,7 +364,7 @@ function CharacterCard({ character, selected, onSelect, onDelete, isDeleting }: 
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+                <h3 className="font-semibold truncate group-hover:text-primary transition-colors" data-testid="character-name">
                   {character.name}
                 </h3>
                 <p className="text-sm text-muted-foreground">{character.archetype || '未知角色'}</p>
@@ -409,6 +410,7 @@ function CharacterCard({ character, selected, onSelect, onDelete, isDeleting }: 
                 onClick={onDelete}
                 disabled={isDeleting}
                 className="text-destructive focus:text-destructive"
+                data-testid="delete-character-button"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 {isDeleting ? '删除中...' : '删除'}
@@ -495,6 +497,7 @@ function CharacterListItem({ character, selected, onSelect, onDelete, isDeleting
                 onClick={onDelete}
                 disabled={isDeleting}
                 className="text-destructive focus:text-destructive"
+                data-testid="delete-character-button"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 {isDeleting ? '删除中...' : '删除'}

@@ -28,6 +28,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:coverage:watch": "vitest --coverage",
+    "test:e2e": "cd apps/web && pnpm test:e2e",
+    "test:e2e:ui": "cd apps/web && pnpm test:e2e:ui",
     "clean": "rm -rf .next node_modules"
   },
   "dependencies": {

@@ -208,6 +208,7 @@ export default function NewProjectPage() {
                   <Label htmlFor="title">项目名称 *</Label>
                   <Input
                     id="title"
+                    data-testid="project-name-input"
                     placeholder="输入项目名称..."
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -219,6 +220,7 @@ export default function NewProjectPage() {
                   <Label htmlFor="description">项目描述</Label>
                   <Textarea
                     id="description"
+                    data-testid="project-description-input"
                     placeholder="简单描述一下这个项目..."
                     className="min-h-[100px]"
                     value={formData.description}
@@ -428,18 +430,19 @@ export default function NewProjectPage() {
           variant="outline"
           onClick={prevStep}
           disabled={currentStep === 0}
+          data-testid="prev-button"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           上一步
         </Button>
 
         {currentStep < steps.length - 1 ? (
-          <Button onClick={nextStep}>
+          <Button onClick={nextStep} data-testid="next-button">
             下一步
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={createProject.isPending}>
+          <Button onClick={handleSubmit} disabled={createProject.isPending} data-testid="submit-button">
             {createProject.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

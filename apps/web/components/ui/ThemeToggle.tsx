@@ -21,8 +21,8 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="inline-flex items-center justify-center rounded-lg h-9 w-9">
-        <div className="h-5 w-5 animate-pulse bg-muted rounded" />
+      <div className="inline-flex items-center justify-center rounded-lg h-9 w-9" data-testid="theme-toggle">
+        <Sun className="h-5 w-5 text-muted-foreground" />
       </div>
     )
   }
@@ -31,7 +31,7 @@ export function ThemeToggle() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger>
+      <DropdownMenuTrigger data-testid="theme-toggle">
         <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 cursor-pointer">
           <CurrentIcon className="h-5 w-5" />
         </div>

@@ -19,11 +19,11 @@ import { listTaskLifecycleEvents } from '@ai-drama-studio/sse'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const searchParams = request.nextUrl.searchParams
   const projectId = searchParams.get('projectId')
-  const taskId = params.id
+  const { id: taskId } = await params
   const userId = request.headers.get('x-user-id')
 
   // Validate required parameters
