@@ -2,6 +2,7 @@
   "name": "@ai-drama-studio/queue",
   "version": "0.1.0",
   "description": "AI Drama Studio BullMQ Queue System - 队列和 Worker 管理",
+  "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {

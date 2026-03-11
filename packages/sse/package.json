@@ -2,6 +2,7 @@
   "name": "@ai-drama-studio/sse",
   "version": "0.1.0",
   "description": "AI Drama Studio SSE Real-time Push System",
+  "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {

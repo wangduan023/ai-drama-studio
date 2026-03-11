@@ -1,31 +1,37 @@
 # AI Drama Studio - 开发模式 Web 容器镜像
 # 支持热重载（hot reload）
-# Monorepo 结构：apps/web
 
 FROM node:20-alpine
 WORKDIR /app
 
 ENV NODE_ENV=development
 
-# 安装构建依赖和热重载工具
-RUN apk add --no-cache python3 make g++
+# 安装 pnpm
+RUN npm install -g pnpm
 
-# 复制 package 文件
-COPY package.json package-lock.json* ./
+# 首先复制所有 package.json 文件（优化层缓存）
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
-COPY packages/*/package.json ./packages/
+COPY apps/worker/package.json ./apps/worker/
+COPY packages/core/package.json ./packages/core/
+COPY packages/db/package.json ./packages/db/
+COPY packages/prompt-system/package.json ./packages/prompt-system/
+COPY packages/queue/package.json ./packages/queue/
+COPY packages/sse/package.json ./packages/sse/
+COPY packages/workflow/package.json ./packages/workflow/
+COPY packages/ai-client/package.json ./packages/ai-client/
 
-# 安装所有依赖（含 devDependencies）
-RUN npm ci
+# 安装依赖
+RUN pnpm install
 
-# Prisma generate
-RUN npx prisma generate
-
-# 复制全部源码（开发模式需要）
+# 复制源码（开发模式挂载卷会覆盖此内容）
 COPY . .
+
+# 生成 Prisma Client
+RUN pnpm prisma generate --schema=packages/db/prisma/schema.mysql.prisma
 
 WORKDIR /app/apps/web
 
-EXPOSE 3000
+EXPOSE 3000 3010
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "pnpm prisma db push --skip-generate && pnpm dev"]

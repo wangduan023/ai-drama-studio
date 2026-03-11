@@ -5,7 +5,7 @@
  */
 
 // Prisma Client 单例
-export { prisma, disconnect } from './client'
+export { prisma, disconnect, healthCheck, withRetry, withTransaction, queryRaw } from './client'
 
 // 导出所有 Model 类型
 export type {
@@ -56,8 +56,8 @@ export { AiModelRepository } from './repositories/ai-model.repository'
 export { AiUsageRepository } from './repositories/ai-usage.repository'
 
 // Base Repository 导出
-export { 
-  BaseRepository, 
+export {
+  BaseRepository,
   NOT_DELETED,
   OptimisticLockError,
   UniqueConstraintError,
@@ -69,16 +69,6 @@ export {
   type VersionedEntity,
   type PrismaModelMap,
 } from './repositories/base.repository'
-
-// Client 导出
-export { 
-  prisma, 
-  disconnect, 
-  healthCheck, 
-  withRetry, 
-  withTransaction,
-  queryRaw,
-} from './client'
 
 // Schemas 导出
 export * from './schemas'

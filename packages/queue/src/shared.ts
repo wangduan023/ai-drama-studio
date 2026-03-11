@@ -6,7 +6,7 @@
 
 import { UnrecoverableError, type Job } from 'bullmq'
 import type { TaskJobData, TaskBillingInfo, LLMStreamChunk } from './types'
-import { reportTaskProgressEnhanced, reportTaskStreamChunkEnhanced } from '@ai-drama-studio/sse/worker'
+import { reportTaskProgressEnhanced, reportTaskStreamChunkEnhanced } from '@ai-drama-studio/sse/src/worker'
 
 /**
  * 任务进度报告（增强版）

@@ -55,7 +55,14 @@
       "Bash(pnpm test:coverage 2>&1 | tail -60)",
       "Bash(pnpm test:coverage 2>&1 | tail -40)",
       "Bash(cd /home/wd/dev/docker-ai-shotlive/ai-drama-studio/packages/db && pnpm test:coverage 2>&1 | tail -30)",
-      "Bash(pnpm test:coverage 2>&1 | tail -35)"
+      "Bash(pnpm test:coverage 2>&1 | tail -35)",
+      "Bash(pnpm dev:*)",
+      "Bash(cd apps/web && pnpm add @geist-ui/font)",
+      "Bash(cd apps/worker && npx tsx --env-file=.env index.ts)",
+      "Bash(cd apps/web && npx next dev --turbopack -H 0.0.0.0)",
+      "Bash(npx next:*)",
+      "Bash(cd /home/ubuntu/dev/ai-drama-studio/packages/queue && npx tsc --build)",
+      "Bash(cd /home/ubuntu/dev/ai-drama-studio/apps/worker && npx tsx --env-file=.env index.ts)"
     ]
   }
 }

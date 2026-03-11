@@ -1,6 +1,6 @@
 import type { Config } from 'tailwindcss'
 
-export default {
+const config: Config = {
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -13,30 +13,45 @@ export default {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
         primary: {
-          DEFAULT: 'var(--color-primary)',
-          foreground: 'var(--color-primary-fg)',
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
         },
         secondary: {
-          DEFAULT: 'var(--color-secondary)',
-          foreground: 'var(--color-secondary-fg)',
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
         },
         muted: {
-          DEFAULT: 'var(--color-muted)',
-          foreground: 'var(--color-muted-fg)',
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
         },
         accent: {
-          DEFAULT: 'var(--color-accent)',
-          foreground: 'var(--color-accent-fg)',
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
         },
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        destructive: {
+          DEFAULT: 'var(--destructive)',
+          foreground: 'var(--destructive-foreground)',
+        },
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
       },
       borderRadius: {
-        lg: 'var(--radius-lg)',
-        md: 'var(--radius-md)',
-        sm: 'var(--radius-sm)',
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-geist-mono)', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       keyframes: {
         'fade-in': {
@@ -70,4 +85,6 @@ export default {
     },
   },
   plugins: [],
-} satisfies Config
+}
+
+export default config
