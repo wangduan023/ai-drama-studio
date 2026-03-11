@@ -5,6 +5,7 @@
 
 import { Server, Socket } from 'socket.io';
 import { verifyToken } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
 /**
  * 创建 Socket.io 服务器实例
@@ -65,8 +66,25 @@ export function createSocketServer(server: any) {
     const joinedRooms = new Set<string>();
 
     // 加入项目房间
-    socket.on('join-project', (projectId: string) => {
+    socket.on('join-project', async (projectId: string) => {
       if (!projectId) return;
+      
+      // 权限检查：验证用户是否有项目访问权限
+      const project = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          deletedAt: null,
+          OR: [
+            { userId }, // 项目所有者
+            { members: { some: { userId } } } // 项目成员
+          ]
+        }
+      });
+      
+      if (!project) {
+        socket.emit('error', { message: 'Access denied to this project' });
+        return;
+      }
       
       const roomName = `project:${projectId}`;
       socket.join(roomName);

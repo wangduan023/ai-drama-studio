@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
 
     const projects = await prisma.project.findMany({
       where: {
-        userId,
         deletedAt: null,
+        OR: [
+          { userId }, // 自己创建的项目
+          { members: { some: { userId } } } // 作为成员的项目
+        ],
         ...(status && status !== 'all' ? { status: status as ProjectStatus } : {}),
         ...(search ? {
           OR: [

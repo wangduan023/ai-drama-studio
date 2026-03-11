@@ -132,6 +132,10 @@ export async function deductCredits(
       })
 
       return { credit: updatedCredit, transaction }
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 5000,
+      timeout: 10000,
     })
 
     return { success: true, transaction: result.transaction }
@@ -205,6 +209,10 @@ export async function addCredits(
       })
 
       return { credit: updatedCredit, transaction }
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 5000,
+      timeout: 10000,
     })
 
     return { success: true, transaction: result.transaction }
@@ -268,6 +276,10 @@ export async function refundCredits(
       })
 
       return { credit: updatedCredit, transaction }
+    }, {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      maxWait: 5000,
+      timeout: 10000,
     })
 
     return { success: true, transaction: result.transaction }

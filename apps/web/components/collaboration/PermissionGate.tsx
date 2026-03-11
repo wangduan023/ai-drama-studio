@@ -23,23 +23,40 @@ interface PermissionGateProps {
   fallback?: React.ReactNode
 }
 
-// 模拟获取当前用户角色
+// 获取当前用户角色
 function useCurrentUserRole(projectId: string): ProjectRole | null {
   const [role, setRole] = useState<ProjectRole | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    // 这里应该调用 API 获取当前用户在项目中的角色
-    // 暂时模拟
     const fetchRole = async () => {
       try {
-        // const response = await api.get<{ role: ProjectRole }>(`/api/projects/${projectId}/my-role`)
-        // setRole(response.role)
-        setRole('EDITOR') // 模拟
-      } catch {
+        setIsLoading(true)
+        setError(null)
+        const response = await fetch(`/api/projects/${projectId}/members/me`)
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('Unauthorized')
+          }
+          if (response.status === 403) {
+            throw new Error('Not a member of this project')
+          }
+          throw new Error('Failed to fetch role')
+        }
+        const data = await response.json()
+        setRole(data.role)
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch role'))
         setRole(null)
+      } finally {
+        setIsLoading(false)
       }
     }
-    fetchRole()
+
+    if (projectId) {
+      fetchRole()
+    }
   }, [projectId])
 
   return role

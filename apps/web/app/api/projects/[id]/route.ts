@@ -20,8 +20,11 @@ export async function GET(
     const project = await prisma.project.findFirst({
       where: {
         id,
-        userId,
         deletedAt: null,
+        OR: [
+          { userId }, // 所有者
+          { members: { some: { userId } } } // 成员
+        ]
       },
       include: {
         _count: {
@@ -42,7 +45,7 @@ export async function GET(
 
     if (!project) {
       return NextResponse.json(
-        { error: 'Project not found' },
+        { error: 'Project not found or access denied' },
         { status: 404 }
       )
     }
@@ -84,19 +87,22 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 检查项目是否存在且属于当前用户
-    const existingProject = await prisma.project.findFirst({
+    // 检查项目访问权限和角色（需要 EDITOR 或 OWNER 权限）
+    const projectAccess = await prisma.project.findFirst({
       where: {
         id,
-        userId,
         deletedAt: null,
-      },
+        OR: [
+          { userId }, // 所有者有完全权限
+          { members: { some: { userId, role: { in: ['EDITOR', 'OWNER'] } } } }
+        ]
+      }
     })
 
-    if (!existingProject) {
+    if (!projectAccess) {
       return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
+        { error: 'Project not found or insufficient permissions' },
+        { status: 403 }
       )
     }
 
@@ -166,19 +172,22 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 检查项目是否存在且属于当前用户
-    const existingProject = await prisma.project.findFirst({
+    // 检查项目访问权限和角色（需要 EDITOR 或 OWNER 权限）
+    const projectAccess = await prisma.project.findFirst({
       where: {
         id,
-        userId,
         deletedAt: null,
-      },
+        OR: [
+          { userId }, // 所有者有完全权限
+          { members: { some: { userId, role: { in: ['EDITOR', 'OWNER'] } } } }
+        ]
+      }
     })
 
-    if (!existingProject) {
+    if (!projectAccess) {
       return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
+        { error: 'Project not found or insufficient permissions' },
+        { status: 403 }
       )
     }
 

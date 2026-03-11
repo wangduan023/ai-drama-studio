@@ -170,7 +170,7 @@ export async function POST(
       {
         email: normalizedEmail,
         role,
-        token,
+        tokenPrefix: token.slice(0, 8) + '***', // 只记录前缀，避免泄露敏感信息
       }
     )
 
@@ -188,7 +188,7 @@ export async function POST(
         email: invite.email,
         role: invite.role,
         expiresAt: invite.expiresAt.toISOString(),
-        token: invite.token,
+        // token 不在响应中返回，仅通过邮件发送
         inviteUrl,
       },
     })
