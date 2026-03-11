@@ -105,12 +105,14 @@ async function main() {
       {
         email: 'admin@example.com',
         name: 'Admin User',
-        role: 'ADMIN' as const
+        role: 'ADMIN' as const,
+        passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiAYMyzJ/I2K' // hashed 'password123'
       },
       {
         email: 'user@example.com',
         name: 'Demo User',
-        role: 'USER' as const
+        role: 'USER' as const,
+        passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiAYMyzJ/I2K' // hashed 'password123'
       }
     ]
 

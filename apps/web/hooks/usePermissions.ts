@@ -49,6 +49,7 @@ const permissionQueryKeys = {
  * @returns 角色查询结果
  */
 function useProjectRole(projectId: string) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: permissionQueryKeys.role(projectId),
     queryFn: async (): Promise<ProjectRoleResponse> => {
@@ -71,7 +72,7 @@ function useProjectRole(projectId: string) {
       
       return response.json()
     },
-    enabled: !!projectId,
+    enabled: !!projectId && isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 分钟缓存
     retry: (failureCount, error) => {
       // 403 错误不重试

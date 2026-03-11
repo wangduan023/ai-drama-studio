@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 
 export interface Project {
   id: string
@@ -41,12 +42,14 @@ const queryKeys = {
  * 获取项目列表
  */
 export function useProjectList() {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.projects.list(),
     queryFn: async () => {
       const response = await api.get<Project[]>('/api/projects')
       return response
     },
+    enabled: isAuthenticated,
   })
 }
 
@@ -54,6 +57,7 @@ export function useProjectList() {
  * 获取项目详情
  */
 export function useProject(id: string | undefined) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.projects.detail(id!),
     queryFn: async () => {
@@ -61,7 +65,7 @@ export function useProject(id: string | undefined) {
       const response = await api.get<Project>(`/api/projects/${id}`)
       return response
     },
-    enabled: !!id,
+    enabled: !!id && isAuthenticated,
   })
 }
 

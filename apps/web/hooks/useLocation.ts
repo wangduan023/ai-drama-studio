@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 
 export interface Location {
   id: string
@@ -52,6 +53,7 @@ const queryKeys = {
  * @param projectId - 项目ID，不传则获取所有场景
  */
 export function useLocationList(projectId?: string) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.locations.list(projectId),
     queryFn: async () => {
@@ -61,7 +63,7 @@ export function useLocationList(projectId?: string) {
       const response = await api.get<Location[]>(url)
       return response
     },
-    enabled: projectId === undefined || !!projectId,
+    enabled: (projectId === undefined || !!projectId) && isAuthenticated,
   })
 }
 
@@ -69,6 +71,7 @@ export function useLocationList(projectId?: string) {
  * 获取场景详情
  */
 export function useLocation(id: string | undefined) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.locations.detail(id!),
     queryFn: async () => {
@@ -76,7 +79,7 @@ export function useLocation(id: string | undefined) {
       const response = await api.get<Location>(`/api/locations/${id}`)
       return response
     },
-    enabled: !!id,
+    enabled: !!id && isAuthenticated,
   })
 }
 

@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 
 export interface Episode {
   id: string
@@ -56,6 +57,7 @@ const queryKeys = {
  * 获取项目的剧集列表
  */
 export function useEpisodesByProject(projectId: string | undefined) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.episodes.list(projectId!),
     queryFn: async () => {
@@ -63,7 +65,7 @@ export function useEpisodesByProject(projectId: string | undefined) {
       const response = await api.get<Episode[]>(`/api/projects/${projectId}/episodes`)
       return response
     },
-    enabled: !!projectId,
+    enabled: !!projectId && isAuthenticated,
   })
 }
 
@@ -71,6 +73,7 @@ export function useEpisodesByProject(projectId: string | undefined) {
  * 获取剧集详情
  */
 export function useEpisode(id: string | undefined) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.episodes.detail(id!),
     queryFn: async () => {
@@ -78,7 +81,7 @@ export function useEpisode(id: string | undefined) {
       const response = await api.get<Episode>(`/api/episodes/${id}`)
       return response
     },
-    enabled: !!id,
+    enabled: !!id && isAuthenticated,
   })
 }
 
