@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -14,6 +14,7 @@ import {
   FileText,
   Save,
   Loader2,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,6 +58,9 @@ export default function NewProjectPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   // 表单状态
   const [formData, setFormData] = useState<FormData>({
@@ -68,6 +72,95 @@ export default function NewProjectPage() {
     videoModel: 'runway',
     style: 'cinematic',
   })
+
+  // 处理文件选择
+  const handleFileSelect = useCallback(async (file: File) => {
+    // 检查文件类型
+    const allowedTypes = [
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/pdf'
+    ]
+    const allowedExtensions = ['.txt', '.doc', '.docx', '.pdf']
+    const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'))
+    
+    if (!allowedExtensions.includes(fileExtension)) {
+      toast.error('不支持的文件格式，请上传 TXT、Word 或 PDF 文件')
+      return
+    }
+
+    // 检查文件大小 (最大 10MB)
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      toast.error('文件大小超过 10MB 限制')
+      return
+    }
+
+    setUploadedFile(file)
+
+    try {
+      // 读取文件内容
+      const text = await readFileAsText(file)
+      setFormData(prev => ({ ...prev, novel: text }))
+      toast.success(`已加载文件: ${file.name}`)
+    } catch (error) {
+      toast.error('文件读取失败')
+      console.error('File read error:', error)
+    }
+  }, [])
+
+  // 读取文件为文本
+  const readFileAsText = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => resolve(e.target?.result as string || '')
+      reader.onerror = (e) => reject(e)
+      reader.readAsText(file)
+    })
+  }
+
+  // 点击上传区域
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  // 文件 input change 事件
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFileSelect(file)
+    }
+  }
+
+  // 拖拽事件
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) {
+      handleFileSelect(file)
+    }
+  }
+
+  // 清除上传的文件
+  const handleClearFile = () => {
+    setUploadedFile(null)
+    setFormData(prev => ({ ...prev, novel: '' }))
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   // 加载草稿
   useEffect(() => {
@@ -260,14 +353,59 @@ export default function NewProjectPage() {
                   <Badge variant="secondary">支持 .txt, .doc, .pdf</Badge>
                 </div>
 
-                <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground mb-1">
-                    点击或拖拽文件到此处上传
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    支持 TXT、Word、PDF 格式
-                  </p>
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer relative ${
+                    isDragging 
+                      ? 'border-primary bg-primary/5' 
+                      : 'hover:border-primary/50'
+                  }`}
+                  onClick={handleUploadClick}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".txt,.doc,.docx,.pdf"
+                    className="hidden"
+                    onChange={handleFileInputChange}
+                  />
+                  
+                  {uploadedFile ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <FileText className="h-8 w-8 text-primary" />
+                      <div className="text-left">
+                        <p className="text-sm font-medium text-foreground">
+                          {uploadedFile.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(uploadedFile.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-8 w-8 p-0"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleClearFile()
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        点击或拖拽文件到此处上传
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        支持 TXT、Word、PDF 格式，最大 10MB
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <div className="relative">
