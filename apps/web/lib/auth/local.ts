@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db';
 import { hashPassword, verifyPassword, validatePasswordStrength } from './password';
 import { createSession, UserWithProfile } from './session';
 import type { User, Profile, Prisma } from '@prisma/client';
+import { addCredits, TransactionType } from '@/lib/credits';
 
 /**
  * JWT 配置
@@ -107,7 +108,21 @@ export async function registerLocalUser(data: RegisterData): Promise<Omit<User, 
     },
   });
 
-  // 6. 返回用户信息（不包含密码）
+  // 6. 赠送新用户注册奖励积分
+  try {
+    await addCredits(
+      user.id,
+      100,
+      TransactionType.BONUS,
+      '新用户注册奖励',
+      { source: 'registration', email: user.email }
+    );
+  } catch (error) {
+    // 积分赠送失败不影响注册流程，仅记录日志
+    console.error('赠送注册奖励积分失败:', error);
+  }
+
+  // 7. 返回用户信息（不包含密码）
   const { passwordHash: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
 }

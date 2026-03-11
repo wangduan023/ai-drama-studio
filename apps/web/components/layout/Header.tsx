@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
 } from 'lucide-react'
+import { CreditDisplay } from '@/components/credits/CreditDisplay'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -74,7 +75,10 @@ export function Header({ sidebarCollapsed, onMenuClick }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Notifications */}
+        {/* Credits */}
+        <CreditDisplay />
+
+        {/* Notifications -->
         <DropdownMenu>
           <DropdownMenuTrigger>
             <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 relative cursor-pointer">

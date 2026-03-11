@@ -25,7 +25,8 @@
   "author": "AI Drama Studio Team",
   "license": "MIT",
   "dependencies": {
-    "tslib": "^2.6.0"
+    "tslib": "^2.6.0",
+    "@ai-drama-studio/db": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
@@ -220,6 +221,41 @@
       "types": "./src/validation.ts",
       "import": "./src/validation.ts",
       "require": "./src/validation.ts"
+    },
+    "./providers": {
+      "types": "./src/providers/index.ts",
+      "import": "./src/providers/index.ts",
+      "require": "./src/providers/index.ts"
+    },
+    "./providers/openai": {
+      "types": "./src/providers/openai.ts",
+      "import": "./src/providers/openai.ts",
+      "require": "./src/providers/openai.ts"
+    },
+    "./providers/anthropic": {
+      "types": "./src/providers/anthropic.ts",
+      "import": "./src/providers/anthropic.ts",
+      "require": "./src/providers/anthropic.ts"
+    },
+    "./providers/google": {
+      "types": "./src/providers/google.ts",
+      "import": "./src/providers/google.ts",
+      "require": "./src/providers/google.ts"
+    },
+    "./providers/qwen": {
+      "types": "./src/providers/qwen.ts",
+      "import": "./src/providers/qwen.ts",
+      "require": "./src/providers/qwen.ts"
+    },
+    "./config": {
+      "types": "./src/config/index.ts",
+      "import": "./src/config/index.ts",
+      "require": "./src/config/index.ts"
+    },
+    "./loadbalancer-enhanced": {
+      "types": "./src/loadbalancer-enhanced.ts",
+      "import": "./src/loadbalancer-enhanced.ts",
+      "require": "./src/loadbalancer-enhanced.ts"
     }
   }
 }

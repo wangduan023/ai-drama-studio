@@ -2,6 +2,9 @@
  * LLM Worker - 文本/LLM 任务处理器
  *
  * 处理以下任务类型：
+ * - 剧本生成 (script:generate)
+ * - 角色生成 (character:generate)
+ * - 场景生成 (scene:generate)
  * - 剧本生成 (story_to_script_run)
  * - 分镜生成 (script_to_storyboard_run)
  * - 运镜规划
@@ -15,6 +18,12 @@ import { Worker, type Job } from 'bullmq'
 import { QUEUE_NAME, queueRedis, TASK_TYPE, getProcessorConfig } from '@ai-drama-studio/queue'
 import type { TaskJobData } from '@ai-drama-studio/queue'
 import { withTaskLifecycle, reportTaskProgress, assertTaskActive } from '@ai-drama-studio/queue'
+import {
+  handleScriptGenerate,
+  handleCharacterGenerate,
+  handleBatchCharacterGenerate,
+  handleSceneGenerate,
+} from '../src/handlers'
 
 // ===== 任务处理函数声明 =====
 
@@ -206,6 +215,19 @@ async function processLLMTask(job: Job<TaskJobData>): Promise<Record<string, unk
   await assertTaskActive(job, 'llm_task_dispatch')
 
   switch (job.data.type) {
+    // AI 生成任务
+    case TASK_TYPE.SCRIPT_GENERATE:
+      return await handleScriptGenerate(job)
+
+    case TASK_TYPE.CHARACTER_GENERATE:
+      return await handleCharacterGenerate(job)
+
+    case TASK_TYPE.CHARACTER_GENERATE_BATCH:
+      return await handleBatchCharacterGenerate(job)
+
+    case TASK_TYPE.SCENE_GENERATE:
+      return await handleSceneGenerate(job)
+
     case TASK_TYPE.ANALYZE_NOVEL:
       return await handleAnalyzeNovelTask(job)
 

@@ -46,6 +46,17 @@ export type TaskLifecycleEventType = (typeof TASK_LIFECYCLE_EVENT_TYPES)[number]
 
 // ===== 任务类型 =====
 export const TASK_TYPE = {
+  // AI 生成任务 - 新增
+  SCRIPT_GENERATE: 'script:generate',
+  CHARACTER_GENERATE: 'character:generate',
+  CHARACTER_GENERATE_BATCH: 'character:generate:batch',
+  SCENE_GENERATE: 'scene:generate',
+  IMAGE_GENERATE: 'image:generate',
+  IMAGE_GENERATE_BATCH: 'image:generate:batch',
+  VIDEO_GENERATE: 'video:generate',
+  VIDEO_COMPOSE: 'video:compose',
+  AUDIO_GENERATE: 'audio:generate',
+
   // 图像生成任务
   IMAGE_PANEL: 'image_panel',
   IMAGE_CHARACTER: 'image_character',

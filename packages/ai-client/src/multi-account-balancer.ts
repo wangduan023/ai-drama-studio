@@ -173,7 +173,7 @@ export class MultiAccountBalancer {
     for (const account of config.accounts) {
       const name = account.name || this.generateAccountName(account.apiKey)
       const client = createAIClient({
-        provider: config.provider,
+        provider: config.provider as AIProvider,
         modelId: config.modelId,
         apiKey: account.apiKey,
         baseURL: account.baseURL,

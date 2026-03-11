@@ -2,6 +2,7 @@
  * Voice Worker - 语音合成处理器
  *
  * 处理以下任务类型：
+ * - 音频生成 (audio:generate)
  * - TTS 生成（文本转语音）
  * - 语音分析
  * - 语音设计（自定义声音）
@@ -123,6 +124,11 @@ async function processVoiceTask(job: Job<TaskJobData>): Promise<Record<string, u
   await assertTaskActive(job, 'voice_task_dispatch')
 
   switch (job.data.type) {
+    // AI 音频生成任务
+    case TASK_TYPE.AUDIO_GENERATE:
+      // TODO: 实现音频生成处理器
+      throw new Error('AUDIO_GENERATE not yet implemented')
+
     case TASK_TYPE.VOICE_LINE:
       return await handleVoiceLineTask(job)
 

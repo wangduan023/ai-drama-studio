@@ -74,6 +74,13 @@ const ALL_QUEUES = [llmQueue, imageQueue, videoQueue, voiceQueue] as const
 
 // ===== 任务类型到队列类型的映射 =====
 const LLM_TYPES = new Set<TaskType>([
+  // AI 生成任务
+  TASK_TYPE.SCRIPT_GENERATE,
+  TASK_TYPE.CHARACTER_GENERATE,
+  TASK_TYPE.CHARACTER_GENERATE_BATCH,
+  TASK_TYPE.SCENE_GENERATE,
+
+  // 原有 LLM 任务
   TASK_TYPE.ANALYZE_NOVEL,
   TASK_TYPE.STORY_TO_SCRIPT_RUN,
   TASK_TYPE.SCRIPT_TO_STORYBOARD_RUN,
@@ -101,6 +108,11 @@ const LLM_TYPES = new Set<TaskType>([
 ])
 
 const IMAGE_TYPES = new Set<TaskType>([
+  // AI 图像生成任务
+  TASK_TYPE.IMAGE_GENERATE,
+  TASK_TYPE.IMAGE_GENERATE_BATCH,
+
+  // 原有图像任务
   TASK_TYPE.IMAGE_PANEL,
   TASK_TYPE.IMAGE_CHARACTER,
   TASK_TYPE.IMAGE_LOCATION,
@@ -112,11 +124,20 @@ const IMAGE_TYPES = new Set<TaskType>([
 ])
 
 const VIDEO_TYPES = new Set<TaskType>([
+  // AI 视频生成任务
+  TASK_TYPE.VIDEO_GENERATE,
+  TASK_TYPE.VIDEO_COMPOSE,
+
+  // 原有视频任务
   TASK_TYPE.VIDEO_PANEL,
   TASK_TYPE.LIP_SYNC,
 ])
 
 const VOICE_TYPES = new Set<TaskType>([
+  // AI 音频生成任务
+  TASK_TYPE.AUDIO_GENERATE,
+
+  // 原有语音任务
   TASK_TYPE.VOICE_LINE,
   TASK_TYPE.VOICE_DESIGN,
   TASK_TYPE.ASSET_HUB_VOICE_DESIGN,

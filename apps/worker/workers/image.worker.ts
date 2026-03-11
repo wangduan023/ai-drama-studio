@@ -2,6 +2,8 @@
  * Image Worker - 图片生成处理器
  *
  * 处理以下任务类型：
+ * - 图片生成 (image:generate)
+ * - 批量图片生成 (image:generate:batch)
  * - 角色图片生成
  * - 场景图片生成
  * - 分镜图生成
@@ -12,6 +14,7 @@ import { Worker, type Job } from 'bullmq'
 import { QUEUE_NAME, queueRedis, TASK_TYPE, getProcessorConfig } from '@ai-drama-studio/queue'
 import type { TaskJobData } from '@ai-drama-studio/queue'
 import { withTaskLifecycle, reportTaskProgress, assertTaskActive } from '@ai-drama-studio/queue'
+import { handleImageGenerate, handleBatchImageGenerate } from '../src/handlers'
 
 /**
  * 处理角色图片生成任务
@@ -273,6 +276,13 @@ async function processImageTask(job: Job<TaskJobData>): Promise<Record<string, u
   await assertTaskActive(job, 'image_task_dispatch')
 
   switch (job.data.type) {
+    // AI 图像生成任务
+    case TASK_TYPE.IMAGE_GENERATE:
+      return await handleImageGenerate(job)
+
+    case TASK_TYPE.IMAGE_GENERATE_BATCH:
+      return await handleBatchImageGenerate(job)
+
     case TASK_TYPE.IMAGE_CHARACTER:
       return await handleCharacterImageTask(job)
 

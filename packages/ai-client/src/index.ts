@@ -55,6 +55,37 @@ export {
 } from './types'
 
 // ============================================================
+// 增强类型导出（新的统一接口）
+// ============================================================
+
+export type {
+  // 统一 AI 服务接口
+  AIProvider as AIProviderInterface,
+  TextGenerationOptions,
+  TextGenerationResult as EnhancedTextGenerationResult,
+  ImageGenerationOptions,
+  ImageGenerationResult as EnhancedImageGenerationResult,
+  VideoGenerationOptions,
+  VideoGenerationResult as EnhancedVideoGenerationResult,
+
+  // 配置类型
+  ProviderConfig,
+  ModelConfig,
+
+  // 健康状态
+  ProviderHealthStatus,
+  HealthStatus,
+
+  // 成本计算
+  CostCalculation,
+  CostCalculator,
+
+  // 速率限制
+  RateLimitStatus,
+  RateLimiter,
+} from './types/enhanced'
+
+// ============================================================
 // 错误处理导出
 // ============================================================
 
@@ -74,7 +105,7 @@ export {
 } from './base'
 
 // ============================================================
-// 客户端导出
+// 客户端导出（原有实现）
 // ============================================================
 
 export {
@@ -186,6 +217,44 @@ export {
 } from './clients/huggingface.client'
 
 // ============================================================
+// 新的提供商实现导出（统一接口）
+// ============================================================
+
+export {
+  OpenAIProvider,
+  createOpenAIProvider,
+  type OpenAIProviderOptions,
+} from './providers/openai'
+
+export {
+  AnthropicProvider,
+  createAnthropicProvider,
+  type AnthropicProviderOptions,
+} from './providers/anthropic'
+
+export {
+  GoogleProvider,
+  GeminiProvider,
+  createGoogleProvider,
+  createGeminiProvider,
+  type GoogleProviderOptions,
+} from './providers/google'
+
+export {
+  QwenProvider,
+  createQwenProvider,
+  type QwenProviderOptions,
+} from './providers/qwen'
+
+// 提供商工厂
+export {
+  createProvider,
+  createProviders,
+  type ProviderType,
+  type ProviderOptions,
+} from './providers'
+
+// ============================================================
 // 工厂导出
 // ============================================================
 
@@ -229,6 +298,13 @@ export {
   createLoadBalancer,
 } from './load-balancer'
 
+// 增强型负载均衡器
+export {
+  AILoadBalancer,
+  createAILoadBalancer,
+  type AILoadBalancerConfig,
+} from './loadbalancer-enhanced'
+
 // ============================================================
 // 多账号负载均衡器导出
 // ============================================================
@@ -242,6 +318,36 @@ export {
   MultiAccountBalancer,
   createMultiAccountBalancer,
 } from './multi-account-balancer'
+
+// ============================================================
+// 配置管理器导出
+// ============================================================
+
+export {
+  ConfigManager,
+  createConfigManager,
+  loadConfig,
+  type ConfigManagerOptions,
+} from './config'
+
+// ============================================================
+// 成本计算工具导出
+// ============================================================
+
+export {
+  calculateTextCost,
+  calculateImageCost,
+  calculateVideoCost,
+  DefaultCostCalculator,
+  getModelCost,
+  convertCurrency,
+  formatCost,
+  OPENAI_COSTS,
+  ANTHROPIC_COSTS,
+  GOOGLE_COSTS,
+  QWEN_COSTS,
+  DALLE_COSTS,
+} from './utils/cost-calculator'
 
 // ============================================================
 // 日志器导出
@@ -284,10 +390,18 @@ export {
 import { createAIClient, createAIClients } from './factory'
 import { createLoadBalancer } from './load-balancer'
 import { createMultiAccountBalancer } from './multi-account-balancer'
+import { createAILoadBalancer } from './loadbalancer-enhanced'
+import { createProvider, createProviders } from './providers'
+import { createConfigManager, loadConfig } from './config'
 
 export default {
   createAIClient,
   createAIClients,
   createLoadBalancer,
   createMultiAccountBalancer,
+  createAILoadBalancer,
+  createProvider,
+  createProviders,
+  createConfigManager,
+  loadConfig,
 }

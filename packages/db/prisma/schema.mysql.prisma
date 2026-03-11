@@ -25,8 +25,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  projects     Project[]
-  usageCosts   UsageCost[]
+  projects      Project[]
+  projectMembers ProjectMember[]
+  projectComments ProjectComment[]
+  usageCosts    UsageCost[]
   refreshTokens RefreshToken[]
 
   @@index([email])
@@ -280,6 +282,12 @@ model Project {
 
   // 使用量统计
   usageCosts  UsageCost[]
+
+  // 团队协作
+  members     ProjectMember[]
+  comments    ProjectComment[]
+  invites     ProjectInvite[]
+  activities  ProjectActivity[]
 
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -667,4 +675,90 @@ enum ProcessStatus {
   PROCESSING // 处理中
   COMPLETED  // 已完成
   FAILED     // 失败
+}
+
+// ============================================
+// 团队协作
+// ============================================
+
+/// 项目角色
+enum ProjectRole {
+  OWNER     // 所有者
+  EDITOR    // 编辑者
+  VIEWER    // 查看者
+}
+
+/// 项目成员关系
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(VIEWER)
+  invitedBy String?  // 邀请人
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+/// 项目评论
+model ProjectComment {
+  id        String   @id @default(cuid())
+  projectId String
+  episodeId String?
+  userId    String
+  content   String   @db.Text
+  parentId  String?  // 回复评论
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    ProjectComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   ProjectComment[] @relation("CommentReplies")
+  
+  @@index([projectId, createdAt])
+  @@index([episodeId])
+  @@map("project_comments")
+}
+
+/// 项目邀请
+model ProjectInvite {
+  id        String   @id @default(cuid())
+  projectId String
+  email     String   // 被邀请人邮箱
+  role      ProjectRole @default(VIEWER)
+  token     String   @unique
+  invitedBy String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([token])
+  @@index([projectId])
+  @@map("project_invites")
+}
+
+/// 项目活动日志
+model ProjectActivity {
+  id        String   @id @default(cuid())
+  projectId String
+  userId    String?
+  action    String   // 活动类型
+  targetType String? // 目标类型：member/comment/episode/...
+  targetId  String?  // 目标 ID
+  metadata  Json?    // 额外信息
+  createdAt DateTime @default(now())
+  
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@index([projectId, createdAt])
+  @@map("project_activities")
 }

@@ -2,6 +2,8 @@
  * Video Worker - 视频生成处理器
  *
  * 处理以下任务类型：
+ * - 视频生成 (video:generate)
+ * - 视频合成 (video:compose)
  * - 图生视频（分镜视频生成）
  * - 视频变体
  * - 口型同步（Lip Sync）
@@ -11,6 +13,7 @@ import { Worker, type Job } from 'bullmq'
 import { QUEUE_NAME, queueRedis, TASK_TYPE, getProcessorConfig } from '@ai-drama-studio/queue'
 import type { TaskJobData } from '@ai-drama-studio/queue'
 import { withTaskLifecycle, reportTaskProgress, assertTaskActive } from '@ai-drama-studio/queue'
+import { handleVideoGenerate, handleVideoComposition } from '../src/handlers'
 
 /**
  * 处理分镜视频生成任务
@@ -132,6 +135,13 @@ async function processVideoTask(job: Job<TaskJobData>): Promise<Record<string, u
   await assertTaskActive(job, 'video_task_dispatch')
 
   switch (job.data.type) {
+    // AI 视频生成任务
+    case TASK_TYPE.VIDEO_GENERATE:
+      return await handleVideoGenerate(job)
+
+    case TASK_TYPE.VIDEO_COMPOSE:
+      return await handleVideoComposition(job)
+
     case TASK_TYPE.VIDEO_PANEL:
       return await handleVideoPanelTask(job)
 
