@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuth } from '@/lib/auth'
 import { ProjectStatus } from '@prisma/client'
 
 // 获取项目详情
@@ -9,8 +10,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const project = await prisma.project.findFirst({
       where: {
@@ -72,8 +77,12 @@ export async function PUT(
     const body = await request.json()
     const { name, description, status } = body
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 检查项目是否存在且属于当前用户
     const existingProject = await prisma.project.findFirst({
@@ -150,8 +159,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 检查项目是否存在且属于当前用户
     const existingProject = await prisma.project.findFirst({

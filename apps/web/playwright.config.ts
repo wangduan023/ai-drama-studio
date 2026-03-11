@@ -43,7 +43,7 @@ export default defineConfig({
   // 共享配置
   use: {
     // 基础 URL
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3003',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3333',
     
     // 所有测试的默认 viewport
     viewport: { width: 1280, height: 720 },
@@ -94,8 +94,8 @@ export default defineConfig({
   
   // 本地开发服务器配置
   webServer: {
-    command: 'next dev -H 0.0.0.0',
-    url: 'http://localhost:3000',
+    command: 'next dev -p 3333 -H 0.0.0.0',
+    url: 'http://localhost:3333',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuth } from '@/lib/auth'
 
 // 获取剧集详情
 export async function GET(
@@ -8,8 +9,12 @@ export async function GET(
 ) {
   try {
     const { id } = await params
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const episode = await prisma.episode.findFirst({
       where: {
@@ -111,8 +116,12 @@ export async function PUT(
       characterAppearanceMap,
     } = body
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 检查剧集是否存在且属于当前用户
     const existingEpisode = await prisma.episode.findFirst({
@@ -213,8 +222,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 检查剧集是否存在且属于当前用户
     const existingEpisode = await prisma.episode.findFirst({

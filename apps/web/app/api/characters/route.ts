@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuth } from '@/lib/auth'
 import { CharacterRoleLevel } from '@prisma/client'
 
 // 获取角色列表
@@ -10,36 +11,39 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     const roleLevel = searchParams.get('roleLevel')
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
 
-    // 验证 projectId
-    if (!projectId) {
-      return NextResponse.json(
-        { error: 'Project ID is required' },
-        { status: 400 }
-      )
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 验证项目是否存在且属于当前用户
-    const project = await prisma.project.findFirst({
-      where: {
-        id: projectId,
-        userId,
-        deletedAt: null,
-      },
-    })
+    // 如果提供了 projectId，验证项目是否存在且属于当前用户
+    if (projectId) {
+      const project = await prisma.project.findFirst({
+        where: {
+          id: projectId,
+          userId,
+          deletedAt: null,
+        },
+      })
 
-    if (!project) {
-      return NextResponse.json(
-        { error: 'Project not found' },
-        { status: 404 }
-      )
+      if (!project) {
+        return NextResponse.json(
+          { error: 'Project not found' },
+          { status: 404 }
+        )
+      }
     }
 
     const characters = await prisma.characterProfile.findMany({
       where: {
-        projectId,
+        ...(projectId ? { projectId } : {
+          project: {
+            userId,
+            deletedAt: null,
+          }
+        }),
         deletedAt: null,
         ...(search ? {
           OR: [
@@ -129,8 +133,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 验证项目是否存在且属于当前用户
     const project = await prisma.project.findFirst({

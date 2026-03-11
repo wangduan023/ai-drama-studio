@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuth } from '@/lib/auth'
 import { ProjectStatus } from '@prisma/client'
 
 // 获取项目列表
@@ -9,8 +10,12 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const search = searchParams.get('search')
     
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const projects = await prisma.project.findMany({
       where: {
@@ -74,8 +79,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     const project = await prisma.project.create({
       data: {

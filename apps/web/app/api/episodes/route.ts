@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
+import { verifyAuth } from '@/lib/auth'
 
 // 获取剧集列表
 export async function GET(request: NextRequest) {
@@ -8,8 +9,12 @@ export async function GET(request: NextRequest) {
     const projectId = searchParams.get('projectId')
     const search = searchParams.get('search')
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 验证 projectId
     if (!projectId) {
@@ -108,8 +113,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // TODO: 从 session 中获取当前用户 ID
-    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
+    const { user } = await verifyAuth(request)
+    const userId = user?.id
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
     // 验证项目是否存在且属于当前用户
     const project = await prisma.project.findFirst({
