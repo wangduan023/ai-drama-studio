@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -18,6 +18,10 @@ import {
   Download,
   Clock,
   Image as ImageIcon,
+  RefreshCw,
+  Save,
+  Loader2,
+  CheckCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,99 +29,92 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
 import { StoryboardEditor } from '@/components/storyboard/StoryboardEditor'
 import { GenerationControl } from '@/components/generation/GenerationControl'
-
-// 模拟剧集数据
-const mockEpisode = {
-  id: '1',
-  projectId: '1',
-  title: '第一集：初遇',
-  description: '两个主角在城市广场相遇的场景',
-  status: 'in_progress' as const,
-  script: `
-场景一：城市广场 - 白天
-
-张三站在广场中央，看着周围熙熙攘攘的人群。
-
-张三：（独白）这就是大城市吗？真是热闹啊。
-
-突然，李四不小心撞到了张三。
-
-李四：啊，对不起！我没注意到你。
-
-张三：没关系，是我站得太中间了。
-
-李四：（微笑）你是第一次来这里吗？
-
-张三：是的，刚来不久。
-
-李四：那我带你逛逛吧，这里我很熟。
-
-张三：（犹豫）这...不太好吧？
-
-李四：没关系，就当是赔礼道歉了。
-
-两人相视一笑，一起走向人群。
-
-淡出。
-  `,
-  storyboards: [
-    {
-      id: '1',
-      sceneNumber: 1,
-      shotNumber: 1,
-      description: '广角镜头，张三站在广场中央',
-      location: '城市广场',
-      camera: '广角',
-      movement: '静止',
-      duration: 3,
-      imageUrl: null,
-      videoUrl: null,
-      status: 'completed' as const,
-    },
-    {
-      id: '2',
-      sceneNumber: 1,
-      shotNumber: 2,
-      description: '特写，张三的表情',
-      location: '城市广场',
-      camera: '特写',
-      movement: '推近',
-      duration: 2,
-      imageUrl: null,
-      videoUrl: null,
-      status: 'completed' as const,
-    },
-    {
-      id: '3',
-      sceneNumber: 2,
-      shotNumber: 1,
-      description: '李四撞到张三的瞬间',
-      location: '城市广场',
-      camera: '中景',
-      movement: '跟随',
-      duration: 2,
-      imageUrl: null,
-      videoUrl: null,
-      status: 'pending' as const,
-    },
-  ],
-  characters: [
-    { id: '1', name: '张三', role: '主角' },
-    { id: '2', name: '李四', role: '主角' },
-  ],
-  locations: [
-    { id: '1', name: '城市广场', type: '室外' },
-  ],
-}
+import { useEpisode, useUpdateEpisode } from '@/hooks/useEpisode'
+import { useProject } from '@/hooks/useProject'
 
 export default function EpisodeDetailPage() {
   const params = useParams()
-  const [episode] = useState(mockEpisode)
-  const [script, setScript] = useState(episode.script)
+  const router = useRouter()
+  const projectId = params.id as string
+  const episodeId = params.episodeId as string
+  
   const [activeTab, setActiveTab] = useState('script')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [scriptContent, setScriptContent] = useState('')
+  const [isSavingScript, setIsSavingScript] = useState(false)
+
+  const { 
+    data: episode, 
+    isLoading: isLoadingEpisode, 
+    error: episodeError,
+    refetch: refetchEpisode 
+  } = useEpisode(episodeId)
+  
+  const { data: project } = useProject(projectId)
+  const updateEpisode = useUpdateEpisode(episodeId)
+
+  // 处理剧本保存
+  const handleSaveScript = async () => {
+    setIsSavingScript(true)
+    try {
+      await updateEpisode.mutateAsync({
+        projectId,
+        input: { novelText: scriptContent }
+      })
+      toast.success('剧本已保存')
+    } catch {
+      toast.error('保存失败')
+    } finally {
+      setIsSavingScript(false)
+    }
+  }
+
+  // 加载状态
+  if (isLoadingEpisode) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <EpisodeDetailSkeleton />
+      </div>
+    )
+  }
+
+  // 错误状态
+  if (episodeError || !episode) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-destructive/10 mx-auto mb-4 flex items-center justify-center">
+            <RefreshCw className="h-10 w-10 text-destructive" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">加载失败</h2>
+          <p className="text-muted-foreground mb-6">
+            {episodeError instanceof Error ? episodeError.message : '剧集不存在'}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => refetchEpisode()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              重试
+            </Button>
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              返回
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 计算总时长
+  const totalDuration = episode.clips.reduce((acc: number, clip) => acc + (clip.duration || 0), 0)
+  
+  // 计算完成进度
+  const completedClips = episode.clips.filter((clip) => clip.status === 'COMPLETED').length
+  const progress = episode.clips.length > 0 ? Math.round((completedClips / episode.clips.length) * 100) : 0
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -127,7 +124,7 @@ export default function EpisodeDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <Link href={`/projects/${params.id}`}>
+        <Link href={`/projects/${projectId}`}>
           <Button variant="ghost" className="mb-4">
             <ArrowLeft className="h-4 w-4 mr-2" />
             返回项目
@@ -136,8 +133,10 @@ export default function EpisodeDetailPage() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">{episode.title}</h1>
-            <p className="text-muted-foreground">{episode.description}</p>
+            <h1 className="text-2xl font-bold">{episode.name}</h1>
+            <p className="text-muted-foreground">
+              {project?.title} · 第 {episode.number} 集
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
@@ -160,16 +159,35 @@ export default function EpisodeDetailPage() {
         transition={{ delay: 0.1 }}
         className="flex items-center gap-4 mb-6 p-4 bg-muted/50 rounded-lg"
       >
-        <Badge variant="secondary">制作中</Badge>
+        <Badge 
+          variant={
+            episode.scriptStatus === 'COMPLETED' 
+              ? 'default' 
+              : episode.scriptStatus === 'PROCESSING' 
+              ? 'secondary' 
+              : 'outline'
+          }
+        >
+          {episode.scriptStatus === 'COMPLETED' 
+            ? '已完成' 
+            : episode.scriptStatus === 'PROCESSING' 
+            ? '处理中' 
+            : '待处理'}
+        </Badge>
         <Separator orientation="vertical" className="h-4" />
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Clock className="h-4 w-4" />
-          <span>{episode.storyboards.reduce((acc, s) => acc + s.duration, 0)}秒</span>
+          <span>{totalDuration}秒</span>
         </div>
         <Separator orientation="vertical" className="h-4" />
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <ImageIcon className="h-4 w-4" />
-          <span>{episode.storyboards.length} 个分镜</span>
+          <span>{episode.storyboardCount} 个分镜</span>
+        </div>
+        <Separator orientation="vertical" className="h-4" />
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground">进度</span>
+          <span className="font-medium">{progress}%</span>
         </div>
       </motion.div>
 
@@ -180,17 +198,9 @@ export default function EpisodeDetailPage() {
             <FileText className="h-4 w-4" />
             剧本
           </TabsTrigger>
-          <TabsTrigger value="storyboard" className="flex items-center gap-2">
-            <Grid className="h-4 w-4" />
-            分镜
-          </TabsTrigger>
-          <TabsTrigger value="characters" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            角色
-          </TabsTrigger>
-          <TabsTrigger value="assets" className="flex items-center gap-2">
+          <TabsTrigger value="clips" className="flex items-center gap-2">
             <Film className="h-4 w-4" />
-            素材
+            片段
           </TabsTrigger>
           <TabsTrigger value="generation" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
@@ -206,6 +216,19 @@ export default function EpisodeDetailPage() {
                 剧本编辑
               </CardTitle>
               <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleSaveScript}
+                  disabled={isSavingScript}
+                >
+                  {isSavingScript ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  保存
+                </Button>
                 <Button variant="outline" size="sm">
                   <Wand2 className="h-4 w-4 mr-2" />
                   AI 解析
@@ -218,8 +241,8 @@ export default function EpisodeDetailPage() {
             </CardHeader>
             <CardContent>
               <Textarea
-                value={script}
-                onChange={(e) => setScript(e.target.value)}
+                value={scriptContent || episode.novelText || ''}
+                onChange={(e) => setScriptContent(e.target.value)}
                 className="min-h-[500px] font-mono text-sm leading-relaxed"
                 placeholder="在此输入或粘贴剧本内容..."
               />
@@ -227,9 +250,9 @@ export default function EpisodeDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="storyboard" className="space-y-4">
+        <TabsContent value="clips" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">分镜列表</h2>
+            <h2 className="text-lg font-semibold">片段列表</h2>
             <div className="flex items-center gap-2">
               <div className="flex items-center border rounded-md p-1">
                 <Button
@@ -249,101 +272,100 @@ export default function EpisodeDetailPage() {
               </div>
               <Button>
                 <Sparkles className="h-4 w-4 mr-2" />
-                生成分镜
+                生成片段
               </Button>
             </div>
           </div>
 
-          <StoryboardEditor
-            storyboards={episode.storyboards}
-            viewMode={viewMode}
-            onEdit={(id) => console.log('Edit', id)}
-            onGenerateImage={(id) => console.log('Generate image', id)}
-            onGenerateVideo={(id) => console.log('Generate video', id)}
-          />
-        </TabsContent>
-
-        <TabsContent value="characters" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">关联角色</h2>
-            <Button variant="outline">
-              <Users className="h-4 w-4 mr-2" />
-              管理角色
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {episode.characters.map((character) => (
-              <Card key={character.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Users className="h-6 w-6 text-primary" />
+          {episode.clips.length === 0 ? (
+            <EmptyState 
+              icon={Film} 
+              title="暂无片段" 
+              description="使用 AI 解析剧本或手动添加片段" 
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {episode.clips.map((clip) => (
+                <Card key={clip.id} className="hover:shadow-md transition-all">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <span className="text-lg font-bold text-muted-foreground">{clip.sequence}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {clip.description || '无描述'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge
+                            variant={
+                              clip.status === 'COMPLETED'
+                                ? 'default'
+                                : clip.status === 'PROCESSING'
+                                ? 'secondary'
+                                : 'outline'
+                            }
+                          >
+                            {clip.status === 'COMPLETED'
+                              ? '已完成'
+                              : clip.status === 'PROCESSING'
+                              ? '处理中'
+                              : '待处理'}
+                          </Badge>
+                          {clip.duration && (
+                            <span className="text-xs text-muted-foreground">
+                              {clip.duration}秒
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold">{character.name}</h3>
-                      <Badge variant="secondary" className="mt-1">
-                        {character.role}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="assets" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">媒体素材</h2>
-            <Button variant="outline">
-              <Download className="h-4 w-4 mr-2" />
-              导出全部
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {episode.storyboards
-              .filter((s) => s.imageUrl || s.videoUrl)
-              .map((storyboard) => (
-                <Card key={storyboard.id} className="overflow-hidden">
-                  <div className="aspect-video bg-muted flex items-center justify-center">
-                    {storyboard.imageUrl ? (
-                      <img
-                        src={storyboard.imageUrl}
-                        alt={`分镜 ${storyboard.sceneNumber}`}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Film className="h-8 w-8 text-muted-foreground" />
-                    )}
-                  </div>
-                  <CardContent className="p-3">
-                    <p className="text-sm font-medium">场景 {storyboard.sceneNumber}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">
-                      {storyboard.description}
-                    </p>
                   </CardContent>
                 </Card>
               ))}
-
-            {episode.storyboards.filter((s) => s.imageUrl || s.videoUrl).length === 0 && (
-              <div className="col-span-full text-center py-12 text-muted-foreground">
-                <Film className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>暂无素材</p>
-                <p className="text-sm">生成分镜后将在此处显示</p>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="generation" className="space-y-4">
           <GenerationControl
-            projectId={episode.projectId}
-            episodeId={episode.id}
+            projectId={projectId}
+            episodeId={episodeId}
           />
         </TabsContent>
       </Tabs>
+    </div>
+  )
+}
+
+function EpisodeDetailSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <Skeleton className="h-10 w-32 mb-4" />
+        <Skeleton className="h-8 w-64 mb-2" />
+        <Skeleton className="h-4 w-48" />
+      </div>
+      <Skeleton className="h-16" />
+      <Skeleton className="h-96" />
+    </div>
+  )
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ElementType
+  title: string
+  description: string
+}) {
+  return (
+    <div className="col-span-full text-center py-12 text-muted-foreground">
+      <Icon className="h-12 w-12 mx-auto mb-4 opacity-50" />
+      <p className="font-medium">{title}</p>
+      <p className="text-sm">{description}</p>
     </div>
   )
 }

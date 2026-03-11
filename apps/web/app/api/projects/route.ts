@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')
     
     // TODO: 从 session 中获取当前用户 ID
-    const userId = 'temp-user-id'
+    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
 
     const projects = await prisma.project.findMany({
       where: {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     }
 
     // TODO: 从 session 中获取当前用户 ID
-    const userId = 'temp-user-id'
+    const userId = 'b29b8e81-d968-4563-9998-fc221137e842'
 
     const project = await prisma.project.create({
       data: {

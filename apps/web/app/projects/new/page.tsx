@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { useCreateProject } from '@/hooks/useProject'
 
 const steps = [
   { id: 'basic', title: '基础信息', icon: Film },
@@ -44,7 +45,7 @@ interface FormData {
   title: string
   description: string
   type: 'original' | 'adaptation'
-  scriptInput: string
+  novel: string
   imageModel: string
   videoModel: string
   style: string
@@ -52,8 +53,8 @@ interface FormData {
 
 export default function NewProjectPage() {
   const router = useRouter()
+  const createProject = useCreateProject()
   const [currentStep, setCurrentStep] = useState(0)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
 
@@ -62,7 +63,7 @@ export default function NewProjectPage() {
     title: '',
     description: '',
     type: 'original',
-    scriptInput: '',
+    novel: '',
     imageModel: 'dalle3',
     videoModel: 'runway',
     style: 'cinematic',
@@ -91,20 +92,31 @@ export default function NewProjectPage() {
   }, [formData, isLoadingDraft])
 
   const handleSubmit = async () => {
-    setIsSubmitting(true)
+    if (!formData.title.trim()) {
+      toast.error('请输入项目名称')
+      setCurrentStep(0)
+      return
+    }
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const project = await createProject.mutateAsync({
+        title: formData.title,
+        description: formData.description,
+        novel: formData.novel,
+      })
       localStorage.removeItem(STORAGE_KEY)
       toast.success('项目创建成功！')
-      router.push('/projects')
+      router.push(`/projects/${project.id}`)
     } catch (error) {
-      toast.error('创建失败，请重试')
-    } finally {
-      setIsSubmitting(false)
+      toast.error(error instanceof Error ? error.message : '创建失败，请重试')
     }
   }
 
   const nextStep = () => {
+    if (currentStep === 0 && !formData.title.trim()) {
+      toast.error('请输入项目名称')
+      return
+    }
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
     }
@@ -267,8 +279,8 @@ export default function NewProjectPage() {
                   <Textarea
                     placeholder="在此粘贴剧本内容..."
                     className="min-h-[300px] font-mono text-sm"
-                    value={formData.scriptInput}
-                    onChange={(e) => setFormData({ ...formData, scriptInput: e.target.value })}
+                    value={formData.novel}
+                    onChange={(e) => setFormData({ ...formData, novel: e.target.value })}
                   />
                   <p className="text-xs text-muted-foreground">
                     支持标准剧本格式，AI 将自动解析场景和对话
@@ -392,6 +404,18 @@ export default function NewProjectPage() {
                     <p className="text-sm">{formData.description}</p>
                   </div>
                 )}
+
+                {formData.novel && (
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <span className="text-muted-foreground block mb-2">剧本内容</span>
+                    <p className="text-sm line-clamp-3">{formData.novel}</p>
+                    {formData.novel.length > 100 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        共 {formData.novel.length} 字符
+                      </p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -415,8 +439,8 @@ export default function NewProjectPage() {
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? (
+          <Button onClick={handleSubmit} disabled={createProject.isPending}>
+            {createProject.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 创建中...

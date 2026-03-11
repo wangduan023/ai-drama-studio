@@ -50,8 +50,6 @@ const nextConfig: NextConfig = {
   experimental: {
     // 启用 CSS 优化
     optimizeCss: true,
-    // 启用服务器组件
-    serverComponents: true,
   },
 
   // API 代理配置（开发环境）

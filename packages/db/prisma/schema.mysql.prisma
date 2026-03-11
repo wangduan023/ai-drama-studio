@@ -323,6 +323,10 @@ model Episode {
   deletedAt   DateTime?
   deletedBy   String?
 
+  // 时间戳
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, number])

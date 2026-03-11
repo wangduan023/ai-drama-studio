@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
@@ -17,6 +17,7 @@ import {
   Calendar,
   CheckCircle,
   Clock,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -36,50 +37,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-
-// 模拟项目数据
-const initialProjects = [
-  {
-    id: '1',
-    title: '我的第一个短剧',
-    description: '这是一个测试项目，用于学习平台功能',
-    episodes: 3,
-    status: 'in_progress' as const,
-    type: 'original',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    title: '都市爱情故事',
-    description: '现代都市背景的爱情短剧，讲述两个年轻人的相遇相知',
-    episodes: 12,
-    status: 'completed' as const,
-    type: 'adaptation',
-    createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: '3',
-    title: '古装武侠剧',
-    description: '江湖恩怨，武林争霸，一段传奇的武侠故事',
-    episodes: 24,
-    status: 'in_progress' as const,
-    type: 'original',
-    createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    title: '科幻冒险',
-    description: '未来世界的科幻冒险故事',
-    episodes: 8,
-    status: 'pending' as const,
-    type: 'original',
-    createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    updatedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-  },
-]
+import { toast } from 'sonner'
+import { useProjectList, useDeleteProject, type Project } from '@/hooks/useProject'
 
 type ViewMode = 'grid' | 'list'
 type ProjectStatus = 'all' | 'in_progress' | 'completed' | 'pending'
@@ -88,14 +47,14 @@ type SortBy = 'updatedAt' | 'createdAt' | 'title' | 'episodes'
 type SortOrder = 'asc' | 'desc'
 
 export default function ProjectsPage() {
-  const [projects] = useState(initialProjects)
+  const { data: projects = [], isLoading, error, refetch } = useProjectList()
+  const deleteProject = useDeleteProject()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus>('all')
   const [typeFilter, setTypeFilter] = useState<ProjectType>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortBy>('updatedAt')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
-  const [isLoading, setIsLoading] = useState(false)
 
   // 筛选和排序
   const filteredProjects = useMemo(() => {
@@ -107,18 +66,13 @@ export default function ProjectsPage() {
       result = result.filter(
         (p) =>
           p.title.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query)
+          (p.description?.toLowerCase() || '').includes(query)
       )
     }
 
     // 状态筛选
     if (statusFilter !== 'all') {
       result = result.filter((p) => p.status === statusFilter)
-    }
-
-    // 类型筛选
-    if (typeFilter !== 'all') {
-      result = result.filter((p) => p.type === typeFilter)
     }
 
     // 排序
@@ -129,7 +83,7 @@ export default function ProjectsPage() {
           comparison = a.title.localeCompare(b.title)
           break
         case 'episodes':
-          comparison = a.episodes - b.episodes
+          comparison = (a.episodeCount || 0) - (b.episodeCount || 0)
           break
         case 'createdAt':
           comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
@@ -143,7 +97,7 @@ export default function ProjectsPage() {
     })
 
     return result
-  }, [projects, searchQuery, statusFilter, typeFilter, sortBy, sortOrder])
+  }, [projects, searchQuery, statusFilter, sortBy, sortOrder])
 
   const toggleSort = (field: SortBy) => {
     if (sortBy === field) {
@@ -152,6 +106,48 @@ export default function ProjectsPage() {
       setSortBy(field)
       setSortOrder('desc')
     }
+  }
+
+  const handleDeleteProject = async (id: string, title: string) => {
+    try {
+      await deleteProject.mutateAsync(id)
+      toast.success(`项目 "${title}" 已删除`)
+    } catch {
+      toast.error('删除项目失败')
+    }
+  }
+
+  // 加载状态
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">项目列表</h1>
+            <p className="text-muted-foreground">管理和创建你的短剧项目</p>
+          </div>
+        </div>
+        <ProjectListSkeleton viewMode={viewMode} />
+      </div>
+    )
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">项目列表</h1>
+            <p className="text-muted-foreground">管理和创建你的短剧项目</p>
+          </div>
+        </div>
+        <ErrorState 
+          message={error instanceof Error ? error.message : '加载项目失败'} 
+          onRetry={() => refetch()}
+        />
+      </div>
+    )
   }
 
   return (
@@ -205,20 +201,6 @@ export default function ProjectsPage() {
               <SelectItem value="all">全部状态</SelectItem>
               <SelectItem value="in_progress">制作中</SelectItem>
               <SelectItem value="completed">已完成</SelectItem>
-              <SelectItem value="pending">待开始</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* 类型筛选 */}
-          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ProjectType)}>
-            <SelectTrigger className="w-[140px]">
-              <Film className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="类型" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部类型</SelectItem>
-              <SelectItem value="original">原创</SelectItem>
-              <SelectItem value="adaptation">改编</SelectItem>
             </SelectContent>
           </Select>
 
@@ -262,9 +244,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* 项目列表 */}
-      {isLoading ? (
-        <ProjectListSkeleton viewMode={viewMode} />
-      ) : filteredProjects.length === 0 ? (
+      {filteredProjects.length === 0 ? (
         <EmptyState />
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -275,7 +255,11 @@ export default function ProjectsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <ProjectCard project={project} />
+              <ProjectCard 
+                project={project} 
+                onDelete={() => handleDeleteProject(project.id, project.title)}
+                isDeleting={deleteProject.isPending}
+              />
             </motion.div>
           ))}
         </div>
@@ -288,7 +272,11 @@ export default function ProjectsPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
             >
-              <ProjectListItem project={project} />
+              <ProjectListItem 
+                project={project} 
+                onDelete={() => handleDeleteProject(project.id, project.title)}
+                isDeleting={deleteProject.isPending}
+              />
             </motion.div>
           ))}
         </div>
@@ -297,48 +285,73 @@ export default function ProjectsPage() {
   )
 }
 
-interface Project {
-  id: string
-  title: string
-  description: string
-  episodes: number
-  status: 'in_progress' | 'completed' | 'pending'
-  type: string
-  createdAt: string
-  updatedAt: string
+interface ProjectCardProps {
+  project: Project
+  onDelete: () => void
+  isDeleting: boolean
 }
 
-function ProjectCard({ project }: { project: Project }) {
-  const statusConfig = {
-    in_progress: { label: '制作中', variant: 'secondary' as const, icon: Clock },
-    completed: { label: '已完成', variant: 'default' as const, icon: CheckCircle },
-    pending: { label: '待开始', variant: 'outline' as const, icon: Film },
+function ProjectCard({ project, onDelete, isDeleting }: ProjectCardProps) {
+  const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ComponentType<{ className?: string }> }> = {
+    in_progress: { label: '制作中', variant: 'secondary', icon: Clock },
+    completed: { label: '已完成', variant: 'default', icon: CheckCircle },
+    DRAFT: { label: '草稿', variant: 'outline', icon: Clock },
+    PENDING: { label: '待处理', variant: 'secondary', icon: Clock },
   }
 
-  const status = statusConfig[project.status]
+  const status = statusConfig[project.status] || { label: '草稿', variant: 'outline' as const, icon: Clock }
 
   return (
     <Card className="h-full hover:shadow-lg transition-all duration-300 group hover:border-primary cursor-pointer overflow-hidden">
       <CardContent className="p-0">
-        <Link href={`/projects/${project.id}`}>
-          <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative">
-            <Film className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
-            <div className="absolute top-2 right-2">
-              <Badge variant={status.variant} className="flex items-center gap-1">
-                <status.icon className="h-3 w-3" />
-                {status.label}
-              </Badge>
+        <div className="relative">
+          <Link href={`/projects/${project.id}`}>
+            <div className="aspect-video bg-muted flex items-center justify-center overflow-hidden relative">
+              <Film className="h-12 w-12 text-muted-foreground group-hover:text-primary transition-colors" />
+              <div className="absolute top-2 right-2">
+                <Badge variant={status.variant} className="flex items-center gap-1">
+                  <status.icon className="h-3 w-3" />
+                  {status.label}
+                </Badge>
+              </div>
             </div>
+          </Link>
+          <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger >
+                <Button variant="secondary" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem >
+                  <Link href={`/projects/${project.id}`}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    编辑
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={onDelete}
+                  disabled={isDeleting}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {isDeleting ? '删除中...' : '删除'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+        </div>
+        <Link href={`/projects/${project.id}`}>
           <div className="p-6">
             <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
               {project.title}
             </h3>
             <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
-              {project.description}
+              {project.description || '暂无描述'}
             </p>
             <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>{project.episodes} 集</span>
+              <span>{project.episodeCount || 0} 集</span>
               <span>{new Date(project.updatedAt).toLocaleDateString('zh-CN')}</span>
             </div>
           </div>
@@ -348,18 +361,25 @@ function ProjectCard({ project }: { project: Project }) {
   )
 }
 
-function ProjectListItem({ project }: { project: Project }) {
-  const statusConfig = {
-    in_progress: { label: '制作中', variant: 'secondary' as const },
-    completed: { label: '已完成', variant: 'default' as const },
-    pending: { label: '待开始', variant: 'outline' as const },
+interface ProjectListItemProps {
+  project: Project
+  onDelete: () => void
+  isDeleting: boolean
+}
+
+function ProjectListItem({ project, onDelete, isDeleting }: ProjectListItemProps) {
+  const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+    in_progress: { label: '制作中', variant: 'secondary' },
+    completed: { label: '已完成', variant: 'default' },
+    DRAFT: { label: '草稿', variant: 'outline' },
+    PENDING: { label: '待处理', variant: 'secondary' },
   }
 
   return (
     <Card className="hover:shadow-md transition-all duration-300 group hover:border-primary cursor-pointer">
       <CardContent className="p-4">
-        <Link href={`/projects/${project.id}`}>
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Link href={`/projects/${project.id}`} className="flex items-center gap-4 flex-1">
             <div className="w-20 h-14 rounded bg-muted flex items-center justify-center flex-shrink-0">
               <Film className="h-6 w-6 text-muted-foreground" />
             </div>
@@ -368,11 +388,11 @@ function ProjectListItem({ project }: { project: Project }) {
                 {project.title}
               </h3>
               <p className="text-muted-foreground text-sm truncate">
-                {project.description}
+                {project.description || '暂无描述'}
               </p>
             </div>
             <div className="flex items-center gap-4 flex-shrink-0">
-              <span className="text-muted-foreground text-sm">{project.episodes} 集</span>
+              <span className="text-muted-foreground text-sm">{project.episodeCount || 0} 集</span>
               <Badge variant={statusConfig[project.status].variant}>
                 {statusConfig[project.status].label}
               </Badge>
@@ -380,8 +400,31 @@ function ProjectListItem({ project }: { project: Project }) {
                 {new Date(project.updatedAt).toLocaleDateString('zh-CN')}
               </span>
             </div>
-          </div>
-        </Link>
+          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem >
+                <Link href={`/projects/${project.id}`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  编辑
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? '删除中...' : '删除'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </CardContent>
     </Card>
   )
@@ -441,6 +484,22 @@ function EmptyState() {
           <Plus className="h-5 w-5" />
           创建项目
         </Link>
+      </Button>
+    </div>
+  )
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="text-center py-16">
+      <div className="w-20 h-20 rounded-full bg-destructive/10 mx-auto mb-4 flex items-center justify-center">
+        <RefreshCw className="h-10 w-10 text-destructive" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">加载失败</h3>
+      <p className="text-muted-foreground mb-6">{message}</p>
+      <Button onClick={onRetry}>
+        <RefreshCw className="h-4 w-4 mr-2" />
+        重试
       </Button>
     </div>
   )

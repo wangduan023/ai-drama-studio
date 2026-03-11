@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -18,6 +19,7 @@ import {
   Monitor,
   Building2,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,83 +32,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
-
-// 模拟场景数据
-const mockLocations = [
-  {
-    id: '1',
-    name: '城市广场',
-    type: 'outdoor',
-    description: '繁华的城市中心广场，人流密集',
-    projectId: '1',
-    projectName: '我的第一个短剧',
-    thumbnail: null,
-    episodeCount: 2,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: '咖啡厅',
-    type: 'indoor',
-    description: '温馨舒适的咖啡厅，适合约会',
-    projectId: '1',
-    projectName: '我的第一个短剧',
-    thumbnail: null,
-    episodeCount: 1,
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '3',
-    name: '公园',
-    type: 'outdoor',
-    description: '绿树成荫的公园，有湖泊和步道',
-    projectId: '1',
-    projectName: '我的第一个短剧',
-    thumbnail: null,
-    episodeCount: 1,
-    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: '4',
-    name: '公寓',
-    type: 'indoor',
-    description: '主角居住的现代化公寓',
-    projectId: '2',
-    projectName: '都市爱情故事',
-    thumbnail: null,
-    episodeCount: 3,
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: '5',
-    name: '办公室',
-    type: 'indoor',
-    description: '现代化的写字楼办公室',
-    projectId: '2',
-    projectName: '都市爱情故事',
-    thumbnail: null,
-    episodeCount: 2,
-    updatedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-  },
-]
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
+import { useLocationList, useDeleteLocation, type Location } from '@/hooks/useLocation'
+import { useProjectList } from '@/hooks/useProject'
 
 type ViewMode = 'grid' | 'list'
-type TypeFilter = 'all' | 'indoor' | 'outdoor' | 'virtual'
+type TypeFilter = 'all' | 'INDOOR' | 'OUTDOOR' | 'VIRTUAL' | 'TRANSITION'
 
 const typeConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  indoor: { label: '室内', icon: Home, color: 'bg-blue-500/20 text-blue-500' },
-  outdoor: { label: '室外', icon: Trees, color: 'bg-green-500/20 text-green-500' },
-  virtual: { label: '虚拟', icon: Monitor, color: 'bg-purple-500/20 text-purple-500' },
+  INDOOR: { label: '室内', icon: Home, color: 'bg-blue-500/20 text-blue-500' },
+  OUTDOOR: { label: '室外', icon: Trees, color: 'bg-green-500/20 text-green-500' },
+  VIRTUAL: { label: '虚拟', icon: Monitor, color: 'bg-purple-500/20 text-purple-500' },
+  TRANSITION: { label: '过渡', icon: ArrowRight, color: 'bg-orange-500/20 text-orange-500' },
 }
 
 export default function LocationsLibraryPage() {
-  const [locations] = useState(mockLocations)
+  const searchParams = useSearchParams()
+  const projectIdFromUrl = searchParams.get('project')
+  
+  const { data: locations = [], isLoading, error, refetch } = useLocationList(projectIdFromUrl || undefined)
+  const { data: projects = [] } = useProjectList()
+  const deleteLocation = useDeleteLocation()
+  
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
-  const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [projectFilter, setProjectFilter] = useState<string>(projectIdFromUrl || 'all')
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
+
+  // 当URL参数变化时更新筛选
+  useEffect(() => {
+    if (projectIdFromUrl) {
+      setProjectFilter(projectIdFromUrl)
+    }
+  }, [projectIdFromUrl])
 
   // 筛选场景
   const filteredLocations = useMemo(() => {
@@ -117,12 +84,12 @@ export default function LocationsLibraryPage() {
       result = result.filter(
         (l) =>
           l.name.toLowerCase().includes(query) ||
-          l.description.toLowerCase().includes(query)
+          (l.description?.toLowerCase() || '').includes(query)
       )
     }
 
     if (typeFilter !== 'all') {
-      result = result.filter((l) => l.type === typeFilter)
+      result = result.filter((l) => l.locationType === typeFilter)
     }
 
     if (projectFilter !== 'all') {
@@ -132,20 +99,51 @@ export default function LocationsLibraryPage() {
     return result
   }, [locations, searchQuery, typeFilter, projectFilter])
 
-  // 获取项目列表
-  const projects = useMemo(() => {
-    const uniqueProjects = new Map()
-    locations.forEach((l) => {
-      if (!uniqueProjects.has(l.projectId)) {
-        uniqueProjects.set(l.projectId, { id: l.projectId, name: l.projectName })
-      }
-    })
-    return Array.from(uniqueProjects.values())
-  }, [locations])
-
   const toggleSelection = (id: string) => {
     setSelectedLocations((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    )
+  }
+
+  const handleDeleteLocation = async (id: string, name: string, projectId: string) => {
+    try {
+      await deleteLocation.mutateAsync({ projectId, locationId: id })
+      toast.success(`场景 "${name}" 已删除`)
+    } catch {
+      toast.error('删除场景失败')
+    }
+  }
+
+  // 加载状态
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">场景库</h1>
+            <p className="text-muted-foreground">管理所有项目中的场景</p>
+          </div>
+        </div>
+        <LocationListSkeleton viewMode={viewMode} />
+      </div>
+    )
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">场景库</h1>
+            <p className="text-muted-foreground">管理所有项目中的场景</p>
+          </div>
+        </div>
+        <ErrorState 
+          message={error instanceof Error ? error.message : '加载场景失败'} 
+          onRetry={() => refetch()}
+        />
+      </div>
     )
   }
 
@@ -196,9 +194,10 @@ export default function LocationsLibraryPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部类型</SelectItem>
-              <SelectItem value="indoor">室内</SelectItem>
-              <SelectItem value="outdoor">室外</SelectItem>
-              <SelectItem value="virtual">虚拟</SelectItem>
+              <SelectItem value="INDOOR">室内</SelectItem>
+              <SelectItem value="OUTDOOR">室外</SelectItem>
+              <SelectItem value="VIRTUAL">虚拟</SelectItem>
+              <SelectItem value="TRANSITION">过渡</SelectItem>
             </SelectContent>
           </Select>
 
@@ -212,7 +211,7 @@ export default function LocationsLibraryPage() {
               <SelectItem value="all">全部项目</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.name}
+                  {p.title}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -280,6 +279,8 @@ export default function LocationsLibraryPage() {
                 location={location}
                 selected={selectedLocations.includes(location.id)}
                 onSelect={() => toggleSelection(location.id)}
+                onDelete={() => handleDeleteLocation(location.id, location.name, location.projectId)}
+                isDeleting={deleteLocation.isPending}
               />
             </motion.div>
           ))}
@@ -297,6 +298,8 @@ export default function LocationsLibraryPage() {
                 location={location}
                 selected={selectedLocations.includes(location.id)}
                 onSelect={() => toggleSelection(location.id)}
+                onDelete={() => handleDeleteLocation(location.id, location.name, location.projectId)}
+                isDeleting={deleteLocation.isPending}
               />
             </motion.div>
           ))}
@@ -306,43 +309,24 @@ export default function LocationsLibraryPage() {
   )
 }
 
-interface Location {
-  id: string
-  name: string
-  type: string
-  description: string
-  projectId: string
-  projectName: string
-  thumbnail: string | null
-  episodeCount: number
-  updatedAt: string
-}
-
-function LocationCard({
-  location,
-  selected,
-  onSelect,
-}: {
+interface LocationCardProps {
   location: Location
   selected: boolean
   onSelect: () => void
-}) {
-  const typeInfo = typeConfig[location.type] || typeConfig.outdoor
+  onDelete: () => void
+  isDeleting: boolean
+}
+
+function LocationCard({ location, selected, onSelect, onDelete, isDeleting }: LocationCardProps) {
+  const typeKey = location.locationType || 'OUTDOOR'
+  const typeInfo = typeConfig[typeKey] || typeConfig.OUTDOOR
   const TypeIcon = typeInfo.icon
 
   return (
     <Card className={`group hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden ${selected ? 'ring-2 ring-primary' : ''}`}>
       <CardContent className="p-0">
         <div className="aspect-video bg-muted flex items-center justify-center relative">
-          {location.thumbnail ? (
-            <img
-              src={location.thumbnail}
-              alt={location.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <MapPin className="h-12 w-12 text-muted-foreground" />
-          )}
+          <MapPin className="h-12 w-12 text-muted-foreground" />
           <div className="absolute top-2 left-2">
             <Checkbox
               checked={selected}
@@ -356,17 +340,42 @@ function LocationCard({
               {typeInfo.label}
             </Badge>
           </div>
+          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger onClick={(e) => e.stopPropagation()} >
+                <Button variant="secondary" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem >
+                  <Link href={`/projects/${location.projectId}/locations/${location.id}`}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    编辑
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={onDelete}
+                  disabled={isDeleting}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {isDeleting ? '删除中...' : '删除'}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
         <div className="p-4">
           <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
             {location.name}
           </h3>
           <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-            {location.description}
+            {location.description || '暂无描述'}
           </p>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>{location.projectName}</span>
-            <span>{location.episodeCount} 集</span>
+            <span>项目: {location.projectId.slice(0, 8)}...</span>
+            <span>{location.eraPeriod || '现代'}</span>
           </div>
         </div>
       </CardContent>
@@ -374,16 +383,17 @@ function LocationCard({
   )
 }
 
-function LocationListItem({
-  location,
-  selected,
-  onSelect,
-}: {
+interface LocationListItemProps {
   location: Location
   selected: boolean
   onSelect: () => void
-}) {
-  const typeInfo = typeConfig[location.type] || typeConfig.outdoor
+  onDelete: () => void
+  isDeleting: boolean
+}
+
+function LocationListItem({ location, selected, onSelect, onDelete, isDeleting }: LocationListItemProps) {
+  const typeKey = location.locationType || 'OUTDOOR'
+  const typeInfo = typeConfig[typeKey] || typeConfig.OUTDOOR
   const TypeIcon = typeInfo.icon
 
   return (
@@ -392,44 +402,105 @@ function LocationListItem({
         <div className="flex items-center gap-4">
           <Checkbox checked={selected} onCheckedChange={onSelect} />
           
-          <div className="w-20 h-14 rounded bg-muted flex items-center justify-center flex-shrink-0">
-            {location.thumbnail ? (
-              <img
-                src={location.thumbnail}
-                alt={location.name}
-                className="w-full h-full object-cover rounded"
-              />
-            ) : (
+          <Link
+            href={`/projects/${location.projectId}/locations/${location.id}`}
+            className="flex items-center gap-4 flex-1"
+          >
+            <div className="w-20 h-14 rounded bg-muted flex items-center justify-center flex-shrink-0">
               <MapPin className="h-6 w-6 text-muted-foreground" />
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
-                {location.name}
-              </h3>
-              <Badge className={`text-xs ${typeInfo.color}`}>
-                <TypeIcon className="h-3 w-3 mr-1" />
-                {typeInfo.label}
-              </Badge>
             </div>
-            <p className="text-sm text-muted-foreground truncate">
-              {location.description}
-            </p>
-          </div>
 
-          <div className="hidden md:block text-sm text-muted-foreground">
-            {location.projectName}
-          </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+                  {location.name}
+                </h3>
+                <Badge className={`text-xs ${typeInfo.color}`}>
+                  <TypeIcon className="h-3 w-3 mr-1" />
+                  {typeInfo.label}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground truncate">
+                {location.description || '暂无描述'}
+              </p>
+            </div>
 
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{location.episodeCount} 集</span>
-            <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
+            <div className="hidden md:block text-sm text-muted-foreground">
+              项目: {location.projectId.slice(0, 8)}...
+            </div>
+
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span>{location.eraPeriod || '现代'}</span>
+              <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem >
+                <Link href={`/projects/${location.projectId}/locations/${location.id}`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  编辑
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? '删除中...' : '删除'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function LocationListSkeleton({ viewMode }: { viewMode: ViewMode }) {
+  if (viewMode === 'grid') {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-0">
+              <Skeleton className="aspect-video" />
+              <div className="p-4">
+                <Skeleton className="h-5 w-24 mb-2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-5 w-5 rounded" />
+              <Skeleton className="w-20 h-14 rounded" />
+              <div className="flex-1">
+                <Skeleton className="h-5 w-48 mb-2" />
+                <Skeleton className="h-4 w-96" />
+              </div>
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
 }
 
@@ -444,6 +515,22 @@ function EmptyState() {
       <Button>
         <Plus className="h-5 w-5 mr-2" />
         创建场景
+      </Button>
+    </div>
+  )
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="text-center py-16">
+      <div className="w-20 h-20 rounded-full bg-destructive/10 mx-auto mb-4 flex items-center justify-center">
+        <RefreshCw className="h-10 w-10 text-destructive" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">加载失败</h3>
+      <p className="text-muted-foreground mb-6">{message}</p>
+      <Button onClick={onRetry}>
+        <RefreshCw className="h-4 w-4 mr-2" />
+        重试
       </Button>
     </div>
   )

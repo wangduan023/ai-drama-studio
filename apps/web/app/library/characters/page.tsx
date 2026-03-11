@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -17,6 +18,7 @@ import {
   Star,
   User,
   ArrowRight,
+  RefreshCw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -37,71 +39,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Checkbox } from '@/components/ui/checkbox'
-import { ScrollArea } from '@/components/ui/scroll-area'
-
-// 模拟角色数据
-const mockCharacters = [
-  {
-    id: '1',
-    name: '张三',
-    role: '主角',
-    grade: 'S',
-    description: '年轻有为的艺术家，性格内向但才华横溢',
-    projectId: '1',
-    projectName: '我的第一个短剧',
-    avatar: null,
-    episodeCount: 3,
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: '李四',
-    role: '主角',
-    grade: 'S',
-    description: '活泼开朗的城市女孩，热爱生活',
-    projectId: '1',
-    projectName: '我的第一个短剧',
-    avatar: null,
-    episodeCount: 3,
-    updatedAt: new Date(Date.now() - 86400000).toISOString(),
-  },
-  {
-    id: '3',
-    name: '王五',
-    role: '配角',
-    grade: 'A',
-    description: '张三的好友，经常给主角提供建议',
-    projectId: '1',
-    projectName: '我的第一个短剧',
-    avatar: null,
-    episodeCount: 2,
-    updatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: '4',
-    name: '赵六',
-    role: '反派',
-    grade: 'B',
-    description: '竞争对手，性格狡猾',
-    projectId: '2',
-    projectName: '都市爱情故事',
-    avatar: null,
-    episodeCount: 5,
-    updatedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-  },
-  {
-    id: '5',
-    name: '钱七',
-    role: '配角',
-    grade: 'C',
-    description: '李四的闺蜜',
-    projectId: '2',
-    projectName: '都市爱情故事',
-    avatar: null,
-    episodeCount: 2,
-    updatedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-  },
-]
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
+import { useCharacterList, useDeleteCharacter, type Character } from '@/hooks/useCharacter'
+import { useProjectList } from '@/hooks/useProject'
 
 type ViewMode = 'grid' | 'list'
 type GradeFilter = 'all' | 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
@@ -125,12 +66,25 @@ const gradeIcons: Record<string, React.ElementType> = {
 }
 
 export default function CharactersLibraryPage() {
-  const [characters] = useState(mockCharacters)
+  const searchParams = useSearchParams()
+  const projectIdFromUrl = searchParams.get('project')
+  
+  const { data: characters = [], isLoading, error, refetch } = useCharacterList(projectIdFromUrl || undefined)
+  const { data: projects = [] } = useProjectList()
+  const deleteCharacter = useDeleteCharacter()
+  
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>('all')
-  const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [projectFilter, setProjectFilter] = useState<string>(projectIdFromUrl || 'all')
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
+
+  // 当URL参数变化时更新筛选
+  useEffect(() => {
+    if (projectIdFromUrl) {
+      setProjectFilter(projectIdFromUrl)
+    }
+  }, [projectIdFromUrl])
 
   // 筛选角色
   const filteredCharacters = useMemo(() => {
@@ -141,13 +95,13 @@ export default function CharactersLibraryPage() {
       result = result.filter(
         (c) =>
           c.name.toLowerCase().includes(query) ||
-          c.description.toLowerCase().includes(query) ||
-          c.role.toLowerCase().includes(query)
+          (c.introduction?.toLowerCase() || '').includes(query) ||
+          (c.archetype?.toLowerCase() || '').includes(query)
       )
     }
 
     if (gradeFilter !== 'all') {
-      result = result.filter((c) => c.grade === gradeFilter)
+      result = result.filter((c) => c.roleLevel === gradeFilter)
     }
 
     if (projectFilter !== 'all') {
@@ -156,17 +110,6 @@ export default function CharactersLibraryPage() {
 
     return result
   }, [characters, searchQuery, gradeFilter, projectFilter])
-
-  // 获取项目列表
-  const projects = useMemo(() => {
-    const uniqueProjects = new Map()
-    characters.forEach((c) => {
-      if (!uniqueProjects.has(c.projectId)) {
-        uniqueProjects.set(c.projectId, { id: c.projectId, name: c.projectName })
-      }
-    })
-    return Array.from(uniqueProjects.values())
-  }, [characters])
 
   const toggleSelection = (id: string) => {
     setSelectedCharacters((prev) =>
@@ -180,6 +123,48 @@ export default function CharactersLibraryPage() {
     } else {
       setSelectedCharacters(filteredCharacters.map((c) => c.id))
     }
+  }
+
+  const handleDeleteCharacter = async (id: string, name: string, projectId: string) => {
+    try {
+      await deleteCharacter.mutateAsync({ projectId, characterId: id })
+      toast.success(`角色 "${name}" 已删除`)
+    } catch {
+      toast.error('删除角色失败')
+    }
+  }
+
+  // 加载状态
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">角色库</h1>
+            <p className="text-muted-foreground">管理所有项目中的角色</p>
+          </div>
+        </div>
+        <CharacterListSkeleton viewMode={viewMode} />
+      </div>
+    )
+  }
+
+  // 错误状态
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">角色库</h1>
+            <p className="text-muted-foreground">管理所有项目中的角色</p>
+          </div>
+        </div>
+        <ErrorState 
+          message={error instanceof Error ? error.message : '加载角色失败'} 
+          onRetry={() => refetch()}
+        />
+      </div>
+    )
   }
 
   return (
@@ -248,7 +233,7 @@ export default function CharactersLibraryPage() {
               <SelectItem value="all">全部项目</SelectItem>
               {projects.map((p) => (
                 <SelectItem key={p.id} value={p.id}>
-                  {p.name}
+                  {p.title}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -318,6 +303,8 @@ export default function CharactersLibraryPage() {
                 character={character}
                 selected={selectedCharacters.includes(character.id)}
                 onSelect={() => toggleSelection(character.id)}
+                onDelete={() => handleDeleteCharacter(character.id, character.name, character.projectId)}
+                isDeleting={deleteCharacter.isPending}
               />
             </motion.div>
           ))}
@@ -335,6 +322,8 @@ export default function CharactersLibraryPage() {
                 character={character}
                 selected={selectedCharacters.includes(character.id)}
                 onSelect={() => toggleSelection(character.id)}
+                onDelete={() => handleDeleteCharacter(character.id, character.name, character.projectId)}
+                isDeleting={deleteCharacter.isPending}
               />
             </motion.div>
           ))}
@@ -344,33 +333,21 @@ export default function CharactersLibraryPage() {
   )
 }
 
-interface Character {
-  id: string
-  name: string
-  role: string
-  grade: string
-  description: string
-  projectId: string
-  projectName: string
-  avatar: string | null
-  episodeCount: number
-  updatedAt: string
-}
-
-function CharacterCard({
-  character,
-  selected,
-  onSelect,
-}: {
+interface CharacterCardProps {
   character: Character
   selected: boolean
   onSelect: () => void
-}) {
-  const GradeIcon = gradeIcons[character.grade] || User
+  onDelete: () => void
+  isDeleting: boolean
+}
+
+function CharacterCard({ character, selected, onSelect, onDelete, isDeleting }: CharacterCardProps) {
+  const grade = character.roleLevel || 'E'
+  const GradeIcon = gradeIcons[grade] || User
 
   return (
     <Card className={`group hover:shadow-lg transition-all duration-300 cursor-pointer ${selected ? 'ring-2 ring-primary' : ''}`}>
-      <CardContent className="p-4">
+      <CardContent className="p-4 relative">
         <div className="flex items-start gap-3 mb-4">
           <Checkbox
             checked={selected}
@@ -380,7 +357,7 @@ function CharacterCard({
           <Link href={`/projects/${character.projectId}/characters/${character.id}`} className="flex-1">
             <div className="flex items-center gap-3">
               <Avatar className="h-14 w-14">
-                <AvatarImage src={character.avatar || undefined} />
+                <AvatarImage src={character.primaryIdentifier || undefined} />
                 <AvatarFallback className="bg-primary/10 text-primary text-lg">
                   {character.name[0]}
                 </AvatarFallback>
@@ -389,7 +366,7 @@ function CharacterCard({
                 <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
                   {character.name}
                 </h3>
-                <p className="text-sm text-muted-foreground">{character.role}</p>
+                <p className="text-sm text-muted-foreground">{character.archetype || '未知角色'}</p>
               </div>
             </div>
           </Link>
@@ -398,36 +375,63 @@ function CharacterCard({
         <div className="flex items-center gap-2 mb-3">
           <Badge
             variant="outline"
-            className={`flex items-center gap-1 ${gradeColors[character.grade]}`}
+            className={`flex items-center gap-1 ${gradeColors[grade]}`}
           >
             <GradeIcon className="h-3 w-3" />
-            {character.grade} 级
+            {grade} 级
           </Badge>
         </div>
 
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-          {character.description}
+          {character.introduction || '暂无描述'}
         </p>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{character.projectName}</span>
-          <span>{character.episodeCount} 集</span>
+          <span>项目: {character.projectId.slice(0, 8)}...</span>
+          <span>{character.appearanceCount || 0} 次出场</span>
+        </div>
+
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger onClick={(e) => e.stopPropagation()} >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem >
+                <Link href={`/projects/${character.projectId}/characters/${character.id}`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  编辑
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? '删除中...' : '删除'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
   )
 }
 
-function CharacterListItem({
-  character,
-  selected,
-  onSelect,
-}: {
+interface CharacterListItemProps {
   character: Character
   selected: boolean
   onSelect: () => void
-}) {
-  const GradeIcon = gradeIcons[character.grade] || User
+  onDelete: () => void
+  isDeleting: boolean
+}
+
+function CharacterListItem({ character, selected, onSelect, onDelete, isDeleting }: CharacterListItemProps) {
+  const grade = character.roleLevel || 'E'
+  const GradeIcon = gradeIcons[grade] || User
 
   return (
     <Card className={`group hover:shadow-md transition-all cursor-pointer ${selected ? 'ring-2 ring-primary' : ''}`}>
@@ -440,7 +444,7 @@ function CharacterListItem({
             className="flex items-center gap-4 flex-1"
           >
             <Avatar className="h-12 w-12">
-              <AvatarImage src={character.avatar || undefined} />
+              <AvatarImage src={character.primaryIdentifier || undefined} />
               <AvatarFallback className="bg-primary/10 text-primary">
                 {character.name[0]}
               </AvatarFallback>
@@ -453,29 +457,97 @@ function CharacterListItem({
                 </h3>
                 <Badge
                   variant="outline"
-                  className={`text-xs ${gradeColors[character.grade]}`}
+                  className={`text-xs ${gradeColors[grade]}`}
                 >
                   <GradeIcon className="h-3 w-3 mr-1" />
-                  {character.grade}
+                  {grade}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                {character.role} · {character.projectName}
+                {character.archetype || '未知角色'} · 项目: {character.projectId.slice(0, 8)}...
               </p>
             </div>
 
             <div className="hidden md:block text-sm text-muted-foreground max-w-xs truncate">
-              {character.description}
+              {character.introduction || '暂无描述'}
             </div>
 
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>{character.episodeCount} 集</span>
+              <span>{character.appearanceCount || 0} 次出场</span>
               <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </Link>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger >
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem >
+                <Link href={`/projects/${character.projectId}/characters/${character.id}`}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  编辑
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={onDelete}
+                disabled={isDeleting}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? '删除中...' : '删除'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function CharacterListSkeleton({ viewMode }: { viewMode: ViewMode }) {
+  if (viewMode === 'grid') {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Skeleton className="h-14 w-14 rounded-full" />
+                <div className="flex-1">
+                  <Skeleton className="h-5 w-24 mb-2" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3].map((i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-5 w-5 rounded" />
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-5 w-48 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
 }
 
@@ -490,6 +562,22 @@ function EmptyState() {
       <Button>
         <Plus className="h-5 w-5 mr-2" />
         创建角色
+      </Button>
+    </div>
+  )
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="text-center py-16">
+      <div className="w-20 h-20 rounded-full bg-destructive/10 mx-auto mb-4 flex items-center justify-center">
+        <RefreshCw className="h-10 w-10 text-destructive" />
+      </div>
+      <h3 className="text-xl font-semibold mb-2">加载失败</h3>
+      <p className="text-muted-foreground mb-6">{message}</p>
+      <Button onClick={onRetry}>
+        <RefreshCw className="h-4 w-4 mr-2" />
+        重试
       </Button>
     </div>
   )

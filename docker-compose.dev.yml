@@ -21,7 +21,7 @@ services:
       - "--default-authentication-plugin=mysql_native_password"
       - "--sql_mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -aidrama123"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot --password=aidrama123"]
       interval: 5s
       timeout: 5s
       retries: 30

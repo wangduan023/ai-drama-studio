@@ -8,12 +8,12 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently --kill-others \"npm run dev:web\" \"npm run dev:worker\"",
+    "dev": "concurrently --kill-others \"pnpm run dev:web\" \"pnpm run dev:worker\"",
     "dev:web": "cd apps/web && next dev -H 0.0.0.0",
     "dev:worker": "cd apps/worker && tsx watch --env-file=.env index.ts",
     "build": "npm run build:prisma && next build",
     "build:prisma": "npx prisma generate",
-    "start": "concurrently --kill-others \"npm run start:web\" \"npm run start:worker\"",
+    "start": "concurrently --kill-others \"pnpm run start:web\" \"pnpm run start:worker\"",
     "start:web": "next start -H 0.0.0.0",
     "start:worker": "cd apps/worker && tsx --env-file=.env index.ts",
     "db:generate": "npx prisma generate",
