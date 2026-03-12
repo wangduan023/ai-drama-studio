@@ -1,0 +1,892 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// 用户模型
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  name            String?
+  avatar          String?
+  role            UserRole         @default(USER)
+  passwordHash    String
+  isActive        Boolean          @default(true)
+  emailVerified   Boolean          @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  profile         Profile?
+  projects        Project[]
+  refreshTokens   RefreshToken[]
+  usageCosts      UsageCost[]
+  projectMembers  ProjectMember[]
+  projectComments ProjectComment[]
+  credits         Credit?
+  
+  // RBAC 权限关联
+  systemRoles     UserSystemRole[]        // 系统级角色
+  projectRoles    ProjectMemberRole[]     // 项目级角色
+
+  @@index([email])
+  @@map("users")
+}
+
+/// 用户资料
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  bio         String?
+  website     String?
+  preferences Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profiles")
+}
+
+/// 刷新令牌（用于认证）
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @db.VarChar(512) @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+/// 系统配置/模型配置
+model Config {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       Json
+  description String?
+  category    String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@map("configs")
+}
+
+/// AI 渠道商（Provider）配置
+model AiProvider {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  baseUrl     String
+  apiKey      String?    // 向后兼容，默认密钥
+  isActive    Boolean    @default(true)
+  priority    Int        @default(0)
+  weight      Int        @default(1)
+  proxyMode   String     @default("auto")
+  proxyId     String?
+  rateLimit   Int?
+  quotaDaily  Int?
+  metadata    Json?
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  models      AiModel[]
+  apiKeys     AiApiKey[] // 关联的密钥列表
+  proxy       AiProxy?   @relation(fields: [proxyId], references: [id])
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([name])
+  @@index([proxyId], map: "ai_providers_proxyId_fkey")
+  @@map("ai_providers")
+}
+
+/// AI 模型配置
+model AiModel {
+  id            String              @id @default(uuid())
+  providerId    String
+  modelId       String
+  name          String
+  type          AiModelType
+  capabilities  Json                @default("[]")  // 功能支持数组 ["TEXT", "IMAGE"] 等
+  isEnabled     Boolean             @default(true)
+  isDefault     Boolean             @default(false)
+  maxTokens     Int?
+  contextWindow Int?
+  inputCost     Float?
+  outputCost    Float?
+  imageCost     Float?
+  videoCost     Float?
+  voiceCost     Float?              // 语音成本
+  currency      String              @default("USD")
+  rateLimit     Int?
+  rpm           Int?
+  tpm           Int?
+  metadata      Json?
+  description   String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  provider      AiProvider          @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  apiKeys       AiApiKey[]          // 关联的专用密钥列表
+
+  @@unique([providerId, modelId])
+  @@index([type])
+  @@index([isEnabled])
+  @@map("ai_models")
+}
+
+/// 模型功能支持枚举
+enum ModelCapability {
+  TEXT
+  IMAGE
+  VIDEO
+  VOICE
+  CHAT
+  VISION
+}
+
+/// AI API 密钥表
+model AiApiKey {
+  id              String              @id @default(uuid())
+  providerId      String              // 必须绑定到渠道
+  modelId         String?             // 【可选】绑定到具体模型，null = 渠道通用密钥
+  name            String              // 密钥名称
+  apiKey          String              // 加密存储
+  apiSecret       String?             // 部分厂商需要
+  capabilities    Json?               // 可选：覆盖或限制模型功能 ["TEXT"]
+  isActive        Boolean             @default(true)
+  priority        Int                 @default(0)
+  weight          Int                 @default(1)
+  quotaDaily      Int?                // 每日配额
+  quotaUsed       Int                 @default(0)
+  quotaResetAt    DateTime?
+  successCount    Int                 @default(0)
+  failCount       Int                 @default(0)
+  lastUsedAt      DateTime?
+  lastErrorAt     DateTime?
+  lastErrorMsg    String?
+  proxyMode       ProxyMode           @default(AUTO)
+  proxyId         String?
+  description     String?
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  provider        AiProvider          @relation(fields: [providerId], references: [id])
+  model           AiModel?            @relation(fields: [modelId], references: [id])
+  proxy           AiProxy?            @relation(fields: [proxyId], references: [id])
+
+  @@index([providerId])
+  @@index([modelId])
+  @@index([isActive])
+  @@index([providerId, isActive])
+  @@index([providerId, modelId, isActive])
+  @@map("ai_api_keys")
+}
+
+enum ProxyMode {
+  AUTO      // 自动选择
+  SPECIFIC  // 指定代理
+  NONE      // 不使用代理
+}
+
+/// HTTP 代理服务器配置
+model AiProxy {
+  id                  String       @id @default(uuid())
+  name                String       @unique
+  host                String
+  port                Int
+  protocol            ProxyProtocol @default(HTTP)
+  username            String?
+  password            String?       // 加密存储
+  location            String?       // 地理位置
+  provider            String?       // 代理服务商
+  isActive            Boolean      @default(true)
+  isHealthy           Boolean      @default(true)
+  isSystem            Boolean      @default(false)
+  lastCheckAt         DateTime?
+  checkLatency        Int?          // 延迟(ms)
+  checkError          String?
+  consecutiveFailures Int          @default(0)
+  totalRequests       Int          @default(0)
+  successRequests     Int          @default(0)
+  failedRequests      Int          @default(0)
+  avgLatency          Int?          // 平均延迟
+  lastUsedAt          DateTime?
+  maxConcurrent       Int          @default(10)
+  currentConcurrent   Int          @default(0)
+  metadata            Json?
+  description         String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  usedByProviders     AiProvider[]
+  apiKeys             AiApiKey[]
+
+  @@index([isActive])
+  @@index([isHealthy])
+  @@index([protocol])
+  @@index([location])
+  @@map("ai_proxies")
+}
+
+enum ProxyProtocol {
+  HTTP
+  HTTPS
+  SOCKS5
+}
+
+/// AI API 调用记录
+model AiUsageLog {
+  id           String        @id @default(uuid())
+  providerId   String
+  modelId      String?
+  action       String
+  requestId    String?
+  externalId   String?
+  inputTokens  Int?
+  outputTokens Int?
+  imageCount   Int?
+  videoCount   Int?
+  duration     Float?
+  cost         Float
+  currency     String        @default("USD")
+  status       AiUsageStatus @default(SUCCESS)
+  errorCode    String?
+  errorMessage String?
+  projectId    String?
+  episodeId    String?
+  taskId       String?
+  userId       String?
+  latency      Int?
+  createdAt    DateTime      @default(now())
+
+  @@index([providerId])
+  @@index([status])
+  @@index([projectId])
+  @@index([createdAt])
+  @@index([taskId])
+  @@index([providerId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([action, createdAt])
+  @@map("ai_usage_logs")
+}
+
+/// 资产库 - 通用的图片/视频资产管理
+model Asset {
+  id           String        @id @default(uuid())
+  projectId    String?
+  type         AssetType
+  url          String
+  thumbnailUrl String?
+  name         String
+  description  String?
+  tags         String?
+  metadata     Json?
+  size         Int?
+  duration     Float?
+  width        Int?
+  height       Int?
+  status       ProcessStatus @default(COMPLETED)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  deletedBy    String?
+  project      Project?      @relation("ProjectAssets", fields: [projectId], references: [id])
+
+  @@index([projectId])
+  @@index([type])
+  @@index([deletedAt])
+  @@map("assets")
+}
+
+/// 项目 - 聚合根
+model Project {
+  id                String             @id @default(uuid())
+  name              String
+  description       String?
+  userId            String
+  status            ProjectStatus      @default(DRAFT)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+  deletedBy         String?
+  version           Int                @default(1)
+  assets            Asset[]            @relation("ProjectAssets")
+  characterProfiles CharacterProfile[]
+  episodes          Episode[]
+  locationProfiles  LocationProfile[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks             Task[]
+  usageCosts        UsageCost[]
+  members           ProjectMember[]
+  memberRoles       ProjectMemberRole[]  // RBAC 项目角色
+  comments          ProjectComment[]
+  invites           ProjectInvite[]
+  activities        ProjectActivity[]
+
+  @@index([userId, status])
+  @@index([userId, deletedAt])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+/// 剧集
+model Episode {
+  id                     String       @id @default(uuid())
+  projectId              String
+  number                 Int
+  name                   String
+  novelText              String?
+  characterAppearanceMap Json?
+  deletedAt              DateTime?
+  deletedBy              String?
+  version                Int          @default(1)
+  clips                  Clip[]
+  project                Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  script                 Script?
+  storyboards            Storyboard[]
+  tasks                  Task[]       @relation("EpisodeTasks")
+
+  @@unique([projectId, number])
+  @@index([projectId])
+  @@index([projectId, deletedAt])
+  @@map("episodes")
+}
+
+/// 剧本
+model Script {
+  id         String        @id @default(uuid())
+  episodeId  String        @unique
+  content    String
+  characters Json?
+  scenes     Json?
+  status     ProcessStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  episode    Episode       @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId])
+  @@map("scripts")
+}
+
+/// 分镜
+model Storyboard {
+  id          String        @id @default(uuid())
+  episodeId   String
+  clipId      String?
+  sequence    Int
+  description String
+  imagePrompt String?
+  imageUrl    String?
+  videoPrompt String?
+  videoUrl    String?
+  duration    Float?
+  status      ProcessStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  clip        Clip?         @relation(fields: [clipId], references: [id])
+  episode     Episode       @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId, sequence])
+  @@index([clipId], map: "storyboards_clipId_fkey")
+  @@map("storyboards")
+}
+
+/// 镜头/片段
+model Clip {
+  id          String        @id @default(uuid())
+  episodeId   String
+  sequence    Int
+  description String
+  duration    Float?
+  status      ProcessStatus @default(PENDING)
+  episode     Episode       @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  storyboards Storyboard[]
+
+  @@index([episodeId, sequence])
+  @@map("clips")
+}
+
+/// 角色档案 - 角色一致性的核心数据模型
+model CharacterProfile {
+  id                  String                @id @default(uuid())
+  projectId           String
+  name                String
+  aliases             String?
+  introduction        String?
+  gender              String?
+  ageRange            String?
+  roleLevel           CharacterRoleLevel?
+  archetype           String?
+  personalityTags     String?
+  eraPeriod           String?
+  socialClass         String?
+  occupation          String?
+  costumeTier         Int?
+  suggestedColors     String?
+  primaryIdentifier   String?
+  visualKeywords      String?
+  expectedAppearances Json?
+  profileConfirmed    Boolean               @default(false)
+  deletedAt           DateTime?
+  deletedBy           String?
+  version             Int                   @default(1)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  appearances         CharacterAppearance[]
+  project             Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([projectId, deletedAt])
+  @@map("character_profiles")
+}
+
+/// 角色外观形态（子形象）
+model CharacterAppearance {
+  id                String           @id @default(uuid())
+  characterId       String
+  appearanceIndex   Int              @default(1)
+  changeReason      String
+  description       String
+  descriptions      String?
+  imageUrls         String?
+  previousImageUrls String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  character         CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, appearanceIndex])
+  @@index([characterId])
+  @@map("character_appearances")
+}
+
+/// 场景档案
+model LocationProfile {
+  id                String        @id @default(uuid())
+  projectId         String
+  name              String
+  description       String?
+  eraPeriod         String?
+  locationType      LocationType?
+  moodColor         String?
+  keyElements       String?
+  locationConfirmed Boolean       @default(false)
+  deletedAt         DateTime?
+  deletedBy         String?
+  version           Int           @default(1)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  project           Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+  @@index([projectId])
+  @@index([projectId, deletedAt])
+  @@map("location_profiles")
+}
+
+/// 任务 - 用于追踪所有 AI 生成任务
+model Task {
+  id           String      @id @default(uuid())
+  projectId    String
+  episodeId    String?
+  userId       String
+  type         TaskType
+  targetType   String
+  targetId     String
+  status       TaskStatus  @default(QUEUED)
+  progress     Int         @default(0)
+  attempt      Int         @default(0)
+  payload      Json?
+  result       Json?
+  errorCode    String?
+  errorMessage String?
+  queuedAt     DateTime    @default(now())
+  startedAt    DateTime?
+  updatedAt    DateTime    @updatedAt
+  finishedAt   DateTime?
+  events       TaskEvent[]
+  episode      Episode?    @relation("EpisodeTasks", fields: [episodeId], references: [id])
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status, type])
+  @@index([projectId])
+  @@index([episodeId])
+  @@index([userId])
+  @@index([projectId, status])
+  @@index([userId, status])
+  @@index([targetId, targetType])
+  @@index([status, queuedAt])
+  @@map("tasks")
+}
+
+/// 任务事件 - 用于 SSE 事件持久化和回放
+model TaskEvent {
+  id        Int      @id @default(autoincrement())
+  taskId    String
+  projectId String
+  userId    String
+  eventType String
+  payload   Json?
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+  @@map("task_events")
+}
+
+/// 使用量/计费记录
+model UsageCost {
+  id        String   @id @default(uuid())
+  projectId String
+  taskId    String?
+  userId    String
+  model     String
+  action    String
+  quantity  Float
+  unit      String
+  cost      Float
+  metadata  Json?
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, userId])
+  @@index([userId])
+  @@map("usage_costs")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+/// AI 模型类型
+enum AiModelType {
+  TEXT
+  IMAGE
+  VIDEO
+  VOICE
+  EMBEDDING
+}
+
+/// AI 使用状态
+enum AiUsageStatus {
+  SUCCESS
+  FAILED
+  RATE_LIMITED
+  TIMEOUT
+  CANCELLED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  CHARACTER_SHEET
+  LOCATION_SHEET
+}
+
+enum ProjectStatus {
+  DRAFT
+  PROCESSING
+  COMPLETED
+  FAILED
+  PAUSED
+}
+
+/// 角色重要性层级
+enum CharacterRoleLevel {
+  S
+  A
+  B
+  C
+  D
+}
+
+/// 场景类型
+enum LocationType {
+  INDOOR
+  OUTDOOR
+  NATURE
+  BUILDING
+  FANTASY
+}
+
+enum TaskType {
+  SCRIPT_GENERATE
+  SCRIPT_EDIT
+  SCRIPT_REGENERATE
+  STORYBOARD_GENERATE
+  STORYBOARD_EDIT
+  STORYBOARD_REGENERATE
+  IMAGE_GENERATE
+  IMAGE_REGENERATE
+  VIDEO_GENERATE
+  VIDEO_REGENERATE
+  VOICE_GENERATE
+  VOICE_REGENERATE
+  CHARACTER_PROFILE_ANALYZE
+  CHARACTER_VISUAL_GENERATE
+  CHARACTER_VISUAL_REGENERATE
+  LOCATION_ANALYZE
+  LOCATION_VISUAL_GENERATE
+  LOCATION_VISUAL_REGENERATE
+  EPISODE_EXPORT
+  PROJECT_ARCHIVE
+}
+
+enum TaskStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+/// 处理状态
+enum ProcessStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+/// 项目角色
+enum ProjectRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+/// 项目成员关系
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(VIEWER)
+  invitedBy String?
+  joinedAt  DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+/// 项目评论
+model ProjectComment {
+  id        String   @id @default(cuid())
+  projectId String
+  episodeId String?
+  userId    String
+  content   String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    ProjectComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies   ProjectComment[] @relation("CommentReplies")
+
+  @@index([projectId, createdAt])
+  @@index([episodeId])
+  @@map("project_comments")
+}
+
+/// 项目邀请
+model ProjectInvite {
+  id        String   @id @default(cuid())
+  projectId String
+  email     String
+  role      ProjectRole @default(VIEWER)
+  token     String   @unique
+  invitedBy String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([projectId])
+  @@map("project_invites")
+}
+
+/// 项目活动日志
+model ProjectActivity {
+  id         String   @id @default(cuid())
+  projectId  String
+  userId     String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@map("project_activities")
+}
+
+/// 积分系统 - 用户积分账户
+model Credit {
+  id           String             @id @default(uuid())
+  userId       String             @unique
+  balance      Float              @default(0)
+  totalEarned  Float              @default(0)
+  totalUsed    Float              @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  transactions CreditTransaction[]
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("credits")
+}
+
+/// 积分交易记录
+model CreditTransaction {
+  id          String          @id @default(uuid())
+  creditId    String
+  type        TransactionType
+  amount      Float
+  balance     Float
+  description String
+  taskId      String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  credit      Credit          @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@index([creditId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("credit_transactions")
+}
+
+/// 交易类型
+enum TransactionType {
+  EARN    // 获得积分
+  USE     // 使用积分
+  REFUND  // 退款
+  BONUS   // 奖励
+  PENALTY // 惩罚
+}
+
+/// 代理使用日志
+model ProxyUsageLog {
+  id          String   @id @default(uuid())
+  proxyId     String
+  keyId       String?  // 关联的密钥
+  providerId  String?  // 关联的渠道
+  targetHost  String   // 目标域名
+  status      String   // SUCCESS/FAILED/TIMEOUT
+  latency     Int      // 耗时(ms)
+  errorMsg    String?
+  createdAt   DateTime @default(now())
+  
+  @@index([proxyId])
+  @@index([createdAt])
+  @@index([status])
+  @@map("proxy_usage_logs")
+}
+
+// ============================================
+// 统一 RBAC 权限系统
+// ============================================
+
+/// 角色表（系统级 + 项目级角色）
+model Role {
+  id          String    @id @default(uuid())
+  name        String    @unique    // SUPER_ADMIN, ADMIN, PROJECT_OWNER...
+  type        RoleType  // SYSTEM | PROJECT
+  label       String              // 显示名称
+  description String?
+  isSystem    Boolean   @default(false)  // 系统角色不可删除
+  createdAt   DateTime  @default(now())
+  
+  // 关联
+  permissions RolePermission[]
+  userSystemRoles UserSystemRole[]
+  projectMemberRoles ProjectMemberRole[]
+  
+  @@map("roles")
+}
+
+enum RoleType {
+  SYSTEM   // 系统级角色
+  PROJECT  // 项目级角色
+}
+
+/// 权限表（资源+操作粒度）
+model Permission {
+  id          String   @id @default(uuid())
+  resource    String   // ai_key, ai_proxy, project, episode...
+  action      String   // create, read, update, delete, manage
+  name        String   @unique  // ai_key:create
+  description String?
+  createdAt   DateTime @default(now())
+  
+  // 关联
+  roles       RolePermission[]
+  
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+/// 角色-权限关联
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+/// 用户-系统角色关联
+model UserSystemRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, roleId])
+  @@map("user_system_roles")
+}
+
+/// 项目成员-角色关联（替代原有 ProjectMember.role 字段）
+model ProjectMemberRole {
+  id        String  @id @default(uuid())
+  projectId String
+  userId    String
+  roleId    String
+  
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_member_roles")
+}
