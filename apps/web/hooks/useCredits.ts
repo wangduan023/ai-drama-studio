@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 import type { Credit, CreditTransaction } from '@/lib/credits'
 
 export interface CreditsData {
@@ -45,39 +46,42 @@ const queryKeys = {
 /**
  * 获取用户积分信息
  */
-function useCreditsQuery() {
+function useCreditsQuery(enabled = true) {
   return useQuery({
     queryKey: queryKeys.credits.balance(),
     queryFn: async (): Promise<CreditsData> => {
       return api.get('/api/credits')
     },
     staleTime: 30 * 1000, // 30秒
+    enabled,
   })
 }
 
 /**
  * 获取积分统计
  */
-function useCreditStats() {
+function useCreditStats(enabled = true) {
   return useQuery({
     queryKey: queryKeys.credits.stats(),
     queryFn: async (): Promise<CreditStats> => {
       return api.get('/api/credits?type=stats')
     },
     staleTime: 60 * 1000, // 1分钟
+    enabled,
   })
 }
 
 /**
  * 获取积分流水
  */
-function useCreditTransactions(limit = 20, offset = 0) {
+function useCreditTransactions(limit = 20, offset = 0, enabled = true) {
   return useQuery({
     queryKey: [...queryKeys.credits.transactions(), limit, offset],
     queryFn: async (): Promise<{ transactions: CreditTransaction[]; total: number; limit: number; offset: number }> => {
       return api.get(`/api/credits?type=transactions&limit=${limit}&offset=${offset}`)
     },
     staleTime: 30 * 1000,
+    enabled,
   })
 }
 
@@ -152,8 +156,9 @@ function useDeductCredits() {
  * 积分相关 Hooks 的聚合
  */
 export function useCredits() {
-  const { data: credits, isLoading, error, refetch } = useCreditsQuery()
-  const { data: stats } = useCreditStats()
+  const { isAuthenticated } = useAuth()
+  const { data: credits, isLoading, error, refetch } = useCreditsQuery(isAuthenticated)
+  const { data: stats } = useCreditStats(isAuthenticated)
   const checkCreditsMutation = useCheckCredits()
   const estimateCostMutation = useEstimateCost()
   const deductCreditsMutation = useDeductCredits()
@@ -188,11 +193,12 @@ export function useCredits() {
  * 仅获取积分余额（轻量级）
  */
 export function useCreditBalance() {
-  const { data: credits, isLoading } = useCreditsQuery()
+  const { isAuthenticated } = useAuth()
+  const { data: credits, isLoading } = useCreditsQuery(isAuthenticated)
   
   return {
     balance: credits?.balance || 0,
-    isLoading,
+    isLoading: isAuthenticated && isLoading,
   }
 }
 
@@ -200,7 +206,8 @@ export function useCreditBalance() {
  * 获取积分流水（带分页）
  */
 export function useCreditHistory(limit = 20, offset = 0) {
-  const { data, isLoading, error } = useCreditTransactions(limit, offset)
+  const { isAuthenticated } = useAuth()
+  const { data, isLoading, error } = useCreditTransactions(limit, offset, isAuthenticated)
   
   return {
     transactions: data?.transactions || [],

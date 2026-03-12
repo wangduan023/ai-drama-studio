@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { registerLocalUser } from '@/lib/auth/local'
 
+// 会话级别 Cookie（浏览器关闭后清除）
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
-  maxAge: 60 * 60 * 24 * 7, // 7天
   path: '/',
 }
 

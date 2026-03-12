@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/hooks/useAuth'
 
 export interface Character {
   id: string
@@ -83,6 +84,7 @@ const queryKeys = {
  * @param projectId - 项目ID，不传则获取所有角色（通过查询参数）
  */
 export function useCharacterList(projectId?: string) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.characters.list(projectId),
     queryFn: async () => {
@@ -93,7 +95,7 @@ export function useCharacterList(projectId?: string) {
       const response = await api.get<Character[]>(url)
       return response
     },
-    enabled: projectId === undefined || !!projectId,
+    enabled: (projectId === undefined || !!projectId) && isAuthenticated,
   })
 }
 
@@ -101,6 +103,7 @@ export function useCharacterList(projectId?: string) {
  * 获取角色详情
  */
 export function useCharacter(id: string | undefined) {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.characters.detail(id!),
     queryFn: async () => {
@@ -108,7 +111,7 @@ export function useCharacter(id: string | undefined) {
       const response = await api.get<Character>(`/api/characters/${id}`)
       return response
     },
-    enabled: !!id,
+    enabled: !!id && isAuthenticated,
   })
 }
 

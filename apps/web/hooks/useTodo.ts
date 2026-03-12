@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '@/hooks/useAuth'
 
 export interface Todo {
   id: string
@@ -49,6 +50,7 @@ const queryKeys = {
  * 获取 Todo 列表
  */
 export function useTodoList() {
+  const { isAuthenticated } = useAuth()
   return useQuery({
     queryKey: queryKeys.todos.list(),
     queryFn: async () => {
@@ -56,6 +58,7 @@ export function useTodoList() {
       await new Promise(resolve => setTimeout(resolve, 100))
       return getTodosFromStorage()
     },
+    enabled: isAuthenticated,
   })
 }
 

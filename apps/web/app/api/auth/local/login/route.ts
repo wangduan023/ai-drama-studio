@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginLocalUser } from '@/lib/auth/local'
 
+// 会话级别 Cookie（浏览器关闭后清除）
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
-  maxAge: 60 * 60 * 24 * 7, // 7天
   path: '/',
 }
 
-// 记住我选项的 Cookie 配置（30天）
+// 记住我选项的 Cookie 配置（7天）
 const REMEMBER_COOKIE_OPTIONS = {
   ...COOKIE_OPTIONS,
-  maxAge: 60 * 60 * 24 * 30, // 30天
+  maxAge: 60 * 60 * 24 * 7, // 7天
 }
 
 // CORS 处理
