@@ -109,6 +109,15 @@ export type PrismaModelMap = {
   aiProvider: Prisma.AiProviderDelegate
   aiModel: Prisma.AiModelDelegate
   aiUsageLog: Prisma.AiUsageLogDelegate
+  aiApiKey: Prisma.AiApiKeyDelegate
+  aiProxy: Prisma.AiProxyDelegate
+  
+  // RBAC
+  role: Prisma.RoleDelegate
+  permission: Prisma.PermissionDelegate
+  rolePermission: Prisma.RolePermissionDelegate
+  userSystemRole: Prisma.UserSystemRoleDelegate
+  projectMemberRole: Prisma.ProjectMemberRoleDelegate
   
   // 项目相关
   project: Prisma.ProjectDelegate

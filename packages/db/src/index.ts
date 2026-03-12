@@ -66,6 +66,14 @@ export { LocationRepository } from './repositories/location.repository'
 export { AiProviderRepository } from './repositories/ai-provider.repository'
 export { AiModelRepository } from './repositories/ai-model.repository'
 export { AiUsageRepository } from './repositories/ai-usage.repository'
+export { RoleRepository, type CreateRoleInput, type UpdateRoleInput } from './repositories/role.repository'
+export { PermissionRepository, type CreatePermissionInput, type UpdatePermissionInput } from './repositories/permission.repository'
+export { AiApiKeyRepository, type CreateAiApiKeyInput, type UpdateAiApiKeyInput } from './repositories/ai-api-key.repository'
+export { 
+  AiProxyRepository, 
+  type CreateAiProxyInput, 
+  type UpdateAiProxyInput 
+} from './repositories/proxy.repository'
 
 // Base Repository 导出
 export {
