@@ -22,17 +22,39 @@ model User {
   name      String?
   avatar    String?
   role      UserRole @default(USER)
+  passwordHash String?
+  isActive  Boolean  @default(true)
+  emailVerified Boolean @default(false)
+  lastLoginAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  profile       Profile?
   projects      Project[]
   projectMembers ProjectMember[]
   projectComments ProjectComment[]
   usageCosts    UsageCost[]
   refreshTokens RefreshToken[]
+  credits       Credit?
 
   @@index([email])
   @@map("users")
+}
+
+/// 用户资料
+model Profile {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  bio         String?
+  website     String?
+  preferences Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profiles")
 }
 
 enum UserRole {
@@ -45,7 +67,7 @@ enum UserRole {
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String
-  token     String   @unique
+  token     String   @db.VarChar(2048) @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -761,4 +783,52 @@ model ProjectActivity {
   
   @@index([projectId, createdAt])
   @@map("project_activities")
+}
+
+// ============================================
+// 积分系统
+// ============================================
+
+/// 积分系统 - 用户积分账户
+model Credit {
+  id           String             @id @default(uuid())
+  userId       String             @unique
+  balance      Float              @default(0)
+  totalEarned  Float              @default(0)
+  totalUsed    Float              @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  transactions CreditTransaction[]
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("credits")
+}
+
+/// 积分交易记录
+model CreditTransaction {
+  id          String          @id @default(uuid())
+  creditId    String
+  type        TransactionType
+  amount      Float
+  balance     Float
+  description String
+  taskId      String?
+  metadata    Json?
+  createdAt   DateTime        @default(now())
+  credit      Credit          @relation(fields: [creditId], references: [id], onDelete: Cascade)
+
+  @@index([creditId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("credit_transactions")
+}
+
+/// 交易类型
+enum TransactionType {
+  EARN    // 获得积分
+  USE     // 使用积分
+  REFUND  // 退款
+  BONUS   // 奖励
+  PENALTY // 惩罚
 }

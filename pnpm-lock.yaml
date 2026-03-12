@@ -126,6 +126,9 @@ importers:
       framer-motion:
         specifier: ^12.35.2
         version: 12.35.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      jose:
+        specifier: 6.2.1
+        version: 6.2.1
       jsonwebtoken:
         specifier: 9.0.3
         version: 9.0.3
@@ -214,6 +217,9 @@ importers:
       '@vitest/ui':
         specifier: 4.0.18
         version: 4.0.18(vitest@4.0.18)
+      critters:
+        specifier: 0.0.25
+        version: 0.0.25
       jsdom:
         specifier: 28.1.0
         version: 28.1.0(@noble/hashes@1.8.0)
@@ -308,7 +314,7 @@ importers:
   packages/db:
     dependencies:
       '@prisma/client':
-        specifier: ^6.1.0
+        specifier: 6.19.2
         version: 6.19.2(prisma@6.19.2(magicast@0.3.5)(typescript@5.9.3))(typescript@5.9.3)
       prisma:
         specifier: ^6.1.0

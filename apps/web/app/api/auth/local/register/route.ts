@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { registerLocalUser } from '@/lib/auth/local'
+import { corsHeaders } from '@/lib/cors'
 
-// 会话级别 Cookie（浏览器关闭后清除）
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-}
-
-// CORS 处理
-function corsHeaders() {
+/**
+ * 获取 Cookie 配置
+ */
+function getCookieOptions() {
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    httpOnly: true,
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7, // 7 天
+    secure: !isDevelopment,
+    sameSite: isDevelopment ? ('lax' as const) : ('strict' as const),
   }
 }
 
@@ -59,36 +58,28 @@ export async function POST(request: NextRequest) {
     // 调用注册函数
     const result = await registerLocalUser({ email, password, name })
 
-    if (!result.success) {
-      return NextResponse.json(
-        { error: result.error || 'Registration failed' },
-        { status: 400, headers: corsHeaders() }
-      )
-    }
-
     // 创建响应并设置 cookie
     const response = NextResponse.json(
       {
         user: {
-          id: result.user.id,
-          email: result.user.email,
-          name: result.user.name,
-          role: result.user.role,
-          createdAt: result.user.createdAt,
+          id: result.id,
+          email: result.email,
+          name: result.name,
+          role: result.role,
+          createdAt: result.createdAt,
         },
       },
       { status: 201, headers: corsHeaders() }
     )
 
     // 设置 HttpOnly cookie
-    if (result.token) {
-      response.cookies.set('auth_token', result.token, COOKIE_OPTIONS)
-    }
+    const cookieOptions = getCookieOptions()
+    response.cookies.set('auth_token', result.token || '', cookieOptions)
 
     return response
   } catch (error) {
     console.error('Registration error:', error)
-    
+
     // 处理用户已存在的错误
     if (error instanceof Error && error.message.includes('already exists')) {
       return NextResponse.json(
@@ -96,7 +87,7 @@ export async function POST(request: NextRequest) {
         { status: 400, headers: corsHeaders() }
       )
     }
-    
+
     return NextResponse.json(
       { error: 'Registration failed' },
       { status: 500, headers: corsHeaders() }

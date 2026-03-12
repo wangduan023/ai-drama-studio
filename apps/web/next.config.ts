@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   // 启用 React 严格模式
   reactStrictMode: true,
 
+  // 开发环境允许的源地址（解决跨域问题）
+  allowedDevOrigins: ['0.0.0.0:3333', 'localhost:3333', '192.168.2.75:3333'],
+
   // Turbopack 配置
   turbopack: {
     // 解析外部包
@@ -48,8 +51,8 @@ const nextConfig: NextConfig = {
 
   // 实验性功能
   experimental: {
-    // 启用 CSS 优化
-    optimizeCss: true,
+    // 禁用 CSS 优化（需要 critters 依赖）
+    optimizeCss: false,
   },
 
   // API 代理配置（开发环境）

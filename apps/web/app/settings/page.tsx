@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useTheme } from 'next-themes'
 import {
@@ -29,8 +31,26 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+
+  // 未登录显示登录提示
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      setShowLoginPrompt(true)
+    }
+  }, [isAuthenticated, isLoading])
+
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <motion.div
@@ -166,6 +186,13 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onLogin={handleLogin}
+      />
     </div>
   )
 }

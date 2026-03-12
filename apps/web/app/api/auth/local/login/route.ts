@@ -1,26 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loginLocalUser } from '@/lib/auth/local'
+import { corsHeaders } from '@/lib/cors'
 
-// 会话级别 Cookie（浏览器关闭后清除）
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  path: '/',
-}
-
-// 记住我选项的 Cookie 配置（7天）
-const REMEMBER_COOKIE_OPTIONS = {
-  ...COOKIE_OPTIONS,
-  maxAge: 60 * 60 * 24 * 7, // 7天
-}
-
-// CORS 处理
-function corsHeaders() {
+/**
+ * 获取 Cookie 配置
+ * 根据请求动态设置，支持开发环境的 IP 访问
+ */
+function getCookieOptions(request: NextRequest, remember?: boolean) {
+  // 检测是否为开发环境
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
+  // 基础配置
+  const baseOptions = {
+    httpOnly: true,
+    path: '/',
+    maxAge: remember ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7, // 30天或7天
+  }
+  
+  // 开发环境：允许非 HTTPS，放宽 sameSite 限制
+  if (isDevelopment) {
+    return {
+      ...baseOptions,
+      secure: false,
+      sameSite: 'lax' as const,
+      // 开发环境不指定 domain，让 cookie 跟随当前访问的域名
+    }
+  }
+  
+  // 生产环境
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    ...baseOptions,
+    secure: true,
+    sameSite: 'strict' as const,
   }
 }
 
@@ -48,13 +59,6 @@ export async function POST(request: NextRequest) {
     // 调用登录函数
     const result = await loginLocalUser(email, password)
 
-    if (!result.success || !result.token) {
-      return NextResponse.json(
-        { error: result.error || 'Invalid credentials' },
-        { status: 401, headers: corsHeaders() }
-      )
-    }
-
     // 创建响应
     const response = NextResponse.json(
       {
@@ -71,15 +75,16 @@ export async function POST(request: NextRequest) {
     )
 
     // 设置 HttpOnly cookie
-    const cookieOptions = remember ? REMEMBER_COOKIE_OPTIONS : COOKIE_OPTIONS
+    const cookieOptions = getCookieOptions(request, remember)
     response.cookies.set('auth_token', result.token, cookieOptions)
 
     return response
   } catch (error) {
     console.error('Login error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Authentication failed'
     return NextResponse.json(
-      { error: 'Authentication failed' },
-      { status: 500, headers: corsHeaders() }
+      { error: errorMessage },
+      { status: 401, headers: corsHeaders() }
     )
   }
 }

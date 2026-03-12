@@ -33,6 +33,7 @@ export const api = {
     const response = await fetch(`${BASE_URL}${url}`, {
       ...init,
       method: 'GET',
+      credentials: 'include', // 发送 Cookie
       headers: {
         'Content-Type': 'application/json',
         ...init?.headers,
@@ -53,6 +54,7 @@ export const api = {
     const response = await fetch(`${BASE_URL}${url}`, {
       ...init,
       method: 'POST',
+      credentials: 'include', // 发送 Cookie
       headers: {
         'Content-Type': 'application/json',
         ...init?.headers,
@@ -74,6 +76,7 @@ export const api = {
     const response = await fetch(`${BASE_URL}${url}`, {
       ...init,
       method: 'PUT',
+      credentials: 'include', // 发送 Cookie
       headers: {
         'Content-Type': 'application/json',
         ...init?.headers,
@@ -95,6 +98,7 @@ export const api = {
     const response = await fetch(`${BASE_URL}${url}`, {
       ...init,
       method: 'DELETE',
+      credentials: 'include', // 发送 Cookie
       headers: {
         'Content-Type': 'application/json',
         ...init?.headers,

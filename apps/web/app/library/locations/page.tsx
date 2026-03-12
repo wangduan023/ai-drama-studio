@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -43,6 +43,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useLocationList, useDeleteLocation, type Location } from '@/hooks/useLocation'
 import { useProjectList } from '@/hooks/useProject'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 type ViewMode = 'grid' | 'list'
 type TypeFilter = 'all' | 'INDOOR' | 'OUTDOOR' | 'VIRTUAL' | 'TRANSITION'
@@ -55,18 +57,27 @@ const typeConfig: Record<string, { label: string; icon: React.ElementType; color
 }
 
 export default function LocationsLibraryPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const projectIdFromUrl = searchParams.get('project')
-  
+  const { isAuthenticated } = useAuth()
   const { data: locations = [], isLoading, error, refetch } = useLocationList(projectIdFromUrl || undefined)
   const { data: projects = [] } = useProjectList()
   const deleteLocation = useDeleteLocation()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [projectFilter, setProjectFilter] = useState<string>(projectIdFromUrl || 'all')
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
+
+  // 未登录显示登录提示
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      setShowLoginPrompt(true)
+    }
+  }, [isAuthenticated, isLoading])
 
   // 当URL参数变化时更新筛选
   useEffect(() => {
@@ -112,6 +123,11 @@ export default function LocationsLibraryPage() {
     } catch {
       toast.error('删除场景失败')
     }
+  }
+
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
   }
 
   // 加载状态
@@ -305,6 +321,13 @@ export default function LocationsLibraryPage() {
           ))}
         </div>
       )}
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onLogin={handleLogin}
+      />
     </div>
   )
 }

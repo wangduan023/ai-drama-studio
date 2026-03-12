@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Film,
@@ -17,6 +18,8 @@ import {
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 interface SidebarProps {
   collapsed: boolean
@@ -28,26 +31,31 @@ const mainNavItems = [
     title: '首页',
     href: '/',
     icon: LayoutDashboard,
+    requireAuth: true,
   },
   {
     title: '项目库',
     href: '/projects',
     icon: Film,
+    requireAuth: true,
   },
   {
     title: '角色库',
     href: '/library/characters',
     icon: Users,
+    requireAuth: true,
   },
   {
     title: '场景库',
     href: '/library/locations',
     icon: MapPin,
+    requireAuth: true,
   },
   {
     title: '待办事项',
     href: '/todos',
     icon: CheckSquare,
+    requireAuth: true,
   },
 ]
 
@@ -56,16 +64,41 @@ const secondaryNavItems = [
     title: '设置',
     href: '/settings',
     icon: Settings,
+    requireAuth: true,
   },
   {
     title: '帮助',
     href: '/help',
     icon: HelpCircle,
+    requireAuth: false,
   },
 ]
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState('')
+
+  const handleNavClick = (href: string, requireAuth: boolean) => {
+    if (requireAuth && !isAuthenticated) {
+      setPendingNavigation(href)
+      setShowLoginPrompt(true)
+      return false
+    }
+    return true
+  }
+
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
+  }
+
+  const handleClosePrompt = () => {
+    setShowLoginPrompt(false)
+    setPendingNavigation('')
+  }
 
   return (
     <motion.aside
@@ -119,6 +152,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               item={item}
               isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
               collapsed={collapsed}
+              onNavClick={handleNavClick}
             />
           ))}
 
@@ -130,10 +164,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               item={item}
               isActive={pathname === item.href}
               collapsed={collapsed}
+              onNavClick={handleNavClick}
             />
           ))}
         </nav>
       </ScrollArea>
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={handleClosePrompt}
+        onLogin={handleLogin}
+      />
     </motion.aside>
   )
 }
@@ -143,17 +185,27 @@ interface NavItemProps {
     title: string
     href: string
     icon: React.ElementType
+    requireAuth?: boolean
   }
   isActive: boolean
   collapsed: boolean
+  onNavClick: (href: string, requireAuth: boolean) => boolean
 }
 
-function NavItem({ item, isActive, collapsed }: NavItemProps) {
+function NavItem({ item, isActive, collapsed, onNavClick }: NavItemProps) {
+  const handleClick = (e: React.MouseEvent) => {
+    // 如果需要登录但未登录，则阻止导航并显示提示
+    const canNavigate = onNavClick(item.href, item.requireAuth || false)
+    if (!canNavigate) {
+      e.preventDefault()
+    }
+  }
+
   return (
-    <Link href={item.href}>
+    <Link href={item.href} onClick={handleClick}>
       <div
         className={cn(
-          'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors',
+          'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors cursor-pointer',
           isActive
             ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'

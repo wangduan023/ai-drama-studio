@@ -13,14 +13,27 @@ import { addCredits, TransactionType } from '@/lib/credits';
 /**
  * JWT 配置
  */
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-
-if (!JWT_SECRET) {
+function getJwtSecret(): string {
+  // 优先从环境变量获取
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  
+  if (secret) {
+    return secret;
+  }
+  
+  // 开发环境 fallback（仅用于开发）
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('[JWT] Using fallback secret for development');
+    return 'ai-drama-studio-jwt-secret-key-2026-change-in-production';
+  }
+  
   throw new Error(
     'JWT_SECRET or NEXTAUTH_SECRET must be set in environment variables. ' +
     'Please check your .env file and ensure one of these variables is defined.'
   );
 }
+
+const JWT_SECRET = getJwtSecret();
 
 /**
  * 注册数据接口
@@ -188,12 +201,17 @@ export async function verifyToken(token: string): Promise<VerificationResult> {
   }
 
   try {
+    console.log('[verifyToken] Attempting to verify token, length:', token.length);
+    console.log('[verifyToken] JWT_SECRET exists:', !!JWT_SECRET);
+    
     // 1. 验证 JWT
     const decoded = jwt.verify(token, JWT_SECRET) as {
       userId: string;
       email: string;
       role: string;
     };
+    
+    console.log('[verifyToken] Token verified, userId:', decoded.userId);
 
     // 2. 查找用户
     const user = await prisma.user.findUnique({
@@ -204,6 +222,7 @@ export async function verifyToken(token: string): Promise<VerificationResult> {
     });
 
     if (!user) {
+      console.log('[verifyToken] User not found:', decoded.userId);
       return {
         valid: false,
         error: 'User not found',
@@ -225,6 +244,8 @@ export async function verifyToken(token: string): Promise<VerificationResult> {
       user: userWithoutPassword,
     };
   } catch (error) {
+    console.error('[verifyToken] Error:', error);
+    
     if (error instanceof jwt.TokenExpiredError) {
       return {
         valid: false,
@@ -235,13 +256,13 @@ export async function verifyToken(token: string): Promise<VerificationResult> {
     if (error instanceof jwt.JsonWebTokenError) {
       return {
         valid: false,
-        error: 'Invalid token',
+        error: `Invalid token: ${error.message}`,
       };
     }
 
     return {
       valid: false,
-      error: 'Token verification failed',
+      error: `Token verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }

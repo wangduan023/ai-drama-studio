@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { corsHeaders } from '@/lib/cors'
 
-const COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
-  maxAge: 0, // 立即过期
-  path: '/',
-}
-
-// CORS 处理
-function corsHeaders() {
+/**
+ * 获取清除 Cookie 的配置
+ */
+function getClearCookieOptions() {
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
   return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    httpOnly: true,
+    path: '/',
+    maxAge: 0, // 立即过期
+    secure: !isDevelopment, // 开发环境 false，生产环境 true
+    sameSite: isDevelopment ? ('lax' as const) : ('strict' as const),
   }
 }
 
@@ -34,7 +33,8 @@ export async function POST(_request: NextRequest) {
     )
 
     // 清除 auth_token cookie
-    response.cookies.set('auth_token', '', COOKIE_OPTIONS)
+    const clearOptions = getClearCookieOptions()
+    response.cookies.set('auth_token', '', clearOptions)
 
     return response
   } catch (error) {

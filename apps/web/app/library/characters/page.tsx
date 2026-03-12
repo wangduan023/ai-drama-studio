@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Search,
@@ -43,6 +43,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useCharacterList, useDeleteCharacter, type Character } from '@/hooks/useCharacter'
 import { useProjectList } from '@/hooks/useProject'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 type ViewMode = 'grid' | 'list'
 type GradeFilter = 'all' | 'S' | 'A' | 'B' | 'C' | 'D' | 'E'
@@ -66,18 +68,27 @@ const gradeIcons: Record<string, React.ElementType> = {
 }
 
 export default function CharactersLibraryPage() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const projectIdFromUrl = searchParams.get('project')
-  
+  const { isAuthenticated } = useAuth()
   const { data: characters = [], isLoading, error, refetch } = useCharacterList(projectIdFromUrl || undefined)
   const { data: projects = [] } = useProjectList()
   const deleteCharacter = useDeleteCharacter()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>('all')
   const [projectFilter, setProjectFilter] = useState<string>(projectIdFromUrl || 'all')
   const [selectedCharacters, setSelectedCharacters] = useState<string[]>([])
+
+  // 未登录显示登录提示
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading) {
+      setShowLoginPrompt(true)
+    }
+  }, [isAuthenticated, isLoading])
 
   // 当URL参数变化时更新筛选
   useEffect(() => {
@@ -132,6 +143,11 @@ export default function CharactersLibraryPage() {
     } catch {
       toast.error('删除角色失败')
     }
+  }
+
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
   }
 
   // 加载状态
@@ -330,6 +346,13 @@ export default function CharactersLibraryPage() {
           ))}
         </div>
       )}
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onLogin={handleLogin}
+      />
     </div>
   )
 }

@@ -29,6 +29,14 @@ export type {
   AiProvider,
   AiModel,
   AiUsageLog,
+  // 积分系统
+  Credit,
+  CreditTransaction,
+  // 团队协作
+  ProjectMember,
+  ProjectComment,
+  ProjectInvite,
+  ProjectActivity,
 } from '@prisma/client'
 
 // 导出枚举类型
@@ -44,6 +52,10 @@ export {
   // AI 渠道枚举
   AiModelType,
   AiUsageStatus,
+  // 积分系统枚举
+  TransactionType,
+  // 团队协作枚举
+  ProjectRole,
 } from '@prisma/client'
 
 // Repository 层导出

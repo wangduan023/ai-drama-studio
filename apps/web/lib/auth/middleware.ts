@@ -98,11 +98,16 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
     const token = getTokenFromRequest(request)
 
     if (!token) {
+      console.log('[verifyAuth] No token found in request')
       return { user: null, token: null, error: 'No token provided' }
     }
+    
+    console.log('[verifyAuth] Token found, length:', token.length)
 
     // 验证 token - verifyToken 返回 VerificationResult
     const result = await verifyToken(token)
+    
+    console.log('[verifyAuth] verifyToken result:', { valid: result.valid, error: result.error || 'none' })
 
     if (!result.valid || !result.user) {
       return { user: null, token: null, error: result.error || 'Invalid or expired token' }
@@ -121,7 +126,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
       token,
     }
   } catch (error) {
-    console.error('Auth verification error:', error)
+    console.error('[verifyAuth] Error:', error)
     return { user: null, token: null, error: 'Authentication failed' }
   }
 }

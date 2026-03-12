@@ -13,7 +13,8 @@
  */
 
 import { prisma } from '../lib/db.js'
-import { ProjectStatus, CharacterRoleLevel, LocationType } from '@prisma/client'
+import { ProjectStatus, CharacterRoleLevel, LocationType, UserRole } from '@prisma/client'
+import { hashPassword } from '../lib/auth/password.js'
 
 async function main() {
   console.log('🌱 AI Drama Studio - Web App Database Seeding')
@@ -22,17 +23,60 @@ async function main() {
 
   // 1. 创建测试用户（如果不存在）
   console.log('👤 Creating test user...')
-  
+
+  const hashedPassword = await hashPassword('Test123456!')
+
   const user = await prisma.user.upsert({
     where: { email: 'test@example.com' },
     update: {},
     create: {
       email: 'test@example.com',
       name: '测试用户',
-      role: 'USER',
+      role: UserRole.USER,
+      passwordHash: hashedPassword,
+      isActive: true,
+      emailVerified: false,
     },
   })
   console.log(`  ✓ User: ${user.email} (ID: ${user.id})`)
+
+  // 1.1 创建管理员用户
+  console.log('')
+  console.log('👑 Creating admin user...')
+
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@aidrama.com' },
+    update: {},
+    create: {
+      email: 'admin@aidrama.com',
+      name: '管理员',
+      role: UserRole.ADMIN,
+      passwordHash: hashedPassword,
+      isActive: true,
+      emailVerified: false,
+    },
+  })
+  console.log(`  ✓ Admin: ${admin.email} (ID: ${admin.id})`)
+
+  // 1.2 创建超级管理员用户
+  console.log('')
+  console.log('🔥 Creating superadmin user...')
+
+  const superAdminPassword = await hashPassword('SuperAdmin@2026')
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@aidrama.com' },
+    update: {},
+    create: {
+      email: 'superadmin@aidrama.com',
+      name: '超级管理员',
+      role: UserRole.SUPER_ADMIN,
+      passwordHash: superAdminPassword,
+      isActive: true,
+      emailVerified: false,
+    },
+  })
+  console.log(`  ✓ SuperAdmin: ${superAdmin.email} (ID: ${superAdmin.id})`)
 
   // 2. 创建测试项目
   console.log('')
@@ -207,7 +251,7 @@ async function main() {
   console.log('')
   console.log('📊 Seed Summary:')
   console.log('----------------')
-  console.log(`  • Users: 1`)
+  console.log(`  • Users: 3 (test user, admin, superadmin)`)
   console.log(`  • Projects: 1`)
   console.log(`  • Characters: ${characters.length}`)
   console.log(`  • Locations: ${locations.length}`)
@@ -215,6 +259,11 @@ async function main() {
   console.log(`  • Storyboards: ${storyboards.length}`)
   console.log('')
   console.log('✅ Seeding completed successfully!')
+  console.log('')
+  console.log('📝 Test Accounts:')
+  console.log('  • Test User:    test@example.com    / Test123456!')
+  console.log('  • Admin:        admin@aidrama.com   / Test123456!')
+  console.log('  • SuperAdmin:   superadmin@aidrama.com / SuperAdmin@2026')
   console.log('')
   console.log('💡 Next steps:')
   console.log('   - Run `pnpm db:verify` to verify database state')

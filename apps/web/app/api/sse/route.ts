@@ -69,7 +69,7 @@ async function verifyToken(token: string): Promise<{ valid: boolean; userId?: st
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload
 
     // 检查令牌是否在数据库中存在且未过期
-    const refreshToken = await prisma.refreshToken.findUnique({
+    const refreshToken = await prisma.refreshToken.findFirst({
       where: { token },
     })
 

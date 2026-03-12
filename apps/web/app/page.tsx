@@ -1,11 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Film, Plus, ArrowRight, Sparkles, Users, Settings, Clock, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 // 模拟项目数据
 const recentProjects = [
@@ -57,6 +61,31 @@ const itemVariants = {
 }
 
 export default function HomePage() {
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+
+  const handleCreateProject = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+    router.push('/projects/new')
+  }
+
+  const handleViewProjects = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+    router.push('/projects')
+  }
+
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <motion.div
@@ -82,18 +111,14 @@ export default function HomePage() {
                 将你的小说、剧本自动转换为精美的视频内容，让创作变得如此简单
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link href="/projects/new">
-                  <Button size="lg" className="bg-white text-primary hover:bg-white/90">
-                    <Plus className="h-5 w-5 mr-2" />
-                    创建项目
-                  </Button>
-                </Link>
-                <Link href="/projects">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                    查看项目
-                    <ArrowRight className="h-5 w-5 ml-2" />
-                  </Button>
-                </Link>
+                <Button size="lg" className="bg-white text-primary hover:bg-white/90" onClick={handleCreateProject}>
+                  <Plus className="h-5 w-5 mr-2" />
+                  创建项目
+                </Button>
+                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" onClick={handleViewProjects}>
+                  查看项目
+                  <ArrowRight className="h-5 w-5 ml-2" />
+                </Button>
               </div>
             </div>
 
@@ -167,14 +192,15 @@ export default function HomePage() {
             ))}
 
             {/* 新建项目卡片 */}
-            <Link href="/projects/new">
-              <Card className="h-full border-dashed hover:border-primary hover:bg-muted/50 transition-all min-h-[280px] flex flex-col items-center justify-center gap-4 cursor-pointer">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Plus className="h-8 w-8 text-primary" />
-                </div>
-                <span className="font-medium text-muted-foreground">创建新项目</span>
-              </Card>
-            </Link>
+            <Card 
+              className="h-full border-dashed hover:border-primary hover:bg-muted/50 transition-all min-h-[280px] flex flex-col items-center justify-center gap-4 cursor-pointer"
+              onClick={handleCreateProject}
+            >
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                <Plus className="h-8 w-8 text-primary" />
+              </div>
+              <span className="font-medium text-muted-foreground">创建新项目</span>
+            </Card>
           </div>
         </motion.section>
 
@@ -200,6 +226,13 @@ export default function HomePage() {
           </div>
         </motion.section>
       </motion.div>
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onLogin={handleLogin}
+      />
     </div>
   )
 }

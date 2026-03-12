@@ -6,21 +6,12 @@
  * 检查用户是否已认证，未认证时显示登录提示或重定向
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Loader2, Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
-/**
- * 用户类型
- */
-interface User {
-  id: string
-  email: string
-  name?: string | null
-  role: string
-}
+import { useAuth } from '@/hooks/useAuth'
 
 /**
  * 组件 Props
@@ -125,49 +116,18 @@ export function ProtectedRoute({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const { isAuthenticated, isLoading, user } = useAuth()
 
   useEffect(() => {
-    // 检查用户认证状态
-    const checkAuth = async (): Promise<void> => {
-      try {
-        // 尝试从 API 获取当前用户信息
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data.user)
-          setIsAuthenticated(true)
-        } else {
-          setUser(null)
-          setIsAuthenticated(false)
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error)
-        setUser(null)
-        setIsAuthenticated(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [])
-
-  useEffect(() => {
+    console.log('[ProtectedRoute] Auth state:', { pathname, isLoading, isAuthenticated, userEmail: user?.email })
+    
     // 如果认证检查完成且未认证，执行重定向
     if (!isLoading && !isAuthenticated && !showLoginPrompt) {
+      console.log('[ProtectedRoute] Redirecting to login:', pathname)
       const returnUrl = encodeURIComponent(pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : ''))
       router.push(`${redirectTo}?returnUrl=${returnUrl}`)
     }
-  }, [isLoading, isAuthenticated, showLoginPrompt, redirectTo, pathname, searchParams, router])
+  }, [isLoading, isAuthenticated, showLoginPrompt, redirectTo, pathname, searchParams, router, user])
 
   // 加载中状态
   if (isLoading) {
@@ -186,52 +146,6 @@ export function ProtectedRoute({
 
   // 已认证，渲染子组件
   return <>{children}</>
-}
-
-/**
- * 使用认证状态的 Hook
- * 在 ProtectedRoute 内部的组件中使用
- */
-export function useProtectedRoute(): {
-  user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
-} {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  useEffect(() => {
-    const checkAuth = async (): Promise<void> => {
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setUser(data.user)
-          setIsAuthenticated(true)
-        } else {
-          setUser(null)
-          setIsAuthenticated(false)
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error)
-        setUser(null)
-        setIsAuthenticated(false)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    checkAuth()
-  }, [])
-
-  return { user, isLoading, isAuthenticated }
 }
 
 export default ProtectedRoute

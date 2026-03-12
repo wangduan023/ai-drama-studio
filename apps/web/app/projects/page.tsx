@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Plus,
@@ -39,6 +40,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useProjectList, useDeleteProject, type Project } from '@/hooks/useProject'
+import { useAuth } from '@/hooks/useAuth'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 type ViewMode = 'grid' | 'list'
 type ProjectStatus = 'all' | 'in_progress' | 'completed' | 'pending'
@@ -47,8 +50,25 @@ type SortBy = 'updatedAt' | 'createdAt' | 'title' | 'episodes'
 type SortOrder = 'asc' | 'desc'
 
 export default function ProjectsPage() {
+  const router = useRouter()
+  const { isAuthenticated } = useAuth()
   const { data: projects = [], isLoading, error, refetch } = useProjectList()
   const deleteProject = useDeleteProject()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+
+  // 处理新建项目按钮点击
+  const handleCreateProject = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+    router.push('/projects/new')
+  }
+
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
+  }
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [statusFilter, setStatusFilter] = useState<ProjectStatus>('all')
   const [typeFilter, setTypeFilter] = useState<ProjectType>('all')
@@ -126,12 +146,10 @@ export default function ProjectsPage() {
             <h1 className="text-3xl font-bold mb-2">项目列表</h1>
             <p className="text-muted-foreground">管理和创建你的短剧项目</p>
           </div>
-          <Link href="/projects/new" data-testid="create-project-button">
-            <Button>
-              <Plus className="h-5 w-5 mr-2" />
-              新建项目
-            </Button>
-          </Link>
+          <Button onClick={handleCreateProject} data-testid="create-project-button">
+            <Plus className="h-5 w-5 mr-2" />
+            新建项目
+          </Button>
         </div>
         <ProjectListSkeleton viewMode={viewMode} />
       </div>
@@ -147,12 +165,10 @@ export default function ProjectsPage() {
             <h1 className="text-3xl font-bold mb-2">项目列表</h1>
             <p className="text-muted-foreground">管理和创建你的短剧项目</p>
           </div>
-          <Link href="/projects/new" data-testid="create-project-button">
-            <Button>
-              <Plus className="h-5 w-5 mr-2" />
-              新建项目
-            </Button>
-          </Link>
+          <Button onClick={handleCreateProject} data-testid="create-project-button">
+            <Plus className="h-5 w-5 mr-2" />
+            新建项目
+          </Button>
         </div>
         <ErrorState 
           message={error instanceof Error ? error.message : '加载项目失败'} 
@@ -257,7 +273,7 @@ export default function ProjectsPage() {
 
       {/* 项目列表 */}
       {filteredProjects.length === 0 ? (
-        <EmptyState />
+        <EmptyState onCreate={handleCreateProject} />
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project, index) => (
@@ -294,6 +310,13 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onLogin={handleLogin}
+      />
     </div>
   )
 }
@@ -486,7 +509,7 @@ function ProjectListSkeleton({ viewMode }: { viewMode: ViewMode }) {
   )
 }
 
-function EmptyState() {
+function EmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="text-center py-16">
       <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
@@ -494,11 +517,9 @@ function EmptyState() {
       </div>
       <h3 className="text-xl font-semibold mb-2">暂无项目</h3>
       <p className="text-muted-foreground mb-6">开始创建你的第一个短剧项目吧</p>
-      <Button >
-        <Link href="/projects/new" className="flex items-center gap-2">
-          <Plus className="h-5 w-5" />
-          创建项目
-        </Link>
+      <Button onClick={onCreate}>
+        <Plus className="h-5 w-5 mr-2" />
+        创建项目
       </Button>
     </div>
   )

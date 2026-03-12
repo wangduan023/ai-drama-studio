@@ -82,10 +82,13 @@ function DropdownMenuItem({
   className,
   inset,
   variant = "default",
+  asChild = false,
+  children,
   ...props
 }: MenuPrimitive.Item.Props & {
   inset?: boolean
   variant?: "default" | "destructive"
+  asChild?: boolean
 }) {
   return (
     <MenuPrimitive.Item
@@ -97,7 +100,19 @@ function DropdownMenuItem({
         className
       )}
       {...props}
-    />
+    >
+      {asChild && children ? (
+        <div className="contents" onClick={(e) => {
+          // 点击时触发子元素的点击事件
+          const child = e.currentTarget.firstElementChild as HTMLElement
+          if (child) {
+            child.click()
+          }
+        }}>
+          {children}
+        </div>
+      ) : children}
+    </MenuPrimitive.Item>
   )
 }
 

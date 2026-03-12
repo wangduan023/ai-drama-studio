@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
@@ -14,6 +14,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/hooks/useAuth'
+
+const REMEMBERED_EMAIL_KEY = 'remembered_email'
+const REMEMBER_ME_KEY = 'remember_me'
 
 const loginSchema = z.object({
   email: z
@@ -31,28 +34,52 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { login, isAuthenticated, isLoading: authLoading } = useAuth()
+  const [isClient, setIsClient] = useState(false)
+  
+  // 获取 returnUrl 参数，如果没有则跳转到首页
+  const returnUrl = searchParams.get('returnUrl') || '/'
+
+  // 从 localStorage 读取记住的邮箱
+  const rememberedEmail = typeof window !== 'undefined' ? localStorage.getItem(REMEMBERED_EMAIL_KEY) : ''
+  const rememberMe = typeof window !== 'undefined' ? localStorage.getItem(REMEMBER_ME_KEY) === 'true' : false
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     setError,
+    watch,
+    setValue,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      email: rememberedEmail || '',
       password: '',
-      remember: false,
+      remember: rememberMe,
     },
   })
 
-  // 如果已登录，跳转到 dashboard
+  // 客户端挂载后才渲染表单
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // 监听 remember 变化，保存到 localStorage
+  const remember = watch('remember')
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem(REMEMBER_ME_KEY, remember ? 'true' : 'false')
+    }
+  }, [remember, isClient])
+
+  // 如果已登录，跳转到 returnUrl 或首页
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
-      router.push('/dashboard')
+      router.push(returnUrl)
     }
-  }, [isAuthenticated, authLoading, router])
+  }, [isAuthenticated, authLoading, router, returnUrl])
 
   const onSubmit = async (data: LoginFormData) => {
     try {
@@ -61,6 +88,14 @@ export function LoginForm() {
         password: data.password,
         remember: data.remember,
       })
+      // 登录成功后，根据"记住我"选项保存或清除邮箱
+      if (data.remember) {
+        localStorage.setItem(REMEMBERED_EMAIL_KEY, data.email)
+        localStorage.setItem(REMEMBER_ME_KEY, 'true')
+      } else {
+        localStorage.removeItem(REMEMBERED_EMAIL_KEY)
+        localStorage.setItem(REMEMBER_ME_KEY, 'false')
+      }
     } catch (error) {
       // 错误处理已在 hook 中完成
       // 这里可以添加额外的表单级别错误处理
@@ -73,7 +108,7 @@ export function LoginForm() {
     }
   }
 
-  if (authLoading) {
+  if (!isClient || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import {
   Bell,
@@ -9,8 +10,9 @@ import {
   User,
   LogOut,
   Menu,
+  Coins,
+  Loader2,
 } from 'lucide-react'
-import { CreditDisplay } from '@/components/credits/CreditDisplay'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +26,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/useAuth'
+import { useCredits } from '@/hooks/useCredits'
+import { LoginPrompt } from '@/components/ui/LoginPrompt'
 
 interface HeaderProps {
   sidebarCollapsed: boolean
@@ -31,6 +36,11 @@ interface HeaderProps {
 }
 
 export function Header({ sidebarCollapsed, onMenuClick }: HeaderProps) {
+  const router = useRouter()
+  const { user, isLoading, logout, isAuthenticated } = useAuth()
+  const { balance, isLoading: isCreditsLoading } = useCredits()
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
+  
   const [notifications, setNotifications] = useState([
     { id: 1, title: '剧集生成完成', message: '《都市爱情故事》第一集已生成完毕', time: '5分钟前', unread: true },
     { id: 2, title: '角色一致性警告', message: '角色"张三"的外观描述存在冲突', time: '1小时前', unread: true },
@@ -42,6 +52,33 @@ export function Header({ sidebarCollapsed, onMenuClick }: HeaderProps) {
   const markAllAsRead = () => {
     setNotifications(notifications.map((n) => ({ ...n, unread: false })))
   }
+
+  // 处理积分点击
+  const handleCreditsClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+    }
+  }
+
+  // 处理设置点击
+  const handleSettingsClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginPrompt(true)
+      return
+    }
+    router.push('/settings')
+  }
+
+  // 处理登录
+  const handleLogin = () => {
+    setShowLoginPrompt(false)
+    router.push('/login')
+  }
+
+  // 获取用户显示名称和邮箱
+  const displayName = user?.name || user?.email?.split('@')[0] || '用户'
+  const displayEmail = user?.email || ''
+  const avatarFallback = displayName.charAt(0).toUpperCase()
 
   return (
     <header
@@ -76,7 +113,21 @@ export function Header({ sidebarCollapsed, onMenuClick }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         {/* Credits */}
-        <CreditDisplay />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 px-2 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+          onClick={handleCreditsClick}
+        >
+          <Coins className="h-4 w-4 text-amber-500" />
+          <span className="font-medium">
+            {isCreditsLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              Math.floor(balance)
+            )}
+          </span>
+        </Button>
 
         {/* Notifications -->
         <DropdownMenu>
@@ -138,11 +189,12 @@ export function Header({ sidebarCollapsed, onMenuClick }: HeaderProps) {
         </DropdownMenu>
 
         {/* Settings */}
-        <Link href="/settings">
-          <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 cursor-pointer">
-            <Settings className="h-5 w-5" />
-          </div>
-        </Link>
+        <div 
+          className="inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 cursor-pointer"
+          onClick={handleSettingsClick}
+        >
+          <Settings className="h-5 w-5" />
+        </div>
 
         {/* Theme Toggle */}
         <ThemeToggle />
@@ -152,39 +204,68 @@ export function Header({ sidebarCollapsed, onMenuClick }: HeaderProps) {
           <DropdownMenuTrigger>
             <div className="inline-flex items-center justify-center rounded-lg text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-9 w-9 rounded-full cursor-pointer">
               <Avatar className="h-9 w-9">
-                <AvatarImage src="" alt="User" />
-                <AvatarFallback className="bg-primary text-primary-foreground">U</AvatarFallback>
+                <AvatarImage src={user?.avatar || ''} alt={displayName} />
+                <AvatarFallback className="bg-primary text-primary-foreground">{avatarFallback}</AvatarFallback>
               </Avatar>
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              <div className="flex flex-col gap-1">
-                <span className="font-medium text-foreground">用户</span>
-                <span className="text-xs text-muted-foreground">user@example.com</span>
-              </div>
-            </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
-                <User className="h-4 w-4" />
-                个人资料
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
-                <Settings className="h-4 w-4" />
-                设置
-              </Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
-              <LogOut className="h-4 w-4 mr-2" />
-              退出登录
-            </DropdownMenuItem>
+            {user ? (
+              <>
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-medium text-foreground">{displayName}</span>
+                    <span className="text-xs text-muted-foreground">{displayEmail}</span>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile" className="flex items-center gap-2 cursor-pointer">
+                    <User className="h-4 w-4" />
+                    个人资料
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
+                    <Settings className="h-4 w-4" />
+                    设置
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="text-destructive focus:text-destructive cursor-pointer"
+                  onClick={() => logout()}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  退出登录
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+                  <span className="font-medium text-foreground">访客</span>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => router.push('/login')}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  登录
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push('/register')}>
+                  <User className="h-4 w-4 mr-2" />
+                  注册
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* 登录提示弹窗 */}
+      <LoginPrompt
+        isOpen={showLoginPrompt}
+        onClose={() => setShowLoginPrompt(false)}
+        onLogin={handleLogin}
+      />
     </header>
   )
 }

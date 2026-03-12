@@ -10,14 +10,24 @@ import type { User, Profile } from '@prisma/client';
 /**
  * JWT 配置
  */
-const JWT_SECRET = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-
-if (!JWT_SECRET) {
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  
+  if (secret) {
+    return secret;
+  }
+  
+  // 开发环境 fallback
+  if (process.env.NODE_ENV === 'development') {
+    return 'ai-drama-studio-jwt-secret-key-2026-change-in-production';
+  }
+  
   throw new Error(
-    'JWT_SECRET or NEXTAUTH_SECRET must be set in environment variables. ' +
-    'Please check your .env file and ensure one of these variables is defined.'
+    'JWT_SECRET or NEXTAUTH_SECRET must be set in environment variables.'
   );
 }
+
+const JWT_SECRET = getJwtSecret();
 const JWT_EXPIRES_IN = '7d'; // 7天有效期
 const JWT_EXPIRES_IN_SECONDS = 7 * 24 * 60 * 60; // 7天（秒）
 
@@ -130,7 +140,7 @@ export async function verifySession(token: string): Promise<SessionResult> {
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
 
     // 检查令牌是否在数据库中存在且未过期
-    const refreshToken = await prisma.refreshToken.findUnique({
+    const refreshToken = await prisma.refreshToken.findFirst({
       where: { token },
     });
 

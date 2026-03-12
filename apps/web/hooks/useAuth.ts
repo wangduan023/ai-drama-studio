@@ -75,6 +75,8 @@ function useCurrentUser() {
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5分钟
+    refetchOnWindowFocus: true, // 窗口聚焦时重新获取
+    refetchOnMount: true, // 组件挂载时重新获取
   })
 }
 

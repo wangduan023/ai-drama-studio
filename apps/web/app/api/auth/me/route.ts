@@ -4,15 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuth } from '@/lib/auth/middleware'
-
-// CORS 处理
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  }
-}
+import { corsHeaders } from '@/lib/cors'
 
 export async function OPTIONS() {
   return new NextResponse(null, {

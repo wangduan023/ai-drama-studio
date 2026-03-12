@@ -1,20 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-// CORS 处理
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  }
-}
-
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: corsHeaders(),
-  })
-}
+import { corsHeaders } from '@/lib/cors'
 
 // POST /api/auth/password/reset - 请求密码重置
 export async function POST(request: NextRequest) {
@@ -49,9 +34,9 @@ export async function POST(request: NextRequest) {
     await new Promise(resolve => setTimeout(resolve, 100))
 
     return NextResponse.json(
-      { 
-        success: true, 
-        message: 'If the email exists, a password reset link has been sent' 
+      {
+        success: true,
+        message: 'If the email exists, a password reset link has been sent'
       },
       { status: 200, headers: corsHeaders() }
     )
