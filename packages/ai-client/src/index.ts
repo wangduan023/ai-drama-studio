@@ -366,6 +366,21 @@ export {
 } from './logger'
 
 // ============================================================
+// Unified AI Client 导出
+// ============================================================
+
+export type {
+  UnifiedClientConfig,
+  KeySelectionResult,
+  UnifiedGenerateOptions,
+} from './unified-client'
+
+export {
+  UnifiedAIClient,
+  createUnifiedAIClient,
+} from './unified-client'
+
+// ============================================================
 // 验证模块导出
 // ============================================================
 
