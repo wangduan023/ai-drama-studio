@@ -207,9 +207,23 @@ export class MultiAccountBalancer {
    * 生成账号名称（如果未提供）
    */
   private generateAccountName(apiKey: string): string {
-    // 使用 API Key 的后 8 位作为标识
-    const suffix = apiKey.slice(-8)
-    return `account-${suffix}`
+    // 使用 API Key 的哈希值作为标识，避免暴露敏感信息
+    const hash = this.hashApiKey(apiKey)
+    return `account-${hash.slice(0, 8)}`
+  }
+
+  /**
+   * 计算 API Key 的哈希值（用于生成唯一标识）
+   */
+  private hashApiKey(apiKey: string): string {
+    let hash = 0
+    for (let i = 0; i < apiKey.length; i++) {
+      const char = apiKey.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // 转换为 32bit 整数
+    }
+    // 转换为无符号 16 进制字符串
+    return Math.abs(hash).toString(16).padStart(8, '0')
   }
 
   /**

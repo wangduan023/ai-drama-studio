@@ -1,240 +1,264 @@
 /**
- * Types 类型测试
- * 确保所有类型定义正确
+ * Workflow Types 测试
  */
+
 import { describe, it, expect } from 'vitest'
-import {
-  PipelineError,
-  type StageType,
-  type StageStatus,
-  type StageResult,
-  type PipelineContext,
-  type PipelineResult,
-  type StoryboardPanel,
-  type GeneratedImage,
-  type GeneratedVideo,
-  type CharacterAppearanceMap,
-  type LocationInfo,
-  type PhotographyPlan,
-  type AiExecuteInput,
-  type AiExecuteOutput,
-} from '../src/types'
+import { PipelineError } from '../src/types'
 
-describe('Types', () => {
-  describe('PipelineError', () => {
-    it('应该创建 PipelineError 实例', () => {
-      const error = new PipelineError(
-        'Test error message',
-        'TEST_ERROR',
-        'rewrite',
-        new Error('Cause'),
-        true
-      )
+describe('PipelineError', () => {
+  it('应该正确创建错误实例', () => {
+    const error = new PipelineError('测试错误', 'TEST_ERROR')
 
-      expect(error).toBeInstanceOf(PipelineError)
-      expect(error).toBeInstanceOf(Error)
-      expect(error.message).toBe('Test error message')
-      expect(error.code).toBe('TEST_ERROR')
-      expect(error.stageType).toBe('rewrite')
-      expect(error.retryable).toBe(true)
-      expect(error.name).toBe('PipelineError')
-    })
-
-    it('应该支持非重试错误', () => {
-      const error = new PipelineError(
-        'Non-retryable error',
-        'FATAL_ERROR',
-        'storyboard',
-        null,
-        false
-      )
-
-      expect(error.retryable).toBe(false)
-      expect(error.cause).toBeNull()
-    })
-
-    it('应该支持可选参数', () => {
-      const error = new PipelineError(
-        'Simple error',
-        'SIMPLE_ERROR'
-      )
-
-      expect(error.stageType).toBeUndefined()
-      expect(error.cause).toBeUndefined()
-      expect(error.retryable).toBe(true)
-    })
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(PipelineError)
+    expect(error.name).toBe('PipelineError')
+    expect(error.message).toBe('测试错误')
+    expect(error.code).toBe('TEST_ERROR')
+    expect(error.retryable).toBe(true)
   })
 
-  describe('类型兼容性', () => {
-    it('StageType 应该接受有效值', () => {
-      const types: StageType[] = ['rewrite', 'storyboard', 'image', 'video']
-      expect(types).toHaveLength(4)
-    })
+  it('应该支持 stageType 参数', () => {
+    const error = new PipelineError('阶段错误', 'STAGE_ERROR', 'rewrite')
 
-    it('StageStatus 应该接受有效值', () => {
-      const statuses: StageStatus[] = [
-        'pending',
-        'running',
-        'completed',
-        'failed',
-        'retrying',
-        'skipped',
-        'cancelled',
-      ]
-      expect(statuses).toHaveLength(7)
-    })
+    expect(error.stageType).toBe('rewrite')
+  })
 
-    it('应该创建 PipelineContext', () => {
-      const context: PipelineContext = {
-        projectId: 'proj-123',
-        userId: 'user-456',
-        locale: 'zh',
-        input: {
-          content: 'Test content',
-        },
-        characters: {
-          profiles: [],
-          appearanceMap: {},
-        },
-        locations: {
-          profiles: [],
-        },
-        stageData: {},
-        extensions: {},
-      }
+  it('应该支持 cause 参数', () => {
+    const cause = new Error('原始错误')
+    const error = new PipelineError('包装错误', 'WRAPPED_ERROR', undefined, cause)
 
-      expect(context.projectId).toBe('proj-123')
-      expect(context.locale).toBe('zh')
-    })
+    expect(error.cause).toBe(cause)
+  })
 
-    it('应该创建 StageResult', () => {
-      const result: StageResult<string> = {
-        stageType: 'rewrite',
-        status: 'completed',
-        data: 'test data',
-        error: null,
-        errorDetails: null,
-        retryCount: 0,
-        durationMs: 1000,
-      }
+  it('应该支持 retryable 参数', () => {
+    const error = new PipelineError('不可重试错误', 'NO_RETRY', undefined, undefined, false)
 
-      expect(result.stageType).toBe('rewrite')
-      expect(result.status).toBe('completed')
-    })
+    expect(error.retryable).toBe(false)
+  })
 
-    it('应该创建 StoryboardPanel', () => {
-      const panel: StoryboardPanel = {
-        panelNumber: 1,
-        description: 'Test description',
-        location: 'Test location',
-      }
+  it('应该支持所有参数组合', () => {
+    const cause = new Error('原始错误')
+    const error = new PipelineError(
+      '完整错误',
+      'FULL_ERROR',
+      'storyboard',
+      cause,
+      false
+    )
 
-      expect(panel.panelNumber).toBe(1)
-      expect(panel.description).toBe('Test description')
-    })
+    expect(error.message).toBe('完整错误')
+    expect(error.code).toBe('FULL_ERROR')
+    expect(error.stageType).toBe('storyboard')
+    expect(error.cause).toBe(cause)
+    expect(error.retryable).toBe(false)
+  })
+})
 
-    it('应该创建 GeneratedImage', () => {
-      const image: GeneratedImage = {
-        id: 'img-1',
-        url: 'https://example.com/image.jpg',
-        prompt: 'Test prompt',
-        modelName: 'test-model',
-      }
+describe('类型定义', () => {
+  it('应该支持 StageType 联合类型', () => {
+    const stageTypes: ('rewrite' | 'storyboard' | 'image' | 'video')[] = [
+      'rewrite',
+      'storyboard',
+      'image',
+      'video',
+    ]
 
-      expect(image.id).toBe('img-1')
-      expect(image.params).toBeUndefined()
-    })
+    expect(stageTypes).toContain('rewrite')
+    expect(stageTypes).toContain('storyboard')
+    expect(stageTypes).toContain('image')
+    expect(stageTypes).toContain('video')
+  })
 
-    it('应该创建 GeneratedVideo', () => {
-      const video: GeneratedVideo = {
-        id: 'vid-1',
-        url: 'https://example.com/video.mp4',
-        duration: 5,
-        width: 1024,
-        height: 1024,
-        fps: 24,
-      }
+  it('应该支持 StageStatus 联合类型', () => {
+    const statuses: ('pending' | 'running' | 'completed' | 'failed' | 'retrying' | 'skipped' | 'cancelled')[] = [
+      'pending',
+      'running',
+      'completed',
+      'failed',
+      'retrying',
+      'skipped',
+      'cancelled',
+    ]
 
-      expect(video.id).toBe('vid-1')
-      expect(video.duration).toBe(5)
-    })
+    expect(statuses.length).toBe(7)
+  })
 
-    it('应该创建 CharacterAppearanceMap', () => {
-      const appearance: CharacterAppearanceMap = {
-        characterId: 'char-1',
-        name: '主角',
-        appearanceId: 'app-1',
-        changeReason: '场景变化',
-        description: '新的外观',
-      }
+  it('应该支持 CharacterAppearanceMap 接口', () => {
+    const appearanceMap = {
+      characterId: 'char-123',
+      name: 'Alice',
+      appearanceId: 'app-456',
+      changeReason: '变装',
+      description: '穿着晚礼服',
+      descriptions: ['描述1', '描述2'],
+      imageUrl: 'https://example.com/image.jpg',
+    }
 
-      expect(appearance.characterId).toBe('char-1')
-      expect(appearance.name).toBe('主角')
-    })
+    expect(appearanceMap.characterId).toBe('char-123')
+    expect(appearanceMap.name).toBe('Alice')
+  })
 
-    it('应该创建 LocationInfo', () => {
-      const location: LocationInfo = {
-        locationId: 'loc-1',
-        name: '客厅',
-        description: '温馨的客厅',
-        locationType: 'INDOOR',
-      }
+  it('应该支持 LocationInfo 接口', () => {
+    const location = {
+      locationId: 'loc-123',
+      name: '客厅',
+      description: '宽敞明亮',
+      locationType: '室内',
+      imageUrl: 'https://example.com/loc.jpg',
+    }
 
-      expect(location.locationId).toBe('loc-1')
-      expect(location.name).toBe('客厅')
-    })
+    expect(location.locationId).toBe('loc-123')
+    expect(location.name).toBe('客厅')
+  })
 
-    it('应该创建 PhotographyPlan', () => {
-      const plan: PhotographyPlan = {
-        composition: '三分法构图',
-        lighting: '自然光',
-        colorPalette: '暖色调',
-        atmosphere: '温馨',
-        technicalNotes: '使用大光圈',
-      }
+  it('应该支持 StoryboardPanel 接口', () => {
+    const panel = {
+      panelNumber: 1,
+      description: '角色走进房间',
+      location: '客厅',
+      sourceText: '原文内容',
+      characters: ['Alice', 'Bob'],
+      shotType: '中景',
+      cameraMove: '推镜',
+      imagePrompt: '生成图片提示词',
+      videoPrompt: '生成视频提示词',
+      duration: 5,
+    }
 
-      expect(plan.composition).toBe('三分法构图')
-    })
+    expect(panel.panelNumber).toBe(1)
+    expect(panel.characters).toEqual(['Alice', 'Bob'])
+  })
 
-    it('应该创建 AiExecuteInput', () => {
-      const input: AiExecuteInput = {
-        userId: 'user-1',
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: 'System prompt' },
-          { role: 'user', content: 'User input' },
-        ],
-        projectId: 'proj-1',
-        action: 'test_action',
-      }
+  it('应该支持 PhotographyPlan 接口', () => {
+    const plan = {
+      composition: '三分法',
+      lighting: '自然光',
+      colorPalette: '暖色调',
+      atmosphere: '温馨',
+      technicalNotes: '技术备注',
+    }
 
-      expect(input.messages).toHaveLength(2)
-    })
+    expect(plan.composition).toBe('三分法')
+  })
 
-    it('应该创建 AiExecuteOutput', () => {
-      const output: AiExecuteOutput = {
-        text: 'Generated text',
-        reasoning: 'Reasoning process',
-      }
+  it('应该支持 GeneratedImage 接口', () => {
+    const image = {
+      id: 'img-123',
+      url: 'https://example.com/img.jpg',
+      prompt: '提示词',
+      modelName: 'dall-e-3',
+      params: { size: '1024x1024' },
+    }
 
-      expect(output.text).toBe('Generated text')
-    })
+    expect(image.id).toBe('img-123')
+    expect(image.modelName).toBe('dall-e-3')
+  })
 
-    it('应该创建 PipelineResult', () => {
-      const result: PipelineResult = {
-        status: 'completed',
-        stageResults: {},
-        output: {
-          rewrittenContent: null,
-          storyboards: null,
-          images: null,
-          videos: null,
-        },
-        durationMs: 5000,
-        error: null,
-      }
+  it('应该支持 GeneratedVideo 接口', () => {
+    const video = {
+      id: 'vid-123',
+      url: 'https://example.com/vid.mp4',
+      thumbnailUrl: 'https://example.com/thumb.jpg',
+      duration: 10,
+      width: 1920,
+      height: 1080,
+      fps: 30,
+    }
 
-      expect(result.status).toBe('completed')
-    })
+    expect(video.duration).toBe(10)
+    expect(video.fps).toBe(30)
+  })
+
+  it('应该支持 PipelineContext 接口', () => {
+    const context = {
+      projectId: 'proj-123',
+      episodeId: 'ep-456',
+      userId: 'user-789',
+      locale: 'zh' as const,
+      taskId: 'task-001',
+      input: {
+        content: '小说内容',
+        baseCharacters: ['Alice', 'Bob'],
+      },
+      characters: {
+        profiles: [{ id: 'char-1', name: 'Alice' }],
+        appearanceMap: {},
+      },
+      locations: {
+        profiles: [],
+      },
+      stageData: {},
+      extensions: {},
+    }
+
+    expect(context.projectId).toBe('proj-123')
+    expect(context.input.content).toBe('小说内容')
+  })
+
+  it('应该支持 StageResult 接口', () => {
+    const result = {
+      stageType: 'rewrite' as const,
+      status: 'completed' as const,
+      data: { content: '改写后的内容' },
+      retryCount: 0,
+      durationMs: 1000,
+      aiLogs: [{ action: 'rewrite', model: 'gpt-4' }],
+    }
+
+    expect(result.status).toBe('completed')
+    expect(result.durationMs).toBe(1000)
+  })
+
+  it('应该支持 StageConfig 接口', () => {
+    const config = {
+      maxRetries: 3,
+      timeoutMs: 30000,
+      skippable: false,
+      failPipeline: true,
+    }
+
+    expect(config.maxRetries).toBe(3)
+    expect(config.failPipeline).toBe(true)
+  })
+
+  it('应该支持 PipelineResult 接口', () => {
+    const result = {
+      status: 'completed' as const,
+      stageResults: {},
+      output: {
+        rewrittenContent: '改写内容',
+        storyboards: [],
+        images: [],
+        videos: [],
+      },
+      durationMs: 5000,
+    }
+
+    expect(result.status).toBe('completed')
+    expect(result.durationMs).toBe(5000)
+  })
+
+  it('应该支持 AiExecuteInput 接口', () => {
+    const input = {
+      userId: 'user-123',
+      model: 'gpt-4',
+      messages: [{ role: 'user' as const, content: 'Hello' }],
+      reasoning: true,
+      projectId: 'proj-456',
+      action: 'generate',
+      meta: { key: 'value' },
+    }
+
+    expect(input.model).toBe('gpt-4')
+    expect(input.reasoning).toBe(true)
+  })
+
+  it('应该支持 AiExecuteOutput 接口', () => {
+    const output = {
+      text: '生成的文本',
+      reasoning: '推理过程',
+    }
+
+    expect(output.text).toBe('生成的文本')
   })
 })

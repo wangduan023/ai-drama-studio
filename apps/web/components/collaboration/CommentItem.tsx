@@ -32,6 +32,15 @@ import {
 import { cn } from '@/lib/utils'
 import type { Comment } from './types'
 
+/**
+ * 转义 HTML 特殊字符，防止 XSS 攻击
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
 interface CommentItemProps {
   comment: Comment
   currentUserId?: string
@@ -141,9 +150,10 @@ export function CommentItem({
               </div>
             </div>
           ) : (
-            <div className="text-sm text-foreground whitespace-pre-wrap">
-              {comment.content}
-            </div>
+            <div 
+              className="text-sm text-foreground whitespace-pre-wrap"
+              dangerouslySetInnerHTML={{ __html: escapeHtml(comment.content) }}
+            />
           )}
 
           {!isEditing && (

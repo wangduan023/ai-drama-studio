@@ -206,6 +206,14 @@ export async function DELETE(
           userId: targetUserId,
         },
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
     })
 
     if (!member) {
@@ -234,7 +242,7 @@ export async function DELETE(
       member.id,
       {
         removedUserId: targetUserId,
-        removedUserEmail: member.userId,
+        removedUserEmail: member.user?.email || 'unknown',
         role: member.role,
       }
     )

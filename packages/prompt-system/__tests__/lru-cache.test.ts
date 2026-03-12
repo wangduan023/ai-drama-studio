@@ -1,144 +1,187 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+/**
+ * LRU Cache 测试
+ */
+
+import { describe, it, expect, beforeEach } from 'vitest'
 import { LRUCache } from '../src/lru-cache'
 
-describe('LRUCache Module', () => {
-  it('should create an LRU cache with specified max size', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
-    expect(cache.size).toBe(0)
+describe('LRUCache', () => {
+  let cache: LRUCache<string, string>
+
+  beforeEach(() => {
+    cache = new LRUCache({ maxSize: 3 })
   })
 
-  it('should set and get values', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
+  describe('基本操作', () => {
+    it('应该能够设置和获取值', () => {
+      cache.set('key1', 'value1')
+      
+      expect(cache.get('key1')).toBe('value1')
+    })
 
-    cache.set('key1', 'value1')
-    expect(cache.get('key1')).toBe('value1')
+    it('应该对不存在的 key 返回 undefined', () => {
+      expect(cache.get('nonexistent')).toBeUndefined()
+    })
 
-    cache.set('key2', 'value2')
-    expect(cache.get('key2')).toBe('value2')
-    expect(cache.get('key1')).toBe('value1')
+    it('应该能够检查 key 是否存在', () => {
+      cache.set('key1', 'value1')
+      
+      expect(cache.has('key1')).toBe(true)
+      expect(cache.has('key2')).toBe(false)
+    })
+
+    it('应该能够删除指定 key', () => {
+      cache.set('key1', 'value1')
+      const deleted = cache.delete('key1')
+      
+      expect(deleted).toBe(true)
+      expect(cache.get('key1')).toBeUndefined()
+      expect(cache.has('key1')).toBe(false)
+    })
+
+    it('删除不存在的 key 应该返回 false', () => {
+      const deleted = cache.delete('nonexistent')
+      
+      expect(deleted).toBe(false)
+    })
+
+    it('应该能够清空所有缓存', () => {
+      cache.set('key1', 'value1')
+      cache.set('key2', 'value2')
+      
+      cache.clear()
+      
+      expect(cache.get('key1')).toBeUndefined()
+      expect(cache.get('key2')).toBeUndefined()
+      expect(cache.size).toBe(0)
+    })
+
+    it('应该返回正确的缓存大小', () => {
+      expect(cache.size).toBe(0)
+      
+      cache.set('key1', 'value1')
+      expect(cache.size).toBe(1)
+      
+      cache.set('key2', 'value2')
+      expect(cache.size).toBe(2)
+    })
   })
 
-  it('should handle cache eviction when exceeding max size', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 2 })
+  describe('LRU 淘汰策略', () => {
+    it('应该淘汰最久未使用的项', () => {
+      cache.set('key1', 'value1')
+      cache.set('key2', 'value2')
+      cache.set('key3', 'value3')
+      
+      // 添加第4个，应该淘汰 key1
+      cache.set('key4', 'value4')
+      
+      expect(cache.size).toBe(3)
+      expect(cache.has('key1')).toBe(false)
+      expect(cache.has('key2')).toBe(true)
+      expect(cache.has('key3')).toBe(true)
+      expect(cache.has('key4')).toBe(true)
+    })
 
-    cache.set('key1', 'value1')
-    cache.set('key2', 'value2')
-    cache.set('key3', 'value3') // This should evict key1
+    it('访问项应该更新其为最近使用', () => {
+      cache.set('key1', 'value1')
+      cache.set('key2', 'value2')
+      cache.set('key3', 'value3')
+      
+      // 访问 key1，使其变为最近使用
+      cache.get('key1')
+      
+      // 添加第4个，应该淘汰 key2（现在最久未使用）
+      cache.set('key4', 'value4')
+      
+      expect(cache.has('key1')).toBe(true)
+      expect(cache.has('key2')).toBe(false)
+      expect(cache.has('key3')).toBe(true)
+      expect(cache.has('key4')).toBe(true)
+    })
 
-    expect(cache.get('key1')).toBeUndefined() // Evicted
-    expect(cache.get('key2')).toBe('value2')
-    expect(cache.get('key3')).toBe('value3')
+    it('更新已有项应该更新其为最近使用', () => {
+      cache.set('key1', 'value1')
+      cache.set('key2', 'value2')
+      cache.set('key3', 'value3')
+      
+      // 更新 key1，使其变为最近使用
+      cache.set('key1', 'updated')
+      
+      // 添加第4个，应该淘汰 key2
+      cache.set('key4', 'value4')
+      
+      expect(cache.get('key1')).toBe('updated')
+      expect(cache.has('key2')).toBe(false)
+    })
   })
 
-  it('should update existing values', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
+  describe('keys 迭代器', () => {
+    it('应该能够遍历所有 keys', () => {
+      cache.set('key1', 'value1')
+      cache.set('key2', 'value2')
+      cache.set('key3', 'value3')
+      
+      const keys = Array.from(cache.keys())
+      
+      expect(keys).toContain('key1')
+      expect(keys).toContain('key2')
+      expect(keys).toContain('key3')
+      expect(keys.length).toBe(3)
+    })
 
-    cache.set('key1', 'value1')
-    expect(cache.get('key1')).toBe('value1')
-
-    cache.set('key1', 'newValue1')
-    expect(cache.get('key1')).toBe('newValue1')
+    it('遍历后顺序应该反映使用顺序', () => {
+      cache.set('key1', 'value1')
+      cache.set('key2', 'value2')
+      cache.set('key3', 'value3')
+      
+      // 访问 key1 使其变为最近使用
+      cache.get('key1')
+      
+      const keys = Array.from(cache.keys())
+      // 顺序应该是：key2, key3, key1
+      expect(keys[0]).toBe('key2')
+      expect(keys[1]).toBe('key3')
+      expect(keys[2]).toBe('key1')
+    })
   })
 
-  it('should maintain LRU order correctly', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
+  describe('边界情况', () => {
+    it('应该处理 maxSize 为 1 的情况', () => {
+      const smallCache = new LRUCache<string, string>({ maxSize: 1 })
+      
+      smallCache.set('key1', 'value1')
+      smallCache.set('key2', 'value2')
+      
+      expect(smallCache.size).toBe(1)
+      expect(smallCache.has('key1')).toBe(false)
+      expect(smallCache.has('key2')).toBe(true)
+    })
 
-    cache.set('key1', 'value1')
-    cache.set('key2', 'value2')
-    cache.set('key3', 'value3')
+    it('应该处理空字符串 key', () => {
+      cache.set('', 'empty')
+      
+      expect(cache.get('')).toBe('empty')
+      expect(cache.has('')).toBe(true)
+    })
 
-    // Access key1 to make it recently used
-    cache.get('key1')
+    it('应该能够存储各种类型的值', () => {
+      const numberCache = new LRUCache<string, number>({ maxSize: 3 })
+      numberCache.set('num', 42)
+      expect(numberCache.get('num')).toBe(42)
 
-    // Add another item - key2 should be evicted, not key1
-    cache.set('key4', 'value4')
+      const objectCache = new LRUCache<string, { a: number }>({ maxSize: 3 })
+      objectCache.set('obj', { a: 1 })
+      expect(objectCache.get('obj')).toEqual({ a: 1 })
+    })
 
-    expect(cache.get('key2')).toBeUndefined() // Least recently used
-    expect(cache.get('key1')).toBe('value1') // Recently accessed
-    expect(cache.get('key3')).toBe('value3')
-    expect(cache.get('key4')).toBe('value4')
-  })
-
-  it('should delete specific keys', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
-
-    cache.set('key1', 'value1')
-    cache.set('key2', 'value2')
-
-    expect(cache.has('key1')).toBe(true)
-    expect(cache.has('key2')).toBe(true)
-
-    const deleted = cache.delete('key1')
-    expect(deleted).toBe(true)
-    expect(cache.has('key1')).toBe(false)
-    expect(cache.has('key2')).toBe(true)
-
-    // Deleting non-existent key should return false
-    const notDeleted = cache.delete('nonexistent')
-    expect(notDeleted).toBe(false)
-  })
-
-  it('should clear the entire cache', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
-
-    cache.set('key1', 'value1')
-    cache.set('key2', 'value2')
-    cache.set('key3', 'value3')
-
-    expect(cache.size).toBe(3)
-
-    cache.clear()
-
-    expect(cache.size).toBe(0)
-    expect(cache.has('key1')).toBe(false)
-    expect(cache.has('key2')).toBe(false)
-    expect(cache.has('key3')).toBe(false)
-  })
-
-  it('should return correct size', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 5 })
-
-    expect(cache.size).toBe(0)
-
-    cache.set('key1', 'value1')
-    expect(cache.size).toBe(1)
-
-    cache.set('key2', 'value2')
-    expect(cache.size).toBe(2)
-
-    cache.set('key3', 'value3')
-    expect(cache.size).toBe(3)
-
-    cache.delete('key2')
-    expect(cache.size).toBe(2)
-
-    cache.clear()
-    expect(cache.size).toBe(0)
-  })
-
-  it('should correctly report if key exists', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
-
-    expect(cache.has('nonexistent')).toBe(false)
-
-    cache.set('key1', 'value1')
-    expect(cache.has('key1')).toBe(true)
-
-    cache.delete('key1')
-    expect(cache.has('key1')).toBe(false)
-  })
-
-  it('should provide keys iterator', () => {
-    const cache = new LRUCache<string, string>({ maxSize: 3 })
-
-    cache.set('key1', 'value1')
-    cache.set('key2', 'value2')
-
-    const keys = Array.from(cache.keys())
-    expect(keys).toContain('key1')
-    expect(keys).toContain('key2')
-    expect(keys).not.toContain('nonexistent')
-
-    expect(keys.length).toBe(2)
+    it('应该支持不同类型的 key', () => {
+      const numberKeyCache = new LRUCache<number, string>({ maxSize: 3 })
+      numberKeyCache.set(1, 'one')
+      numberKeyCache.set(2, 'two')
+      
+      expect(numberKeyCache.get(1)).toBe('one')
+      expect(numberKeyCache.get(2)).toBe('two')
+    })
   })
 })
