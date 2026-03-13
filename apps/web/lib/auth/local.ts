@@ -164,8 +164,9 @@ export async function loginLocalUser(email: string, password: string): Promise<L
     throw new Error('User account is deactivated');
   }
 
-  // 3. 验证密码
-  const isPasswordValid = await verifyPassword(password, user.passwordHash);
+  // 3. 验证密码（去除前后空格以避免用户输入问题）
+  const trimmedPassword = password.trim();
+  const isPasswordValid = await verifyPassword(trimmedPassword, user.passwordHash);
   if (!isPasswordValid) {
     throw new Error('Invalid email or password');
   }
