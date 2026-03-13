@@ -78,7 +78,7 @@ const navGroups: NavGroup[] = [
       {
         id: 'users',
         label: '用户管理',
-        href: '/admin/users',
+        href: '/users',
         icon: <Users className="w-5 h-5" />,
         resource: 'user',
         action: 'read',
@@ -86,7 +86,7 @@ const navGroups: NavGroup[] = [
       {
         id: 'roles',
         label: '角色管理',
-        href: '/admin/roles',
+        href: '/roles',
         icon: <Shield className="w-5 h-5" />,
         resource: 'role',
         action: 'read',
@@ -94,7 +94,7 @@ const navGroups: NavGroup[] = [
       {
         id: 'permissions',
         label: '权限管理',
-        href: '/admin/permissions',
+        href: '/permissions',
         icon: <Lock className="w-5 h-5" />,
         resource: 'permission',
         action: 'read',

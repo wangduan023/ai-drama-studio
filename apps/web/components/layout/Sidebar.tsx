@@ -79,21 +79,21 @@ const mainNavItems: NavItemConfig[] = [
 const adminNavItems: NavItemConfig[] = [
   {
     title: '用户管理',
-    href: '/admin/users',
+    href: '/users',
     icon: Users,
     requireAuth: true,
     adminOnly: true,
   },
   {
     title: '角色管理',
-    href: '/admin/roles',
+    href: '/roles',
     icon: Shield,
     requireAuth: true,
     adminOnly: true,
   },
   {
     title: '权限管理',
-    href: '/admin/permissions',
+    href: '/permissions',
     icon: Key,
     requireAuth: true,
     adminOnly: true,
