@@ -141,19 +141,44 @@ export default function UsersPage() {
     if (!selectedUser) return
 
     try {
-      const response = await fetch(`/api/admin/users/${selectedUser.id}/roles`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roleIds: selectedUser.roles.map(r => r.id)
-        })
-      })
+      // 获取用户当前的角色（从服务器）
+      const currentRolesRes = await fetch(`/api/admin/users/${selectedUser.id}/roles`)
+      const currentRoles = await currentRolesRes.json()
+      const currentRoleIds = currentRoles.map((r: any) => r.id)
 
-      if (response.ok) {
-        setEditingRoles(false)
-        setSelectedUser(null)
-        fetchUsers()
+      // 计算需要添加和移除的角色
+      const newRoleIds = selectedUser.roles.map(r => r.id)
+      const toAdd = newRoleIds.filter(id => !currentRoleIds.includes(id))
+      const toRemove = currentRoleIds.filter(id => !newRoleIds.includes(id))
+
+      // 逐个添加/移除
+      const promises: Promise<any>[] = []
+
+      for (const roleId of toAdd) {
+        promises.push(
+          fetch(`/api/admin/users/${selectedUser.id}/roles`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roleId })
+          })
+        )
       }
+
+      for (const roleId of toRemove) {
+        promises.push(
+          fetch(`/api/admin/users/${selectedUser.id}/roles`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roleId })
+          })
+        )
+      }
+
+      await Promise.all(promises)
+
+      setEditingRoles(false)
+      setSelectedUser(null)
+      fetchUsers()
     } catch (error) {
       console.error('Failed to save user roles:', error)
     }

@@ -1,8 +1,9 @@
 /**
  * Admin User Roles API
  * 用户角色分配接口
- * 
+ *
  * GET /api/admin/users/[id]/roles - 获取用户角色
+ * PUT /api/admin/users/[id]/roles - 更新用户角色（批量设置）
  * POST /api/admin/users/[id]/roles - 分配角色
  * DELETE /api/admin/users/[id]/roles - 移除角色
  */
