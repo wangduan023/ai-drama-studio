@@ -14,6 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckSquare,
+  Shield,
+  Key,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -26,7 +28,21 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const mainNavItems = [
+// 定义用户角色类型
+type UserRole = 'USER' | 'PREMIUM' | 'ADMIN' | 'SUPER_ADMIN'
+
+// 菜单项配置
+interface NavItemConfig {
+  title: string
+  href: string
+  icon: React.ElementType
+  requireAuth: boolean
+  allowedRoles?: UserRole[] // 允许访问的角色，不传则所有登录用户都可访问
+  adminOnly?: boolean // 仅管理员可见
+}
+
+// 主导航菜单
+const mainNavItems: NavItemConfig[] = [
   {
     title: '首页',
     href: '/',
@@ -59,7 +75,33 @@ const mainNavItems = [
   },
 ]
 
-const secondaryNavItems = [
+// 管理菜单（仅管理员可见）
+const adminNavItems: NavItemConfig[] = [
+  {
+    title: '用户管理',
+    href: '/admin/users',
+    icon: Users,
+    requireAuth: true,
+    adminOnly: true,
+  },
+  {
+    title: '角色管理',
+    href: '/admin/roles',
+    icon: Shield,
+    requireAuth: true,
+    adminOnly: true,
+  },
+  {
+    title: '权限管理',
+    href: '/admin/permissions',
+    icon: Key,
+    requireAuth: true,
+    adminOnly: true,
+  },
+]
+
+// 辅助导航菜单
+const secondaryNavItems: NavItemConfig[] = [
   {
     title: '设置',
     href: '/settings',
@@ -74,12 +116,47 @@ const secondaryNavItems = [
   },
 ]
 
+// 检查用户是否有权限访问菜单
+function hasPermission(userRole: UserRole | undefined, item: NavItemConfig): boolean {
+  // 不需要登录的菜单
+  if (!item.requireAuth) return true
+
+  // 需要登录但未登录
+  if (!userRole) return false
+
+  // 仅管理员可见的菜单
+  if (item.adminOnly) {
+    return userRole === 'ADMIN' || userRole === 'SUPER_ADMIN'
+  }
+
+  // 指定了允许角色的菜单
+  if (item.allowedRoles) {
+    return item.allowedRoles.includes(userRole)
+  }
+
+  // 默认所有登录用户可访问
+  return true
+}
+
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [pendingNavigation, setPendingNavigation] = useState('')
+
+  const userRole = user?.role
+
+  // 过滤出有权限访问的菜单
+  const filteredMainNavItems = mainNavItems.filter(item =>
+    hasPermission(userRole, item)
+  )
+  const filteredAdminNavItems = adminNavItems.filter(item =>
+    hasPermission(userRole, item)
+  )
+  const filteredSecondaryNavItems = secondaryNavItems.filter(item =>
+    hasPermission(userRole, item)
+  )
 
   const handleNavClick = (href: string, requireAuth: boolean) => {
     if (requireAuth && !isAuthenticated) {
@@ -99,6 +176,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     setShowLoginPrompt(false)
     setPendingNavigation('')
   }
+
+  // 检查是否是管理员
+  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN'
 
   return (
     <motion.aside
@@ -146,7 +226,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="h-[calc(100vh-8rem)] px-3 py-4">
         <nav className="flex flex-col gap-2" data-testid="sidebar-nav">
-          {mainNavItems.map((item) => (
+          {/* 主导航 */}
+          {filteredMainNavItems.map((item) => (
             <NavItem
               key={item.href}
               item={item}
@@ -156,9 +237,35 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             />
           ))}
 
-          <div className="my-4 border-t" />
+          {/* 管理菜单 - 仅管理员可见 */}
+          {filteredAdminNavItems.length > 0 && (
+            <>
+              <div className="my-4 border-t" />
+              {!collapsed && (
+                <div className="px-3 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  管理
+                </div>
+              )}
+              {collapsed && (
+                <div className="flex justify-center py-2">
+                  <div className="w-6 h-px bg-border" />
+                </div>
+              )}
+              {filteredAdminNavItems.map((item) => (
+                <NavItem
+                  key={item.href}
+                  item={item}
+                  isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
+                  collapsed={collapsed}
+                  onNavClick={handleNavClick}
+                />
+              ))}
+            </>
+          )}
 
-          {secondaryNavItems.map((item) => (
+          {/* 辅助导航 */}
+          <div className="my-4 border-t" />
+          {filteredSecondaryNavItems.map((item) => (
             <NavItem
               key={item.href}
               item={item}
@@ -181,12 +288,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 }
 
 interface NavItemProps {
-  item: {
-    title: string
-    href: string
-    icon: React.ElementType
-    requireAuth?: boolean
-  }
+  item: NavItemConfig
   isActive: boolean
   collapsed: boolean
   onNavClick: (href: string, requireAuth: boolean) => boolean
@@ -194,8 +296,7 @@ interface NavItemProps {
 
 function NavItem({ item, isActive, collapsed, onNavClick }: NavItemProps) {
   const handleClick = (e: React.MouseEvent) => {
-    // 如果需要登录但未登录，则阻止导航并显示提示
-    const canNavigate = onNavClick(item.href, item.requireAuth || false)
+    const canNavigate = onNavClick(item.href, item.requireAuth)
     if (!canNavigate) {
       e.preventDefault()
     }
