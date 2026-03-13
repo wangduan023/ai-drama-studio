@@ -5,7 +5,7 @@
 
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAiKeys } from '@/hooks/useAiKeys'
 import { RBACButton } from '@/components/rbac'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,7 @@ import {
 import { useState } from 'react'
 
 export default function AiKeysPage() {
+  const router = useRouter()
   const { keys, isLoading, toggleKeyStatus, deleteKey } = useAiKeys()
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -158,11 +159,11 @@ export default function AiKeysPage() {
                       action="update"
                       variant="ghost"
                       size="icon"
-                      asChild
+                      onClick={() => {
+                        router.push(`/ai-keys/${key.id}/edit`)
+                      }}
                     >
-                      <Link href={`/ai-keys/${key.id}/edit`}>
-                        <Edit2 className="w-4 h-4" />
-                      </Link>
+                      <Edit2 className="w-4 h-4" />
                     </RBACButton>
 
                     <RBACButton

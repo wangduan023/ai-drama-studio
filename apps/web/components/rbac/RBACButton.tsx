@@ -1,17 +1,19 @@
 /**
  * RBAC Button Component
  * 带权限控制的按钮组件
- * 
+ *
  * 根据权限自动禁用或隐藏按钮
  */
 
 'use client'
 
-import { Button, ButtonProps } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import type { ButtonProps } from '@base-ui/react/button'
 import { useRBAC } from '@/hooks/useRBAC'
 import { cn } from '@/lib/utils'
+import type { VariantProps } from 'class-variance-authority'
 
-interface RBACButtonProps extends ButtonProps {
+interface RBACButtonProps extends Omit<ButtonProps, 'asChild'>, VariantProps<typeof buttonVariants> {
   /** 资源名称 */
   resource: string
   /** 操作名称 */

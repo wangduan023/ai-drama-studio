@@ -122,10 +122,8 @@ export default function PermissionsPage() {
         </div>
 
         <RBACButton resource="permission" action="create">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            新建权限
-          </Button>
+          <Plus className="w-4 h-4 mr-2" />
+          新建权限
         </RBACButton>
       </div>
 

@@ -97,7 +97,7 @@ function useLogin() {
       toast.success('登录成功', {
         description: `欢迎回来，${data.user.name || data.user.email}`,
       })
-      router.push('/dashboard')
+      router.push('/projects')
     },
     onError: (error: Error) => {
       toast.error('登录失败', {

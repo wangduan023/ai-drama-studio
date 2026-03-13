@@ -193,10 +193,8 @@ export default function UsersPage() {
         </div>
 
         <RBACButton resource="user" action="create">
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            新建用户
-          </Button>
+          <Plus className="w-4 h-4 mr-2" />
+          新建用户
         </RBACButton>
       </div>
 
@@ -252,29 +250,29 @@ export default function UsersPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <RBACButton resource="user" action="update">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedUser(user)
-                        setEditingRoles(true)
-                      }}
-                    >
-                      <Edit2 className="w-3 h-3 mr-1" />
-                      编辑角色
-                    </Button>
+                  <RBACButton
+                    resource="user"
+                    action="update"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedUser(user)
+                      setEditingRoles(true)
+                    }}
+                  >
+                    <Edit2 className="w-3 h-3 mr-1" />
+                    编辑角色
                   </RBACButton>
 
-                  <RBACButton resource="user" action="delete">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-600 hover:text-red-700"
-                      onClick={() => deleteUser(user.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <RBACButton
+                    resource="user"
+                    action="delete"
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-600 hover:text-red-700"
+                    onClick={() => deleteUser(user.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </RBACButton>
                 </div>
               </div>
@@ -359,10 +357,12 @@ export default function UsersPage() {
               >
                 取消
               </Button>
-              <RBACButton resource="user" action="update">
-                <Button onClick={saveUserRoles}>
-                  保存
-                </Button>
+              <RBACButton
+                resource="user"
+                action="update"
+                onClick={saveUserRoles}
+              >
+                保存
               </RBACButton>
             </div>
           </Card>

@@ -5,7 +5,7 @@
 
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAiProxy } from '@/hooks/useAiProxy'
 import { RBACButton } from '@/components/rbac'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import {
 import { useState } from 'react'
 
 export default function AiProxiesPage() {
+  const router = useRouter()
   const { proxies, isLoading, toggleProxyStatus, deleteProxy } = useAiProxy()
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -170,11 +171,11 @@ export default function AiProxiesPage() {
                       action="update"
                       variant="ghost"
                       size="icon"
-                      asChild
+                      onClick={() => {
+                        router.push(`/ai-proxies/${proxy.id}/edit`)
+                      }}
                     >
-                      <Link href={`/ai-proxies/${proxy.id}/edit`}>
-                        <Edit2 className="w-4 h-4" />
-                      </Link>
+                      <Edit2 className="w-4 h-4" />
                     </RBACButton>
 
                     <RBACButton

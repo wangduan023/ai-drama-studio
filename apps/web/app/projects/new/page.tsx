@@ -15,6 +15,7 @@ import {
   Save,
   Loader2,
   X,
+  ChevronRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,8 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useCreateProject } from '@/hooks/useProject'
+import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
 const steps = [
   { id: 'basic', title: '基础信息', icon: Film },
@@ -62,7 +65,6 @@ export default function NewProjectPage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
-  // 表单状态
   const [formData, setFormData] = useState<FormData>({
     title: '',
     description: '',
@@ -73,9 +75,7 @@ export default function NewProjectPage() {
     style: 'cinematic',
   })
 
-  // 处理文件选择
   const handleFileSelect = useCallback(async (file: File) => {
-    // 检查文件类型
     const allowedTypes = [
       'text/plain',
       'application/msword',
@@ -90,7 +90,6 @@ export default function NewProjectPage() {
       return
     }
 
-    // 检查文件大小 (最大 10MB)
     const maxSize = 10 * 1024 * 1024
     if (file.size > maxSize) {
       toast.error('文件大小超过 10MB 限制')
@@ -100,7 +99,6 @@ export default function NewProjectPage() {
     setUploadedFile(file)
 
     try {
-      // 读取文件内容
       const text = await readFileAsText(file)
       setFormData(prev => ({ ...prev, novel: text }))
       toast.success(`已加载文件: ${file.name}`)
@@ -110,7 +108,6 @@ export default function NewProjectPage() {
     }
   }, [])
 
-  // 读取文件为文本
   const readFileAsText = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader()
@@ -120,12 +117,10 @@ export default function NewProjectPage() {
     })
   }
 
-  // 点击上传区域
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
 
-  // 文件 input change 事件
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -133,7 +128,6 @@ export default function NewProjectPage() {
     }
   }
 
-  // 拖拽事件
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
@@ -153,7 +147,6 @@ export default function NewProjectPage() {
     }
   }
 
-  // 清除上传的文件
   const handleClearFile = () => {
     setUploadedFile(null)
     setFormData(prev => ({ ...prev, novel: '' }))
@@ -162,7 +155,6 @@ export default function NewProjectPage() {
     }
   }
 
-  // 加载草稿
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
@@ -177,7 +169,6 @@ export default function NewProjectPage() {
     setIsLoadingDraft(false)
   }, [])
 
-  // 自动保存草稿
   useEffect(() => {
     if (isLoadingDraft) return
     localStorage.setItem(STORAGE_KEY, JSON.stringify(formData))
@@ -230,73 +221,112 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
       {/* 返回按钮 */}
       <Link href="/projects">
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="h-4 w-4 mr-2" />
+        <Button variant="ghost" size="sm" className="mb-4 -ml-2 text-muted-foreground">
+          <ArrowLeft className="h-4 w-4 mr-1" />
           返回项目列表
         </Button>
       </Link>
 
       {/* 页面标题 */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">创建新项目</h1>
-        <p className="text-muted-foreground">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-1">创建新项目</h1>
+        <p className="text-sm text-muted-foreground">
           按照步骤创建你的短剧项目，随时可以保存为草稿
         </p>
       </div>
 
-      {/* 步骤条 */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {steps.map((step, index) => (
-            <div key={step.id} className="flex items-center">
-              <div
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  index === currentStep
-                    ? 'bg-primary text-primary-foreground'
-                    : index < currentStep
-                    ? 'bg-primary/20 text-primary'
-                    : 'bg-muted text-muted-foreground'
-                }`}
-              >
-                <step.icon className="h-4 w-4" />
-                <span className="text-sm font-medium hidden sm:inline">{step.title}</span>
-              </div>
-              {index < steps.length - 1 && (
+      {/* 紧凑的步骤条和进度区域 */}
+      <div className="mb-6 border-2 border-dashed border-border/60 rounded-xl p-4 bg-muted/20">
+        {/* 步骤指示器 - 均匀分布 */}
+        <div className="flex items-center justify-between mb-3">
+          {steps.map((step, index) => {
+            const Icon = step.icon
+            const isActive = index === currentStep
+            const isCompleted = index < currentStep
+            const isPending = index > currentStep
+            
+            return (
+              <div key={step.id} className="flex items-center flex-1">
+                {/* 步骤按钮 */}
                 <div
-                  className={`w-8 h-0.5 mx-2 ${
-                    index < currentStep ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              )}
-            </div>
-          ))}
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-xl transition-all duration-200 text-sm whitespace-nowrap',
+                    isActive
+                      ? 'bg-primary text-primary-foreground font-medium shadow-lg shadow-primary/25 scale-105'
+                      : isCompleted
+                      ? 'bg-primary/10 text-primary hover:bg-primary/20'
+                      : 'bg-muted text-muted-foreground'
+                  )}
+                >
+                  <div className={cn(
+                    'flex items-center justify-center w-5 h-5 rounded-full',
+                    isActive ? 'bg-primary-foreground text-primary' : 
+                    isCompleted ? 'bg-primary text-primary-foreground' : 'bg-muted-foreground/20'
+                  )}>
+                    {isCompleted ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <span className="text-xs font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  <span className="hidden sm:inline">{step.title}</span>
+                </div>
+                
+                {/* 箭头装饰 - 除了最后一个步骤 */}
+                {index < steps.length - 1 && (
+                  <div className="flex-1 flex items-center justify-center px-2">
+                    <ChevronRight className={cn(
+                      'h-5 w-5 transition-colors',
+                      isCompleted ? 'text-primary' : 'text-muted-foreground/30'
+                    )} />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* 进度条和状态信息（同一行） */}
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <Progress 
+              value={((currentStep + 1) / steps.length) * 100} 
+              className="h-1.5" 
+            />
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground whitespace-nowrap">
+            <span className="font-medium text-foreground">
+              步骤 {currentStep + 1} / {steps.length}
+            </span>
+            <span className="text-primary font-medium">
+              {Math.round(((currentStep + 1) / steps.length) * 100)}%
+            </span>
+            {lastSaved && (
+              <span className="flex items-center gap-1">
+                <Save className="h-3 w-3" />
+                自动保存于 {lastSaved.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* 自动保存状态 */}
-      {lastSaved && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-          <Save className="h-4 w-4" />
-          <span>自动保存于 {lastSaved.toLocaleTimeString('zh-CN')}</span>
-        </div>
-      )}
 
       {/* 表单步骤 */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentStep}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
         >
           {/* 步骤 1: 基础信息 */}
           {currentStep === 0 && (
             <Card>
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-6 space-y-5">
                 <div className="space-y-2">
                   <Label htmlFor="title">项目名称 *</Label>
                   <Input
@@ -315,7 +345,7 @@ export default function NewProjectPage() {
                     id="description"
                     data-testid="project-description-input"
                     placeholder="简单描述一下这个项目..."
-                    className="min-h-[100px]"
+                    className="min-h-[80px]"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   />
@@ -347,14 +377,14 @@ export default function NewProjectPage() {
           {/* 步骤 2: 剧本输入 */}
           {currentStep === 1 && (
             <Card>
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-6 space-y-5">
                 <div className="flex items-center justify-between">
                   <Label>剧本输入</Label>
                   <Badge variant="secondary">支持 .txt, .doc, .pdf</Badge>
                 </div>
 
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer relative ${
+                  className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer relative ${
                     isDragging 
                       ? 'border-primary bg-primary/5' 
                       : 'hover:border-primary/50'
@@ -374,7 +404,7 @@ export default function NewProjectPage() {
                   
                   {uploadedFile ? (
                     <div className="flex items-center justify-center gap-2">
-                      <FileText className="h-8 w-8 text-primary" />
+                      <FileText className="h-6 w-6 text-primary" />
                       <div className="text-left">
                         <p className="text-sm font-medium text-foreground">
                           {uploadedFile.name}
@@ -397,7 +427,7 @@ export default function NewProjectPage() {
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                      <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
                       <p className="text-sm text-muted-foreground mb-1">
                         点击或拖拽文件到此处上传
                       </p>
@@ -409,8 +439,8 @@ export default function NewProjectPage() {
                 </div>
 
                 <div className="relative">
-                  <Separator className="my-4" />
-                  <span className="absolute left-1/2 -translate-x-1/2 -top-3 bg-card px-2 text-xs text-muted-foreground">
+                  <Separator className="my-3" />
+                  <span className="absolute left-1/2 -translate-x-1/2 -top-2.5 bg-card px-2 text-xs text-muted-foreground">
                     或直接粘贴
                   </span>
                 </div>
@@ -418,7 +448,7 @@ export default function NewProjectPage() {
                 <div className="space-y-2">
                   <Textarea
                     placeholder="在此粘贴剧本内容..."
-                    className="min-h-[300px] font-mono text-sm"
+                    className="min-h-[200px] font-mono text-sm"
                     value={formData.novel}
                     onChange={(e) => setFormData({ ...formData, novel: e.target.value })}
                   />
@@ -433,7 +463,7 @@ export default function NewProjectPage() {
           {/* 步骤 3: AI 设置 */}
           {currentStep === 2 && (
             <Card>
-              <CardContent className="p-6 space-y-6">
+              <CardContent className="p-6 space-y-5">
                 <div className="space-y-2">
                   <Label>图像生成模型</Label>
                   <Select
@@ -498,41 +528,41 @@ export default function NewProjectPage() {
           {/* 步骤 4: 确认 */}
           {currentStep === 3 && (
             <Card>
-              <CardContent className="p-6 space-y-6">
-                <div className="text-center mb-6">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                    <Check className="h-8 w-8 text-primary" />
+              <CardContent className="p-6 space-y-5">
+                <div className="text-center mb-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                    <Check className="h-6 w-6 text-primary" />
                   </div>
-                  <h2 className="text-xl font-semibold mb-2">确认创建项目</h2>
-                  <p className="text-muted-foreground">
+                  <h2 className="text-lg font-semibold mb-1">确认创建项目</h2>
+                  <p className="text-sm text-muted-foreground">
                     请检查以下信息，确认无误后点击创建
                   </p>
                 </div>
 
-                <div className="space-y-4 bg-muted/50 rounded-lg p-4">
-                  <div className="flex justify-between">
+                <div className="space-y-3 bg-muted/50 rounded-lg p-4">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">项目名称</span>
                     <span className="font-medium">{formData.title}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">项目类型</span>
                     <span className="font-medium">
                       {formData.type === 'original' ? '原创作品' : '改编作品'}
                     </span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">图像模型</span>
                     <span className="font-medium">{formData.imageModel}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">视频模型</span>
                     <span className="font-medium">{formData.videoModel}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">视觉风格</span>
                     <span className="font-medium">{formData.style}</span>
                   </div>
@@ -540,14 +570,14 @@ export default function NewProjectPage() {
 
                 {formData.description && (
                   <div className="bg-muted/50 rounded-lg p-4">
-                    <span className="text-muted-foreground block mb-2">项目描述</span>
+                    <span className="text-muted-foreground block mb-2 text-sm">项目描述</span>
                     <p className="text-sm">{formData.description}</p>
                   </div>
                 )}
 
                 {formData.novel && (
                   <div className="bg-muted/50 rounded-lg p-4">
-                    <span className="text-muted-foreground block mb-2">剧本内容</span>
+                    <span className="text-muted-foreground block mb-2 text-sm">剧本内容</span>
                     <p className="text-sm line-clamp-3">{formData.novel}</p>
                     {formData.novel.length > 100 && (
                       <p className="text-xs text-muted-foreground mt-1">
@@ -563,32 +593,38 @@ export default function NewProjectPage() {
       </AnimatePresence>
 
       {/* 导航按钮 */}
-      <div className="flex justify-between mt-8">
+      <div className="flex justify-between mt-6">
         <Button
           variant="outline"
+          size="sm"
           onClick={prevStep}
           disabled={currentStep === 0}
           data-testid="prev-button"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
+          <ArrowLeft className="h-4 w-4 mr-1" />
           上一步
         </Button>
 
         {currentStep < steps.length - 1 ? (
-          <Button onClick={nextStep} data-testid="next-button">
+          <Button size="sm" onClick={nextStep} data-testid="next-button">
             下一步
-            <ArrowRight className="h-4 w-4 ml-2" />
+            <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={createProject.isPending} data-testid="submit-button">
+          <Button 
+            size="sm" 
+            onClick={handleSubmit} 
+            disabled={createProject.isPending} 
+            data-testid="submit-button"
+          >
             {createProject.isPending ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                 创建中...
               </>
             ) : (
               <>
-                <Check className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-1" />
                 创建项目
               </>
             )}
