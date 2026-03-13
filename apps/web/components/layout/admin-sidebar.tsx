@@ -63,7 +63,7 @@ const navItems: NavItem[] = [
   {
     id: 'roles',
     label: '角色权限',
-    href: '/roles',
+    href: '/admin/roles',
     icon: <Shield className="w-5 h-5" />,
     resource: 'role',
     action: 'read',
