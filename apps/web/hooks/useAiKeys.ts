@@ -57,8 +57,33 @@ export interface UpdateAiKeyInput {
 
 export function useAiKeys() {
   const [keys, setKeys] = useState<AiApiKey[]>([])
+  const [currentKey, setCurrentKey] = useState<AiApiKey | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 获取单个密钥详情
+  const fetchKey = useCallback(async (id: string) => {
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch(`/api/admin/ai-keys/${id}`)
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to fetch key')
+      }
+      
+      const data = await response.json()
+      setCurrentKey(data)
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   // 获取密钥列表
   const fetchKeys = useCallback(async (providerId?: string) => {
@@ -177,9 +202,11 @@ export function useAiKeys() {
 
   return {
     keys,
+    currentKey,
     isLoading,
     error,
     fetchKeys,
+    fetchKey,
     createKey,
     updateKey,
     deleteKey,

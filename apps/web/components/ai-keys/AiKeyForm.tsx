@@ -151,19 +151,32 @@ export function AiKeyForm({
             </Label>
             <Select
               value={formData.providerId}
-              onValueChange={(value) => {
-                updateField('providerId', value)
-                // 切换渠道时清空模型选择
-                updateField('modelId', null)
+              onValueChange={(value: string | null) => {
+                if (value) {
+                  updateField('providerId', value)
+                  // 切换渠道时清空模型选择
+                  updateField('modelId', null)
+                }
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="选择渠道" />
+                <SelectValue placeholder="选择渠道">
+                  {(value: string | null) => {
+                    if (!value) return '选择渠道'
+                    const provider = providers.find(p => p.id === value)
+                    return provider ? provider.name : value
+                  }}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {providers.map((provider) => (
                   <SelectItem key={provider.id} value={provider.id}>
-                    {provider.name}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{provider.name}</span>
+                      {provider.description && (
+                        <span className="text-xs text-gray-500">{provider.description}</span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

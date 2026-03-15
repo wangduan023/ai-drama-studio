@@ -21,6 +21,7 @@ export interface AiProvider {
   id: string
   name: string
   provider: string
+  description?: string | null
 }
 
 export interface AiModel {

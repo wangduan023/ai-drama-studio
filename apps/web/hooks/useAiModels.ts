@@ -54,8 +54,33 @@ export interface UpdateAiModelInput {
 
 export function useAiModels() {
   const [models, setModels] = useState<AiModel[]>([])
+  const [currentModel, setCurrentModel] = useState<AiModel | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // 获取模型详情
+  const fetchModel = useCallback(async (id: string) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/admin/ai-models/${id}`)
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to fetch model')
+      }
+
+      const data = await response.json()
+      setCurrentModel(data)
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   // 获取模型列表
   const fetchModels = useCallback(async (providerId?: string) => {
@@ -174,9 +199,11 @@ export function useAiModels() {
 
   return {
     models,
+    currentModel,
     isLoading,
     error,
     fetchModels,
+    fetchModel,
     createModel,
     updateModel,
     deleteModel,
