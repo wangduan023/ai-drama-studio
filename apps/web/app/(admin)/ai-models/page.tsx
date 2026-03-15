@@ -8,6 +8,7 @@
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAiModels } from '@/hooks/useAiModels'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { RBACButton } from '@/components/rbac'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -22,10 +23,12 @@ import {
   XCircle
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 
 export default function AiModelsPage() {
   const router = useRouter()
   const { models, isLoading, fetchModels, toggleModelStatus, deleteModel } = useAiModels()
+  const confirm = useConfirm()
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -179,9 +182,24 @@ export default function AiModelsPage() {
                     size="icon"
                     className="text-red-600 hover:text-red-700"
                     onClick={() => {
-                      if (confirm('确定要删除此模型吗？')) {
-                        deleteModel(model.id)
-                      }
+                      confirm({
+                        title: '删除确认',
+                        message: `确定要删除模型 "${model.name}" 吗？此操作不可恢复。`,
+                        confirmText: '删除',
+                        cancelText: '取消',
+                        onConfirm: async () => {
+                          try {
+                            await deleteModel(model.id)
+                            toast.success('删除成功', {
+                              description: `模型 "${model.name}" 已被删除`,
+                            })
+                          } catch (error: any) {
+                            toast.error('删除失败', {
+                              description: error.message || '请稍后重试',
+                            })
+                          }
+                        },
+                      })
                     }}
                   >
                     <Trash2 className="w-4 h-4" />

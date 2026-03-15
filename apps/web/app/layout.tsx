@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { ConfirmProvider } from '@/components/providers/ConfirmProvider'
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper'
 import { Toaster } from '@/components/ui/sonner'
 import { cn } from '@/lib/utils'
@@ -42,10 +43,12 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <QueryProvider>
-            <LayoutWrapper>
-              {children}
-            </LayoutWrapper>
-            <Toaster position="top-center" richColors closeButton />
+            <ConfirmProvider>
+              <LayoutWrapper>
+                {children}
+              </LayoutWrapper>
+              <Toaster position="top-center" richColors closeButton />
+            </ConfirmProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

@@ -7,6 +7,7 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useAiProxy } from '@/hooks/useAiProxy'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { ProxyCard } from '@/components/ai-proxies/ProxyCard'
 import { HealthStatusDetail } from '@/components/ai-proxies/HealthStatus'
 import { LatencyChart } from '@/components/ai-proxies/LatencyChart'
@@ -19,6 +20,7 @@ export default function ProxyDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { proxies, toggleProxyStatus, deleteProxy, isLoading } = useAiProxy()
+  const confirm = useConfirm()
 
   const proxy = proxies.find(p => p.id === params.id)
 
@@ -61,10 +63,16 @@ export default function ProxyDetailPage() {
         proxy={proxy}
         onToggle={toggleProxyStatus}
         onDelete={(id) => {
-          if (confirm('确定要删除此代理吗？')) {
-            deleteProxy(id)
-            router.push('/ai-proxies')
-          }
+          confirm({
+            title: '删除确认',
+            message: `确定要删除此代理吗？此操作不可恢复。`,
+            confirmText: '删除',
+            cancelText: '取消',
+            onConfirm: () => {
+              deleteProxy(id)
+              router.push('/ai-proxies')
+            },
+          })
         }}
       />
 

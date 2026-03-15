@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import type { Comment } from './types'
 
 /**
@@ -58,6 +59,7 @@ export function CommentItem({
   onDelete,
   depth = 0,
 }: CommentItemProps) {
+  const confirm = useConfirm()
   const [isReplying, setIsReplying] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [replyContent, setReplyContent] = useState('')
@@ -95,9 +97,16 @@ export function CommentItem({
   }
 
   const handleDelete = () => {
-    if (onDelete && confirm('确定要删除这条评论吗？')) {
-      onDelete(comment.id)
-    }
+    if (!onDelete) return
+    confirm({
+      title: '删除确认',
+      message: '确定要删除这条评论吗？此操作不可恢复。',
+      confirmText: '删除',
+      cancelText: '取消',
+      onConfirm: () => {
+        onDelete(comment.id)
+      },
+    })
   }
 
   const formatTime = (date: string) => {

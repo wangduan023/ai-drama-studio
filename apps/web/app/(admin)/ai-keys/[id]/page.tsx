@@ -7,6 +7,7 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useAiKeys } from '@/hooks/useAiKeys'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,7 @@ export default function AiKeyDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { keys, toggleKeyStatus, deleteKey, isLoading } = useAiKeys()
+  const confirm = useConfirm()
 
   const key = keys.find(k => k.id === params.id)
 
@@ -161,10 +163,16 @@ export default function AiKeyDetailPage() {
         <Button
           variant="outline"
           onClick={() => {
-            if (confirm('确定要删除此密钥吗？')) {
-              deleteKey(key.id)
-              router.push('/ai-keys')
-            }
+            confirm({
+              title: '删除确认',
+              message: `确定要删除密钥 "${key.name}" 吗？此操作不可恢复。`,
+              confirmText: '删除',
+              cancelText: '取消',
+              onConfirm: () => {
+                deleteKey(key.id)
+                router.push('/ai-keys')
+              },
+            })
           }}
           className="text-red-600 hover:text-red-700"
         >

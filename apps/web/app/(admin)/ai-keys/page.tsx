@@ -8,6 +8,7 @@
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAiKeys } from '@/hooks/useAiKeys'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { RBACButton } from '@/components/rbac'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,6 +29,7 @@ import { useState, useEffect } from 'react'
 export default function AiKeysPage() {
   const router = useRouter()
   const { keys, isLoading, fetchKeys, toggleKeyStatus, deleteKey } = useAiKeys()
+  const confirm = useConfirm()
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -178,9 +180,15 @@ export default function AiKeysPage() {
                       size="icon"
                       className="text-red-600 hover:text-red-700"
                       onClick={() => {
-                        if (confirm('确定要删除此密钥吗？')) {
-                          deleteKey(key.id)
-                        }
+                        confirm({
+                          title: '删除确认',
+                          message: `确定要删除密钥 "${key.name}" 吗？此操作不可恢复。`,
+                          confirmText: '删除',
+                          cancelText: '取消',
+                          onConfirm: () => {
+                            deleteKey(key.id)
+                          },
+                        })
                       }}
                     >
                       <Trash2 className="w-4 h-4" />

@@ -6,6 +6,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { ProxyForm, type ProxyFormData } from '@/components/ai-proxies/ProxyForm'
 import { useAiProxy } from '@/hooks/useAiProxy'
 import { ArrowLeft } from 'lucide-react'
@@ -14,7 +15,12 @@ import { Button } from '@/components/ui/button'
 export default function EditProxyPage() {
   const params = useParams()
   const router = useRouter()
-  const { proxies, updateProxy, isLoading } = useAiProxy()
+  const { proxies, updateProxy, isLoading, fetchProxies } = useAiProxy()
+
+  // 加载代理数据
+  useEffect(() => {
+    fetchProxies()
+  }, [])
 
   const proxy = proxies.find(p => p.id === params.id)
 
@@ -25,10 +31,13 @@ export default function EditProxyPage() {
     host: proxy.host,
     port: proxy.port,
     username: proxy.username || undefined,
+    // 密码不返回，留空让用户输入新密码
+    password: undefined,
     location: proxy.location || undefined,
     provider: proxy.provider || undefined,
     isActive: proxy.isActive,
     maxConcurrent: proxy.maxConcurrent,
+    description: proxy.description || undefined,
   } : undefined
 
   const handleSubmit = async (data: ProxyFormData) => {

@@ -7,6 +7,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useAiProvider } from '@/hooks/useAiProvider'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { RBACButton } from '@/components/rbac'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -23,10 +24,12 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
 
 export default function AiProvidersPage() {
   const router = useRouter()
   const { providers, isLoading, fetchProviders, toggleProviderStatus, deleteProvider } = useAiProvider()
+  const confirm = useConfirm()
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -189,9 +192,24 @@ export default function AiProvidersPage() {
                       size="icon"
                       className="text-red-600 hover:text-red-700"
                       onClick={() => {
-                        if (confirm('确定要删除此渠道商吗？')) {
-                          deleteProvider(provider.id)
-                        }
+                        confirm({
+                          title: '删除确认',
+                          message: `确定要删除渠道商 "${provider.name}" 吗？此操作不可恢复。`,
+                          confirmText: '删除',
+                          cancelText: '取消',
+                          onConfirm: async () => {
+                            try {
+                              await deleteProvider(provider.id)
+                              toast.success('删除成功', {
+                                description: `渠道商 "${provider.name}" 已被删除`,
+                              })
+                            } catch (error: any) {
+                              toast.error('删除失败', {
+                                description: error.message || '请稍后重试',
+                              })
+                            }
+                          },
+                        })
                       }}
                     >
                       <Trash2 className="w-4 h-4" />

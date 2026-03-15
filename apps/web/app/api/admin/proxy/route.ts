@@ -33,13 +33,14 @@ export async function GET(request: NextRequest) {
       ...(location ? { location } : {}),
     })
 
-    // 过滤敏感信息
+    // 过滤敏感信息（密码不返回）
     const safeProxies = proxies.map(proxy => ({
       id: proxy.id,
       name: proxy.name,
       host: proxy.host,
       port: proxy.port,
       protocol: proxy.protocol,
+      username: proxy.username,
       location: proxy.location,
       provider: proxy.provider,
       isActive: proxy.isActive,

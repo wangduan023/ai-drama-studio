@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { RBACButton } from '@/components/rbac'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +40,7 @@ interface User {
 }
 
 export default function UsersPage() {
+  const confirm = useConfirm()
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -190,20 +192,37 @@ export default function UsersPage() {
     }
   }
 
-  const deleteUser = async (userId: string) => {
-    if (!confirm('确定要删除此用户吗？')) return
+  const deleteUser = async (user: User) => {
+    confirm({
+      title: '删除确认',
+      message: `确定要删除用户 "${user.name || user.email}" 吗？此操作不可恢复。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/admin/users/${user.id}`, {
+            method: 'DELETE'
+          })
 
-    try {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        setUsers(prev => prev.filter(u => u.id !== userId))
-      }
-    } catch (error) {
-      console.error('Failed to delete user:', error)
-    }
+          if (response.ok) {
+            setUsers(prev => prev.filter(u => u.id !== user.id))
+            toast.success('删除成功', {
+              description: `用户 "${user.name || user.email}" 已被删除`,
+            })
+          } else {
+            const data = await response.json()
+            toast.error('删除失败', {
+              description: data.error || '请稍后重试',
+            })
+          }
+        } catch (error: any) {
+          console.error('Failed to delete user:', error)
+          toast.error('删除失败', {
+            description: error.message || '请稍后重试',
+          })
+        }
+      },
+    })
   }
 
   if (isLoading) {
@@ -301,7 +320,7 @@ export default function UsersPage() {
                     variant="ghost"
                     size="icon"
                     className="text-red-600 hover:text-red-700"
-                    onClick={() => deleteUser(user.id)}
+                    onClick={() => deleteUser(user)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </RBACButton>

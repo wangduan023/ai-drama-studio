@@ -7,6 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { RBACButton } from '@/components/rbac'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ interface Role {
 }
 
 export default function RolesPage() {
+  const confirm = useConfirm()
   const [roles, setRoles] = useState<Role[]>([])
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -185,20 +187,37 @@ export default function RolesPage() {
     }
   }
 
-  const deleteRole = async (roleId: string) => {
-    if (!confirm('确定要删除此角色吗？')) return
+  const deleteRole = async (role: Role) => {
+    confirm({
+      title: '删除确认',
+      message: `确定要删除角色 "${role.label}" 吗？此操作不可恢复。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/admin/roles/${role.id}`, {
+            method: 'DELETE'
+          })
 
-    try {
-      const response = await fetch(`/api/admin/roles/${roleId}`, {
-        method: 'DELETE'
-      })
-
-      if (response.ok) {
-        setRoles(prev => prev.filter(r => r.id !== roleId))
-      }
-    } catch (error) {
-      console.error('Failed to delete role:', error)
-    }
+          if (response.ok) {
+            setRoles(prev => prev.filter(r => r.id !== role.id))
+            toast.success('删除成功', {
+              description: `角色 "${role.label}" 已被删除`,
+            })
+          } else {
+            const data = await response.json()
+            toast.error('删除失败', {
+              description: data.error || '请稍后重试',
+            })
+          }
+        } catch (error: any) {
+          console.error('Failed to delete role:', error)
+          toast.error('删除失败', {
+            description: error.message || '请稍后重试',
+          })
+        }
+      },
+    })
   }
 
   // 按资源分组权限
@@ -324,7 +343,7 @@ export default function RolesPage() {
                     variant="ghost"
                     size="sm"
                     className="text-red-600 hover:text-red-700"
-                    onClick={() => deleteRole(role.id)}
+                    onClick={() => deleteRole(role)}
                   >
                     <Trash2 className="w-3 h-3" />
                   </RBACButton>

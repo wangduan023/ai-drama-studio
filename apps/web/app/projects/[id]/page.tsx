@@ -37,6 +37,7 @@ import {
   useUpdateProject,
   useDeleteProject,
 } from '@/hooks/useProject'
+import { useConfirm } from '@/components/providers/ConfirmProvider'
 import { useEpisodesByProject } from '@/hooks/useEpisode'
 import { useCharacterList } from '@/hooks/useCharacter'
 import { useLocationList } from '@/hooks/useLocation'
@@ -44,6 +45,7 @@ import { useLocationList } from '@/hooks/useLocation'
 export default function ProjectDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const confirm = useConfirm()
   const projectId = params.id as string
   const [activeTab, setActiveTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
@@ -97,17 +99,21 @@ export default function ProjectDetailPage() {
   const handleDelete = async () => {
     if (!project) return
     
-    if (!confirm(`确定要删除项目 "${project.title}" 吗？此操作不可恢复。`)) {
-      return
-    }
-
-    try {
-      await deleteProject.mutateAsync(projectId)
-      toast.success('项目已删除')
-      router.push('/projects')
-    } catch {
-      toast.error('删除失败，请重试')
-    }
+    confirm({
+      title: '删除确认',
+      message: `确定要删除项目 "${project.title}" 吗？此操作不可恢复。`,
+      confirmText: '删除',
+      cancelText: '取消',
+      onConfirm: async () => {
+        try {
+          await deleteProject.mutateAsync(projectId)
+          toast.success('项目已删除')
+          router.push('/projects')
+        } catch {
+          toast.error('删除失败，请重试')
+        }
+      },
+    })
   }
 
   // 加载状态
