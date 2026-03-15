@@ -205,10 +205,10 @@ export default function AiProxiesPage() {
               <div className="flex items-center gap-6 mt-4 pt-4 border-t text-sm text-gray-500">
                 <span className="flex items-center gap-1">
                   <Activity className="w-4 h-4" />
-                  请求: {proxy.totalRequests.toLocaleString()}
+                  请求: {(proxy.totalRequests || 0).toLocaleString()}
                 </span>
-                <span>成功: {proxy.successRequests.toLocaleString()}</span>
-                <span>失败: {proxy.failedRequests.toLocaleString()}</span>
+                <span>成功: {(proxy.successRequests || 0).toLocaleString()}</span>
+                <span>失败: {(proxy.failedRequests || 0).toLocaleString()}</span>
                 {proxy.lastCheckAt && (
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" />
