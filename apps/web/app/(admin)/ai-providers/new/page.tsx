@@ -35,7 +35,7 @@ export default function NewAiProviderPage() {
     <div className="max-w-3xl mx-auto">
       {/* 页面头部 */}
       <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" asChild>
           <Link href="/ai-providers">
             <ArrowLeft className="w-5 h-5" />
           </Link>

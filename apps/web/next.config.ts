@@ -56,14 +56,16 @@ const nextConfig: NextConfig = {
   },
 
   // API 代理配置（开发环境）
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
-      },
-    ]
-  },
+  // 注意：使用 Next.js 自带的 API Routes 时无需代理
+  // 如需代理到独立后端服务器（如端口 3000），取消下面的注释并修改端口
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: '/api/:path*',
+  //       destination: 'http://localhost:3000/api/:path*',
+  //     },
+  //   ]
+  // },
 }
 
 export default nextConfig

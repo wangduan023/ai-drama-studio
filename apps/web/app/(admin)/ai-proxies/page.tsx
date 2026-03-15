@@ -6,29 +6,34 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAiProxy } from '@/hooks/useAiProxy'
 import { RBACButton } from '@/components/rbac'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Globe, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Power, 
+import {
+  Globe,
+  Plus,
+  Edit2,
+  Trash2,
+  Power,
   PowerOff,
   RefreshCw,
   Search,
   Activity,
   Clock
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AiProxiesPage() {
   const router = useRouter()
-  const { proxies, isLoading, toggleProxyStatus, deleteProxy } = useAiProxy()
+  const { proxies, isLoading, fetchProxies, toggleProxyStatus, deleteProxy } = useAiProxy()
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    fetchProxies()
+  }, [])
 
   const filteredProxies = proxies.filter(proxy =>
     proxy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

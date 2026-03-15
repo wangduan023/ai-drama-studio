@@ -249,6 +249,7 @@ export class RoleRepository extends BaseRepository<'role', Role> {
 
   /**
    * 检查用户是否有权限
+   * 完全依赖数据库配置的权限，无硬编码
    */
   async checkUserPermission(
     userId: string,
@@ -256,26 +257,40 @@ export class RoleRepository extends BaseRepository<'role', Role> {
     action: string,
     projectId?: string
   ): Promise<boolean> {
-    // 1. 检查系统级权限
-    const systemPermission = await this.prisma.rolePermission.findFirst({
+    // 1. 检查系统级权限（包括通配符权限 *:*）
+    const systemPermissions = await this.prisma.rolePermission.findMany({
       where: {
         role: { userSystemRoles: { some: { userId } } },
-        permission: { resource, action }
+        permission: {
+          OR: [
+            { resource: '*', action: '*' },
+            { resource, action },
+            { resource: '*', action },
+            { resource, action: '*' }
+          ]
+        }
       }
     })
 
-    if (systemPermission) return true
+    if (systemPermissions.length > 0) return true
 
     // 2. 检查项目级权限
     if (projectId) {
-      const projectPermission = await this.prisma.rolePermission.findFirst({
+      const projectPermissions = await this.prisma.rolePermission.findMany({
         where: {
           role: { projectMemberRoles: { some: { userId, projectId } } },
-          permission: { resource, action }
+          permission: {
+            OR: [
+              { resource: '*', action: '*' },
+              { resource, action },
+              { resource: '*', action },
+              { resource, action: '*' }
+            ]
+          }
         }
       })
 
-      if (projectPermission) return true
+      if (projectPermissions.length > 0) return true
     }
 
     return false

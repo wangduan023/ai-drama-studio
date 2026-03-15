@@ -5,9 +5,10 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAiKeys } from '@/hooks/useAiKeys'
+import { useAiProvider } from '@/hooks/useAiProvider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, Key } from 'lucide-react'
+import { ArrowLeft, Key, AlertCircle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 
 const CAPABILITIES = ['TEXT', 'IMAGE', 'VIDEO', 'VOICE', 'CHAT', 'VISION']
@@ -33,8 +34,14 @@ const PROXY_MODES = [
 export default function NewAiKeyPage() {
   const router = useRouter()
   const { createKey } = useAiKeys()
+  const { providers, fetchProviders } = useAiProvider()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([])
+
+  // 加载渠道列表
+  useEffect(() => {
+    fetchProviders({ active: true })
+  }, [])
 
   const [formData, setFormData] = useState({
     name: '',
@@ -129,18 +136,49 @@ export default function NewAiKeyPage() {
               <Select
                 value={formData.providerId}
                 onValueChange={(value) => setFormData({ ...formData, providerId: value })}
+                disabled={providers.length === 0}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="选择渠道商" />
+                  {formData.providerId ? (
+                    <span>
+                      {providers.find(p => p.id === formData.providerId)?.name || formData.providerId}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">
+                      {providers.length === 0 ? '暂无可用渠道' : '选择渠道商'}
+                    </span>
+                  )}
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="openai">OpenAI</SelectItem>
-                  <SelectItem value="anthropic">Anthropic</SelectItem>
-                  <SelectItem value="google">Google</SelectItem>
-                  <SelectItem value="deepseek">DeepSeek</SelectItem>
-                  <SelectItem value="qwen">通义千问</SelectItem>
+                  {providers.map((provider) => (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      <div className="flex flex-col">
+                        <span>{provider.name}</span>
+                        {provider.description && (
+                          <span className="text-xs text-gray-400">{provider.description}</span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              {providers.length === 0 && (
+                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-amber-800">
+                      当前没有启用的渠道，无法创建密钥。
+                    </p>
+                    <Link
+                      href="/ai-providers"
+                      className="inline-flex items-center gap-1 mt-2 text-amber-700 hover:text-amber-900 font-medium underline underline-offset-2"
+                    >
+                      前往渠道管理页面启用或创建渠道
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* API Key */}

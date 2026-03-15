@@ -174,6 +174,11 @@ export default function RolesPage() {
       if (response.ok) {
         setEditingPermissions(false)
         setSelectedRole(null)
+        // 清除 RBAC 权限缓存，使变更立即生效
+        import('@/hooks/useRBAC').then(({ clearRBACCache }) => {
+          clearRBACCache()
+          console.log('[RolesPage] RBAC cache cleared after permission update')
+        })
       }
     } catch (error) {
       console.error('Failed to save permissions:', error)

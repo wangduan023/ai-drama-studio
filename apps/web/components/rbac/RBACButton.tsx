@@ -68,7 +68,22 @@ export function RBACButton({
   ...props
 }: RBACButtonProps) {
   const { can, isLoading } = useRBAC(projectId)
+  
+  // 直接调用 can 函数检查权限
   const hasPermission = can(resource, action)
+
+  // 权限加载中时不渲染（避免闪烁）
+  if (isLoading) {
+    return (
+      <Button
+        disabled
+        className={cn('opacity-50', className)}
+        {...props}
+      >
+        {children}
+      </Button>
+    )
+  }
 
   // 无权限且需要隐藏时，不渲染
   if (!hasPermission && hideWhenNoPermission) {

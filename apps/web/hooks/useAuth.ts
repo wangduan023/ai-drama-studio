@@ -146,6 +146,10 @@ function useLogout() {
       await api.post('/api/auth/local/logout')
     },
     onSuccess: () => {
+      // 清除 RBAC 权限缓存
+      import('./useRBAC').then(({ clearRBACCache }) => {
+        clearRBACCache()
+      })
       queryClient.removeQueries({ queryKey: queryKeys.auth.all })
       toast.success('已登出', {
         description: '期待您的再次访问',

@@ -226,9 +226,12 @@ export function MemberManager({ projectId, currentUserRole = 'VIEWER' }: MemberM
                   {canManage && !isOwner && !isCurrentUser && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon-xs">
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-lg h-7 w-7 hover:bg-muted transition-colors"
+                        >
                           <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem

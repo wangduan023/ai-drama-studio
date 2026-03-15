@@ -9,7 +9,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { Breadcrumbs } from './breadcrumbs'
-import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,15 +51,13 @@ export function AdminTopbar() {
         {/* 右侧：用户菜单 */}
         <div className="flex items-center gap-4">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4" />
-                </div>
-                <span className="max-w-[120px] truncate">
-                  {user?.email || '用户'}
-                </span>
-              </Button>
+            <DropdownMenuTrigger className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors outline-none">
+              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                <User className="w-4 h-4" />
+              </div>
+              <span className="max-w-[120px] truncate">
+                {user?.email || '用户'}
+              </span>
             </DropdownMenuTrigger>
             
             <DropdownMenuContent align="end" className="w-48">

@@ -173,9 +173,12 @@ export function CommentItem({
               {isOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                    <button
+                      type="button"
+                      className="h-7 w-7 p-0 inline-flex items-center justify-center rounded-lg hover:bg-muted transition-colors"
+                    >
                       <MoreHorizontal className="h-3 w-3" />
-                    </Button>
+                    </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start">
                     <DropdownMenuItem onClick={() => setIsEditing(true)}>

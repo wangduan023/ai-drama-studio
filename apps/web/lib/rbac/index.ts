@@ -46,8 +46,13 @@ export async function checkPermission(
   action: string,
   projectId?: string
 ): Promise<boolean> {
-  const roleRepo = new RoleRepository(prisma)
-  return roleRepo.checkUserPermission(userId, resource, action, projectId)
+  try {
+    const roleRepo = new RoleRepository(prisma)
+    return await roleRepo.checkUserPermission(userId, resource, action, projectId)
+  } catch (error: any) {
+    console.error('[checkPermission] Error:', error)
+    throw error
+  }
 }
 
 /**
@@ -127,55 +132,76 @@ export async function requirePermission(
   action: string,
   projectId?: string
 ): Promise<RBACResult> {
-  // 1. 验证用户认证
-  const authResult = await verifyAuth(request)
-  
-  if (!authResult.user) {
-    return {
-      success: false,
-      response: NextResponse.json(
-        { error: 'Unauthorized', message: '请先登录' },
-        { status: 401 }
-      ),
+  try {
+    // 1. 验证用户认证
+    const authResult = await verifyAuth(request)
+    
+    if (!authResult.user) {
+      return {
+        success: false,
+        response: NextResponse.json(
+          { error: 'Unauthorized', message: '请先登录' },
+          { status: 401 }
+        ),
+      }
     }
-  }
 
-  const userId = authResult.user.id
+    const userId = authResult.user.id
 
-  // 2. 检查权限
-  const hasPerm = await checkPermission(userId, resource, action, projectId)
-  
-  if (!hasPerm) {
+    // 2. 检查权限
+    const hasPerm = await checkPermission(userId, resource, action, projectId)
+    
+    if (!hasPerm) {
+      return {
+        success: false,
+        response: NextResponse.json(
+          { 
+            error: 'Forbidden', 
+            message: `需要 ${resource}:${action} 权限`,
+            required: { resource, action },
+          },
+          { status: 403 }
+        ),
+      }
+    }
+
+    // 3. 获取用户角色信息（可选，失败不影响主流程）
+    let systemRoles: string[] = []
+    let projectRoles: Record<string, string[]> | undefined
+    
+    try {
+      systemRoles = await getUserSystemRoles(userId)
+      if (projectId) {
+        const roles = await getUserProjectRoles(userId, projectId)
+        projectRoles = { [projectId]: roles }
+      }
+    } catch (roleError) {
+      console.error('[requirePermission] Failed to get user roles:', roleError)
+      // 不影响主流程，继续返回成功
+    }
+
+    return {
+      success: true,
+      context: {
+        userId,
+        email: authResult.user.email,
+        systemRoles,
+        projectRoles,
+      },
+    }
+  } catch (error: any) {
+    console.error('[requirePermission] Error:', error)
     return {
       success: false,
       response: NextResponse.json(
         { 
-          error: 'Forbidden', 
-          message: `需要 ${resource}:${action} 权限`,
-          required: { resource, action },
+          error: 'Internal Server Error', 
+          message: '权限检查失败',
+          details: error.message,
         },
-        { status: 403 }
+        { status: 500 }
       ),
     }
-  }
-
-  // 3. 获取用户角色信息
-  const systemRoles = await getUserSystemRoles(userId)
-  let projectRoles: Record<string, string[]> | undefined
-  
-  if (projectId) {
-    const roles = await getUserProjectRoles(userId, projectId)
-    projectRoles = { [projectId]: roles }
-  }
-
-  return {
-    success: true,
-    context: {
-      userId,
-      email: authResult.user.email,
-      systemRoles,
-      projectRoles,
-    },
   }
 }
 

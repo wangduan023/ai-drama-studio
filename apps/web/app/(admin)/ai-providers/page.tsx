@@ -8,7 +8,6 @@
 import { useRouter } from 'next/navigation'
 import { useAiProvider } from '@/hooks/useAiProvider'
 import { RBACButton } from '@/components/rbac'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -16,19 +15,23 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Power,
-  PowerOff,
   RefreshCw,
   Search,
   Activity,
   Link as LinkIcon,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AiProvidersPage() {
   const router = useRouter()
-  const { providers, isLoading, toggleProviderStatus, deleteProvider } = useAiProvider()
+  const { providers, isLoading, fetchProviders, toggleProviderStatus, deleteProvider } = useAiProvider()
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    fetchProviders()
+  }, [])
 
   const filteredProviders = providers.filter(provider =>
     provider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -160,9 +163,9 @@ export default function AiProvidersPage() {
                       title={provider.isActive ? '禁用' : '启用'}
                     >
                       {provider.isActive ? (
-                        <PowerOff className="w-4 h-4" />
+                        <CheckCircle2 className="w-4 h-4 text-green-600" />
                       ) : (
-                        <Power className="w-4 h-4" />
+                        <XCircle className="w-4 h-4 text-gray-600" />
                       )}
                     </RBACButton>
 
@@ -174,6 +177,7 @@ export default function AiProvidersPage() {
                       onClick={() => {
                         router.push(`/ai-providers/${provider.id}/edit`)
                       }}
+                      title="编辑"
                     >
                       <Edit2 className="w-4 h-4" />
                     </RBACButton>

@@ -3,9 +3,10 @@
  * 统一权限控制 Hook
  * 
  * 支持系统级和项目级权限检查
+ * 使用全局缓存避免重复请求
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from './useAuth'
 
 export interface Permission {
@@ -18,15 +19,37 @@ export interface RBACPermissions {
   projects: Record<string, Permission[]>
 }
 
+// 全局缓存
+const globalCache: Map<string, { data: RBACPermissions; timestamp: number }> = new Map()
+const CACHE_TTL = 5 * 60 * 1000 // 5分钟缓存
+
+// 获取缓存键
+const getCacheKey = (userId: string | undefined, projectId: string | undefined) => {
+  return `${userId || 'anonymous'}:${projectId || 'global'}`
+}
+
 export function useRBAC(projectId?: string) {
   const { user, isAuthenticated } = useAuth()
   const [permissions, setPermissions] = useState<RBACPermissions | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const cacheKeyRef = useRef<string>('')
 
   // 获取用户权限
   useEffect(() => {
     if (!isAuthenticated || !user) {
       setPermissions(null)
+      setIsLoading(false)
+      return
+    }
+
+    const cacheKey = getCacheKey(user.id, projectId)
+    cacheKeyRef.current = cacheKey
+
+    // 检查缓存
+    const cached = globalCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log('[useRBAC] Using cached permissions for:', cacheKey)
+      setPermissions(cached.data)
       setIsLoading(false)
       return
     }
@@ -37,10 +60,13 @@ export function useRBAC(projectId?: string) {
           ? `/api/rbac/permissions?projectId=${projectId}`
           : '/api/rbac/permissions'
         
+        console.log('[useRBAC] Fetching permissions for:', cacheKey)
         const response = await fetch(url)
         if (response.ok) {
           const data = await response.json()
           setPermissions(data)
+          // 更新全局缓存
+          globalCache.set(cacheKey, { data, timestamp: Date.now() })
         }
       } catch (error) {
         console.error('Failed to fetch permissions:', error)
@@ -50,10 +76,11 @@ export function useRBAC(projectId?: string) {
     }
 
     fetchPermissions()
-  }, [isAuthenticated, user, projectId])
+  }, [isAuthenticated, user?.id, projectId])
 
   /**
    * 检查权限
+   * 完全依赖数据库配置的权限，无硬编码
    */
   const checkPermission = useCallback((
     resource: string,
@@ -64,7 +91,7 @@ export function useRBAC(projectId?: string) {
 
     const targetProjectId = ctxProjectId || projectId
 
-    // 1. 检查 SUPER_ADMIN (通配符权限)
+    // 1. 检查通配符权限 (*:*)
     const hasWildcard = permissions.system.some(
       p => p.resource === '*' && p.action === '*'
     )
@@ -140,4 +167,22 @@ export function useSystemPermissions() {
  */
 export function useProjectPermissions(projectId: string) {
   return useRBAC(projectId)
+}
+
+/**
+ * 清除权限缓存
+ * 在权限变更后调用以刷新
+ */
+export function clearRBACCache(userId?: string) {
+  if (userId) {
+    // 清除特定用户的缓存
+    for (const key of globalCache.keys()) {
+      if (key.startsWith(`${userId}:`)) {
+        globalCache.delete(key)
+      }
+    }
+  } else {
+    // 清除所有缓存
+    globalCache.clear()
+  }
 }

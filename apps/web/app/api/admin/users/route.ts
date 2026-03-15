@@ -25,20 +25,35 @@ export async function GET(request: NextRequest) {
         role: true,
         createdAt: true,
         updatedAt: true,
-        roles: {
-          select: {
-            id: true,
-            name: true,
-            label: true,
-          },
-        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     })
 
-    return NextResponse.json(users)
+    // 为每个用户获取系统角色
+    const usersWithRoles = await Promise.all(
+      users.map(async (user) => {
+        const userRoles = await prisma.userSystemRole.findMany({
+          where: { userId: user.id },
+          include: {
+            role: {
+              select: {
+                id: true,
+                name: true,
+                label: true,
+              },
+            },
+          },
+        })
+        return {
+          ...user,
+          roles: userRoles.map(ur => ur.role),
+        }
+      })
+    )
+
+    return NextResponse.json(usersWithRoles)
   } catch (error: any) {
     console.error('Failed to fetch users:', error)
     return NextResponse.json(

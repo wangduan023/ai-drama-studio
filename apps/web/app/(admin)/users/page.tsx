@@ -179,6 +179,12 @@ export default function UsersPage() {
       setEditingRoles(false)
       setSelectedUser(null)
       fetchUsers()
+      
+      // 清除 RBAC 权限缓存，使变更立即生效
+      import('@/hooks/useRBAC').then(({ clearRBACCache }) => {
+        clearRBACCache()
+        console.log('[UsersPage] RBAC cache cleared after user role update')
+      })
     } catch (error) {
       console.error('Failed to save user roles:', error)
     }

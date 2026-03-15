@@ -18,6 +18,7 @@ import {
   BarChart3,
   Users,
   Lock,
+  Cpu,
 } from 'lucide-react'
 
 interface NavItem {
@@ -60,6 +61,14 @@ const navGroups: NavGroup[] = [
         href: '/ai-providers',
         icon: <Bot className="w-5 h-5" />,
         resource: 'ai_provider',
+        action: 'read',
+      },
+      {
+        id: 'ai-models',
+        label: '模型管理',
+        href: '/ai-models',
+        icon: <Cpu className="w-5 h-5" />,
+        resource: 'ai_model',
         action: 'read',
       },
       {

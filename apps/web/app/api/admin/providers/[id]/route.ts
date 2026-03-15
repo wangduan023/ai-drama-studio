@@ -22,13 +22,14 @@ const providerRepo = new AiProviderRepository(prisma)
 // ============================================
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requirePermission(request, 'ai_provider', 'read')
   if (!auth.success) return auth.response
 
   try {
-    const provider = await providerRepo.findById(params.id)
+    const provider = await providerRepo.findById(id)
 
     if (!provider) {
       return NextResponse.json(
@@ -69,8 +70,9 @@ export async function GET(
 // ============================================
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requirePermission(request, 'ai_provider', 'update')
   if (!auth.success) return auth.response
 
@@ -78,7 +80,7 @@ export async function PUT(
     const body = await request.json()
 
     // 验证渠道商是否存在
-    const existingProvider = await providerRepo.findById(params.id)
+    const existingProvider = await providerRepo.findById(id)
     if (!existingProvider) {
       return NextResponse.json(
         { error: 'Provider not found' },
@@ -98,7 +100,7 @@ export async function PUT(
       ...(body.description !== undefined ? { description: body.description } : {}),
     }
 
-    const provider = await providerRepo.update(params.id, input)
+    const provider = await providerRepo.update(id, input)
 
     return NextResponse.json({
       id: provider.id,
@@ -134,14 +136,15 @@ export async function PUT(
 // ============================================
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   const auth = await requirePermission(request, 'ai_provider', 'delete')
   if (!auth.success) return auth.response
 
   try {
     // 验证渠道商是否存在
-    const existingProvider = await providerRepo.findById(params.id)
+    const existingProvider = await providerRepo.findById(id)
     if (!existingProvider) {
       return NextResponse.json(
         { error: 'Provider not found' },
@@ -149,7 +152,7 @@ export async function DELETE(
       )
     }
 
-    await providerRepo.delete(params.id)
+    await providerRepo.delete(id)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {

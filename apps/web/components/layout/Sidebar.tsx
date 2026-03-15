@@ -16,6 +16,9 @@ import {
   CheckSquare,
   Shield,
   Key,
+  Globe,
+  Bot,
+  Cpu,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -77,6 +80,34 @@ const mainNavItems: NavItemConfig[] = [
 
 // 管理菜单（仅管理员可见）
 const adminNavItems: NavItemConfig[] = [
+  {
+    title: '密钥管理',
+    href: '/ai-keys',
+    icon: Key,
+    requireAuth: true,
+    adminOnly: true,
+  },
+  {
+    title: '代理管理',
+    href: '/ai-proxies',
+    icon: Globe,
+    requireAuth: true,
+    adminOnly: true,
+  },
+  {
+    title: '渠道管理',
+    href: '/ai-providers',
+    icon: Bot,
+    requireAuth: true,
+    adminOnly: true,
+  },
+  {
+    title: '模型管理',
+    href: '/ai-models',
+    icon: Cpu,
+    requireAuth: true,
+    adminOnly: true,
+  },
   {
     title: '用户管理',
     href: '/users',

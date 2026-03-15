@@ -64,8 +64,18 @@ export function useAiProvider() {
       const response = await fetch(url)
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to fetch providers')
+        const contentType = response.headers.get('content-type')
+        let errorMessage = 'Failed to fetch providers'
+        
+        if (contentType?.includes('application/json')) {
+          const data = await response.json()
+          errorMessage = data.error || data.message || errorMessage
+        } else {
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -92,8 +102,18 @@ export function useAiProvider() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to create provider')
+        const contentType = response.headers.get('content-type')
+        let errorMessage = 'Failed to create provider'
+        
+        if (contentType?.includes('application/json')) {
+          const data = await response.json()
+          errorMessage = data.error || data.message || errorMessage
+        } else {
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -120,8 +140,18 @@ export function useAiProvider() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to update provider')
+        const contentType = response.headers.get('content-type')
+        let errorMessage = 'Failed to update provider'
+        
+        if (contentType?.includes('application/json')) {
+          const data = await response.json()
+          errorMessage = data.error || data.message || errorMessage
+        } else {
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const data = await response.json()
@@ -146,8 +176,18 @@ export function useAiProvider() {
       })
 
       if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to delete provider')
+        const contentType = response.headers.get('content-type')
+        let errorMessage = 'Failed to delete provider'
+        
+        if (contentType?.includes('application/json')) {
+          const data = await response.json()
+          errorMessage = data.error || data.message || errorMessage
+        } else {
+          const text = await response.text()
+          errorMessage = text || errorMessage
+        }
+        
+        throw new Error(errorMessage)
       }
 
       setProviders(prev => prev.filter(p => p.id !== id))

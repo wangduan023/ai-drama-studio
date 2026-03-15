@@ -101,6 +101,18 @@ async function main() {
 
     const demoUsers = [
       {
+        email: 'superadmin@aidrama.com',
+        name: 'Super Admin',
+        role: 'SUPER_ADMIN' as const,
+        passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiAYMyzJ/I2K' // hashed 'password123'
+      },
+      {
+        email: 'super@example.com',
+        name: 'Super Admin',
+        role: 'SUPER_ADMIN' as const,
+        passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewKyNiAYMyzJ/I2K' // hashed 'password123'
+      },
+      {
         email: 'admin@example.com',
         name: 'Admin User',
         role: 'ADMIN' as const,
@@ -591,6 +603,250 @@ async function main() {
   console.log('💡 提示：AI 渠道商默认禁用，请在数据库填入 API Key 后手动启用')
   console.log('   使用 Prisma Studio: npx prisma studio')
   console.log('   或执行 SQL: UPDATE ai_providers SET isActive = 1, apiKey = "your-key" WHERE name = "openai"')
+
+  // 6. 创建 RBAC 权限和角色
+  console.log('')
+  console.log('🔐 Creating RBAC permissions and roles...')
+
+  // 6.1 创建基础权限
+  const permissions = [
+    // 通配符权限（超级管理员）
+    { resource: '*', action: '*', name: '所有权限' },
+    // 用户管理
+    { resource: 'user', action: 'read', name: '查看用户' },
+    { resource: 'user', action: 'create', name: '创建用户' },
+    { resource: 'user', action: 'update', name: '编辑用户' },
+    { resource: 'user', action: 'delete', name: '删除用户' },
+    // 角色管理
+    { resource: 'role', action: 'read', name: '查看角色' },
+    { resource: 'role', action: 'create', name: '创建角色' },
+    { resource: 'role', action: 'update', name: '编辑角色' },
+    { resource: 'role', action: 'delete', name: '删除角色' },
+    // 权限管理
+    { resource: 'permission', action: 'read', name: '查看权限' },
+    { resource: 'permission', action: 'create', name: '创建权限' },
+    { resource: 'permission', action: 'update', name: '编辑权限' },
+    { resource: 'permission', action: 'delete', name: '删除权限' },
+    // AI 密钥管理
+    { resource: 'ai_key', action: 'read', name: '查看 AI 密钥' },
+    { resource: 'ai_key', action: 'create', name: '创建 AI 密钥' },
+    { resource: 'ai_key', action: 'update', name: '编辑 AI 密钥' },
+    { resource: 'ai_key', action: 'delete', name: '删除 AI 密钥' },
+    // AI 代理管理
+    { resource: 'ai_proxy', action: 'read', name: '查看 AI 代理' },
+    { resource: 'ai_proxy', action: 'create', name: '创建 AI 代理' },
+    { resource: 'ai_proxy', action: 'update', name: '编辑 AI 代理' },
+    { resource: 'ai_proxy', action: 'delete', name: '删除 AI 代理' },
+    // AI 模型管理
+    { resource: 'ai_model', action: 'read', name: '查看 AI 模型' },
+    { resource: 'ai_model', action: 'create', name: '创建 AI 模型' },
+    { resource: 'ai_model', action: 'update', name: '编辑 AI 模型' },
+    { resource: 'ai_model', action: 'delete', name: '删除 AI 模型' },
+    // AI 渠道管理
+    { resource: 'ai_provider', action: 'read', name: '查看 AI 渠道' },
+    { resource: 'ai_provider', action: 'create', name: '创建 AI 渠道' },
+    { resource: 'ai_provider', action: 'update', name: '编辑 AI 渠道' },
+    { resource: 'ai_provider', action: 'delete', name: '删除 AI 渠道' },
+    // 配置管理
+    { resource: 'config', action: 'read', name: '查看配置' },
+    { resource: 'config', action: 'create', name: '创建配置' },
+    { resource: 'config', action: 'update', name: '编辑配置' },
+    { resource: 'config', action: 'delete', name: '删除配置' },
+  ]
+
+  for (const perm of permissions) {
+    await prisma.permission.upsert({
+      where: {
+        resource_action: {
+          resource: perm.resource,
+          action: perm.action,
+        },
+      },
+      update: perm,
+      create: perm,
+    })
+    console.log(`  ✓ Permission: ${perm.resource}:${perm.action}`)
+  }
+
+  // 6.2 创建系统角色
+  const superAdminRole = await prisma.role.upsert({
+    where: { name: 'superadmin' },
+    update: {
+      label: '超级管理员',
+      description: '系统最高权限，拥有通配符权限',
+      type: 'SYSTEM',
+      isSystem: true,
+    },
+    create: {
+      name: 'superadmin',
+      label: '超级管理员',
+      description: '系统最高权限，拥有通配符权限',
+      type: 'SYSTEM',
+      isSystem: true,
+    },
+  })
+
+  const adminRole = await prisma.role.upsert({
+    where: { name: 'admin' },
+    update: {
+      label: '管理员',
+      description: '系统管理员，拥有所有权限',
+      type: 'SYSTEM',
+      isSystem: true,
+    },
+    create: {
+      name: 'admin',
+      label: '管理员',
+      description: '系统管理员，拥有所有权限',
+      type: 'SYSTEM',
+      isSystem: true,
+    },
+  })
+
+  const userRole = await prisma.role.upsert({
+    where: { name: 'user' },
+    update: {
+      label: '普通用户',
+      description: '普通用户，拥有基础查看权限',
+      type: 'SYSTEM',
+      isSystem: true,
+    },
+    create: {
+      name: 'user',
+      label: '普通用户',
+      description: '普通用户，拥有基础查看权限',
+      type: 'SYSTEM',
+      isSystem: true,
+    },
+  })
+
+  console.log('  ✓ Roles: superadmin, admin, user')
+
+  // 6.3 为管理员角色分配所有权限
+  const allPermissions = await prisma.permission.findMany()
+
+  // 先删除现有权限关联，避免唯一约束冲突
+  await prisma.rolePermission.deleteMany({
+    where: { roleId: adminRole.id },
+  })
+
+  // 批量创建权限关联
+  await prisma.rolePermission.createMany({
+    data: allPermissions.map(perm => ({
+      roleId: adminRole.id,
+      permissionId: perm.id,
+    })),
+    skipDuplicates: true,
+  })
+  console.log('  ✓ Admin role: all permissions assigned')
+
+  // 6.3b 为超级管理员角色分配通配符权限
+  const wildcardPermission = await prisma.permission.findUnique({
+    where: { resource_action: { resource: '*', action: '*' } }
+  })
+
+  if (wildcardPermission) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: superAdminRole.id,
+          permissionId: wildcardPermission.id,
+        }
+      },
+      update: {},
+      create: {
+        roleId: superAdminRole.id,
+        permissionId: wildcardPermission.id,
+      }
+    })
+    console.log('  ✓ SuperAdmin role: wildcard permission (*:*) assigned')
+  }
+
+  // 6.4 为普通用户分配基础查看权限
+  const readPermissions = await prisma.permission.findMany({
+    where: { action: 'read' },
+  })
+
+  // 先删除现有权限关联，避免唯一约束冲突
+  await prisma.rolePermission.deleteMany({
+    where: { roleId: userRole.id },
+  })
+
+  // 批量创建权限关联
+  await prisma.rolePermission.createMany({
+    data: readPermissions.map(perm => ({
+      roleId: userRole.id,
+      permissionId: perm.id,
+    })),
+    skipDuplicates: true,
+  })
+  console.log('  ✓ User role: read permissions assigned')
+
+  // 6.5 将 superadmin 用户关联到 superadmin 角色（拥有通配符权限）
+  const superAdminUser = await prisma.user.findUnique({
+    where: { email: 'superadmin@aidrama.com' },
+  })
+
+  if (superAdminUser) {
+    await prisma.userSystemRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: superAdminUser.id,
+          roleId: superAdminRole.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: superAdminUser.id,
+        roleId: superAdminRole.id,
+      },
+    })
+    console.log('  ✓ superadmin@aidrama.com assigned to superadmin role')
+  }
+
+  // 将 super@example.com 也关联到 superadmin 角色
+  const superUser = await prisma.user.findUnique({
+    where: { email: 'super@example.com' },
+  })
+
+  if (superUser) {
+    await prisma.userSystemRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: superUser.id,
+          roleId: superAdminRole.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: superUser.id,
+        roleId: superAdminRole.id,
+      },
+    })
+    console.log('  ✓ super@example.com assigned to superadmin role')
+  }
+
+  // 将 admin@example.com 关联到 admin 角色
+  const adminUser = await prisma.user.findUnique({
+    where: { email: 'admin@example.com' },
+  })
+
+  if (adminUser) {
+    await prisma.userSystemRole.upsert({
+      where: {
+        userId_roleId: {
+          userId: adminUser.id,
+          roleId: adminRole.id,
+        },
+      },
+      update: {},
+      create: {
+        userId: adminUser.id,
+        roleId: adminRole.id,
+      },
+    })
+    console.log('  ✓ admin@example.com assigned to admin role')
+  }
 
   console.log('')
   console.log('✅ Seeding completed successfully!')

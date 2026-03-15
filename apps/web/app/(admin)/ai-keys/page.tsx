@@ -6,28 +6,33 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAiKeys } from '@/hooks/useAiKeys'
 import { RBACButton } from '@/components/rbac'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { 
-  Key, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Power, 
+import {
+  Key,
+  Plus,
+  Edit2,
+  Trash2,
+  Power,
   PowerOff,
   RefreshCw,
   Search
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function AiKeysPage() {
   const router = useRouter()
-  const { keys, isLoading, toggleKeyStatus, deleteKey } = useAiKeys()
+  const { keys, isLoading, fetchKeys, toggleKeyStatus, deleteKey } = useAiKeys()
   const [searchTerm, setSearchTerm] = useState('')
+
+  useEffect(() => {
+    fetchKeys()
+  }, [])
 
   const filteredKeys = keys.filter(key =>
     key.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
