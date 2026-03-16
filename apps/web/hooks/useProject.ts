@@ -18,7 +18,7 @@ export interface Project {
 }
 
 export interface CreateProjectInput {
-  title: string
+  name: string
   description?: string
   novel?: string
 }

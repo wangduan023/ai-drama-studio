@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useCreateProject } from '@/hooks/useProject'
+import { useAiModels } from '@/hooks/useAiModels'
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +59,7 @@ interface FormData {
 export default function NewProjectPage() {
   const router = useRouter()
   const createProject = useCreateProject()
+  const { models, fetchModels } = useAiModels()
   const [currentStep, setCurrentStep] = useState(0)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [isLoadingDraft, setIsLoadingDraft] = useState(true)
@@ -70,10 +72,29 @@ export default function NewProjectPage() {
     description: '',
     type: 'original',
     novel: '',
-    imageModel: 'dalle3',
-    videoModel: 'runway',
+    imageModel: '',
+    videoModel: '',
     style: 'cinematic',
   })
+
+  // 加载 AI 模型列表
+  useEffect(() => {
+    fetchModels()
+  }, [fetchModels])
+
+  // 当模型加载完成后，设置默认值
+  useEffect(() => {
+    if (models.length > 0) {
+      const imageModels = models.filter(m => m.type === 'IMAGE' && m.isEnabled)
+      const videoModels = models.filter(m => m.type === 'VIDEO' && m.isEnabled)
+      
+      setFormData(prev => ({
+        ...prev,
+        imageModel: imageModels[0]?.modelId || prev.imageModel,
+        videoModel: videoModels[0]?.modelId || prev.videoModel,
+      }))
+    }
+  }, [models])
 
   const handleFileSelect = useCallback(async (file: File) => {
     const allowedTypes = [
@@ -184,7 +205,7 @@ export default function NewProjectPage() {
 
     try {
       const project = await createProject.mutateAsync({
-        title: formData.title,
+        name: formData.title,
         description: formData.description,
         novel: formData.novel,
       })
@@ -468,16 +489,25 @@ export default function NewProjectPage() {
                   <Label>图像生成模型</Label>
                   <Select
                     value={formData.imageModel}
-                    onValueChange={(value) => setFormData({ ...formData, imageModel: value || 'dalle3' })}
+                    onValueChange={(value: string | null) => value && setFormData({ ...formData, imageModel: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="选择图像模型" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="dalle3">DALL·E 3 (推荐)</SelectItem>
-                      <SelectItem value="midjourney">Midjourney</SelectItem>
-                      <SelectItem value="sdxl">Stable Diffusion XL</SelectItem>
-                      <SelectItem value="flux">Flux</SelectItem>
+                      {models.filter(m => m.type === 'IMAGE' && m.isEnabled).map((model) => (
+                        <SelectItem key={model.id} value={model.modelId}>
+                          <div className="flex flex-col">
+                            <span>{model.name}</span>
+                            {model.description && (
+                              <span className="text-xs text-gray-500">{model.description}</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {models.filter(m => m.type === 'IMAGE' && m.isEnabled).length === 0 && (
+                        <SelectItem value="" disabled>暂无可用的图像模型</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">选择用于生成图像的 AI 模型</p>
@@ -487,16 +517,25 @@ export default function NewProjectPage() {
                   <Label>视频生成模型</Label>
                   <Select
                     value={formData.videoModel}
-                    onValueChange={(value) => setFormData({ ...formData, videoModel: value || 'runway' })}
+                    onValueChange={(value: string | null) => value && setFormData({ ...formData, videoModel: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="选择视频模型" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="runway">Runway Gen-3</SelectItem>
-                      <SelectItem value="pika">Pika Labs</SelectItem>
-                      <SelectItem value="kling">Kling</SelectItem>
-                      <SelectItem value="luma">Luma Dream Machine</SelectItem>
+                      {models.filter(m => m.type === 'VIDEO' && m.isEnabled).map((model) => (
+                        <SelectItem key={model.id} value={model.modelId}>
+                          <div className="flex flex-col">
+                            <span>{model.name}</span>
+                            {model.description && (
+                              <span className="text-xs text-gray-500">{model.description}</span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      {models.filter(m => m.type === 'VIDEO' && m.isEnabled).length === 0 && (
+                        <SelectItem value="" disabled>暂无可用的视频模型</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">选择用于生成视频的 AI 模型</p>

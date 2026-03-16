@@ -20,7 +20,8 @@ import {
   Clock,
   RefreshCw,
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -354,10 +355,8 @@ function ProjectCard({ project, onDelete, isDeleting }: ProjectCardProps) {
           </Link>
           <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <DropdownMenu>
-              <DropdownMenuTrigger >
-                <Button variant="secondary" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+              <DropdownMenuTrigger className={cn(buttonVariants({ variant: "secondary", size: "icon" }), "h-8 w-8")}>
+                <MoreVertical className="h-4 w-4" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuItem >
