@@ -22,7 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
+import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { StepNavigation, PROJECT_STEPS } from '@/components/projects/StepNavigation'
@@ -68,9 +68,9 @@ const mockCharacters = [
 ]
 
 const mockProps = [
-  { id: '1', name: '十克拉全美粉钻', type: '首饰', related: '梨月、婚宴现场', status: 'pending' as TaskStatus, taskId: null as string | null },
-  { id: '2', name: '白色露肩婚纱', type: '服装', related: '梨月、南枝', status: 'pending' as TaskStatus, taskId: null as string | null },
-  { id: '3', name: '红色高跟鞋', type: '服饰', related: '南枝、化妆间', status: 'pending' as TaskStatus, taskId: null as string | null },
+  { id: '1', name: '十克拉全美粉钻', type: '首饰', related: '梨月、婚宴现场', status: 'pending' as TaskStatus, taskId: null as string | null, imageUrl: null },
+  { id: '2', name: '白色露肩婚纱', type: '服装', related: '梨月、南枝', status: 'pending' as TaskStatus, taskId: null as string | null, imageUrl: null },
+  { id: '3', name: '红色高跟鞋', type: '服饰', related: '南枝、化妆间', status: 'pending' as TaskStatus, taskId: null as string | null, imageUrl: null },
 ]
 
 type TabValue = 'scenes' | 'characters' | 'props'
@@ -887,6 +887,18 @@ function CharacterCard({ character, onGenerate }: { character: typeof mockCharac
               <h3 className="font-semibold">{character.name}</h3>
               <p className="text-sm text-muted-foreground">{character.role} · {character.description}</p>
             </div>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="12" cy="5" r="1" />
+                  <circle cx="12" cy="19" r="1" />
+                </svg>
+              </Button>
+            </div>
           </div>
 
           {character.status === 'completed' && character.imageUrl ? (
@@ -905,15 +917,9 @@ function CharacterCard({ character, onGenerate }: { character: typeof mockCharac
             </div>
           )}
 
-          {character.status === 'completed' && character.imageUrl ? (
-            <div className="w-full">
-              <TaskStatusBadge status={character.status} />
-            </div>
-          ) : (
-            <div className="w-full">
-              <TaskStatusBadge status={character.status} />
-            </div>
-          )}
+          <div className="w-full">
+            <TaskStatusBadge status={character.status} />
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -926,25 +932,47 @@ function PropCard({ prop, onGenerate }: { prop: typeof mockProps[0], onGenerate:
     <Card>
       <CardContent className="p-4">
         <div className="space-y-3">
-          <div>
-            <h3 className="font-semibold">{prop.name}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs">{prop.type}</Badge>
-              <span className="text-xs text-muted-foreground">关联：{prop.related}</span>
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="font-semibold">{prop.name}</h3>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-xs">{prop.type}</Badge>
+                <span className="text-xs text-muted-foreground">关联：{prop.related}</span>
+              </div>
             </div>
-          </div>
-
-          <div className="flex items-center justify-center aspect-square bg-muted rounded-lg border-2 border-dashed">
-            <div className="text-center">
-              <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <Button onClick={onGenerate} size="sm" className="mt-2">
-                <Wand2 className="h-4 w-4 mr-1" />
-                生成道具图
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Edit2 className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="12" cy="5" r="1" />
+                  <circle cx="12" cy="19" r="1" />
+                </svg>
               </Button>
             </div>
           </div>
 
-          <TaskStatusBadge status={prop.status} />
+          {prop.status === 'completed' && prop.imageUrl ? (
+            <div className="aspect-square bg-muted rounded-lg overflow-hidden">
+              <img src={prop.imageUrl} alt={prop.name} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="flex items-center justify-center aspect-square bg-muted rounded-lg border-2 border-dashed">
+              <div className="text-center">
+                <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <Button onClick={onGenerate} size="sm" className="mt-2">
+                  <Wand2 className="h-4 w-4 mr-1" />
+                  生成道具图
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="w-full">
+            <TaskStatusBadge status={prop.status} />
+          </div>
         </div>
       </CardContent>
     </Card>
