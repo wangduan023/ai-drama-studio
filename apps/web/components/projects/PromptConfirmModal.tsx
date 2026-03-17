@@ -9,6 +9,9 @@ import {
   Info,
   CheckCircle2,
   Loader2,
+  Image as ImageIcon,
+  User,
+  Package,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -29,6 +32,11 @@ export interface PromptConfirmModalProps {
   negativePrompt?: string
   estimatedTime?: string
   loading?: boolean
+  assets?: {
+    scenes?: string[]
+    characters?: string[]
+    props?: string[]
+  }
 }
 
 export function PromptConfirmModal({
@@ -45,6 +53,7 @@ export function PromptConfirmModal({
   negativePrompt,
   estimatedTime,
   loading,
+  assets,
 }: PromptConfirmModalProps) {
   const [editedPrompt, setEditedPrompt] = useState(prompt)
 
@@ -125,6 +134,33 @@ export function PromptConfirmModal({
               <h3 className="text-sm font-semibold">负向提示词</h3>
               <div className="p-3 text-sm border rounded-md bg-muted/50">
                 {negativePrompt}
+              </div>
+            </section>
+          )}
+
+          {/* 引用资产 */}
+          {assets && (assets.scenes?.length || assets.characters?.length || assets.props?.length) && (
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold">引用资产</h3>
+              <div className="flex flex-wrap gap-2">
+                {assets.scenes?.map((scene) => (
+                  <Badge key={scene} variant="outline" className="text-xs">
+                    <ImageIcon className="h-3 w-3 mr-1" />
+                    场景：{scene}
+                  </Badge>
+                ))}
+                {assets.characters?.map((char) => (
+                  <Badge key={char} variant="outline" className="text-xs">
+                    <User className="h-3 w-3 mr-1" />
+                    角色：{char}
+                  </Badge>
+                ))}
+                {assets.props?.map((prop) => (
+                  <Badge key={prop} variant="outline" className="text-xs">
+                    <Package className="h-3 w-3 mr-1" />
+                    道具：{prop}
+                  </Badge>
+                ))}
               </div>
             </section>
           )}

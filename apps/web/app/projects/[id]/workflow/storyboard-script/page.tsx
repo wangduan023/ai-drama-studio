@@ -24,6 +24,9 @@ import {
   List,
   RefreshCw,
   Info,
+  MoreVertical,
+  Download,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -467,7 +470,7 @@ function StoryboardCard({
     return (
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Badge variant="outline">{storyboard.name}</Badge>
               <TaskStatusBadge status={storyboard.status} />
@@ -482,13 +485,13 @@ function StoryboardCard({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {/* 分镜图 */}
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">分镜图：</p>
+              <p className="text-xs text-muted-foreground font-medium">分镜图：</p>
               <div
                 className={cn(
-                  'aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors',
+                  'aspect-square rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-colors relative',
                   storyboard.imageUrl
                     ? 'border-solid bg-muted overflow-hidden'
                     : 'hover:border-primary'
@@ -499,8 +502,8 @@ function StoryboardCard({
                   <img src={storyboard.imageUrl} alt={storyboard.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center p-2">
-                    <ImageIcon className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
-                    <p className="text-xs text-muted-foreground">点击生成</p>
+                    <Edit2 className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-xs text-muted-foreground">点击编辑<br/>分镜图</p>
                   </div>
                 )}
               </div>
@@ -508,26 +511,26 @@ function StoryboardCard({
 
             {/* 参考图片 */}
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">参考图片：</p>
-              <div className="aspect-square rounded-lg bg-muted flex items-center justify-center">
-                <p className="text-xs text-muted-foreground">暂无参考图</p>
+              <p className="text-xs text-muted-foreground font-medium">参考图片：</p>
+              <div className="aspect-square rounded-lg bg-muted border flex items-center justify-center">
+                <p className="text-xs text-muted-foreground text-center px-2">暂无参考图</p>
               </div>
             </div>
 
             {/* 分镜脚本 */}
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">分镜脚本：</p>
+              <p className="text-xs text-muted-foreground font-medium">分镜脚本：</p>
               <div
-                className="aspect-square rounded-lg border bg-muted/50 p-2 cursor-pointer hover:border-primary transition-colors"
+                className="aspect-square rounded-lg border bg-muted/50 p-2 cursor-pointer hover:border-primary transition-colors overflow-auto"
                 onClick={onEditScript}
               >
-                <p className="text-xs line-clamp-4">{storyboard.script}</p>
+                <p className="text-xs line-clamp-4">{storyboard.script || '可点击「自动生成分镜」或「编辑分镜脚本」，生成脚本'}</p>
               </div>
             </div>
           </div>
 
           {/* 操作按钮 */}
-          <div className="flex items-center gap-2 mt-4 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button variant="outline" size="sm" className="text-xs">
               <Film className="h-3 w-3 mr-1" />
               分镜视频
@@ -543,6 +546,14 @@ function StoryboardCard({
             <Button variant="outline" size="sm" className="text-xs" onClick={onEditImage}>
               <ImageIcon className="h-3 w-3 mr-1" />
               编辑分镜图
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={onCopy}>
+              <Copy className="h-3 w-3 mr-1" />
+              复制分镜
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs text-destructive hover:text-destructive hover:border-destructive" onClick={onDelete}>
+              <Trash2 className="h-3 w-3 mr-1" />
+              删除分镜
             </Button>
           </div>
         </CardContent>
@@ -631,18 +642,18 @@ function StoryboardCard({
 // 空状态组件
 function EmptyState({ onSplit, onAdd }: { onSplit: () => void, onAdd: () => void }) {
   return (
-    <div className="text-center py-16 border-2 border-dashed rounded-lg">
+    <div className="text-center py-16 border-2 border-dashed rounded-lg bg-muted/30">
       <div className="w-20 h-20 rounded-full bg-muted mx-auto mb-4 flex items-center justify-center">
-        <ImageIcon className="h-10 w-10 text-muted-foreground" />
+        <Film className="h-10 w-10 text-muted-foreground" />
       </div>
       <h3 className="text-xl font-semibold mb-2">暂无分镜</h3>
       <p className="text-muted-foreground mb-6">
         使用 AI 自动拆分剧本，或手动添加分镜
       </p>
-      <div className="flex items-center justify-center gap-2">
+      <div className="flex items-center justify-center gap-3">
         <Button onClick={onSplit}>
           <RefreshCw className="h-4 w-4 mr-2" />
-          自动拆分剧本
+          AI 分析并提取
         </Button>
         <Button variant="outline" onClick={onAdd}>
           <Plus className="h-4 w-4 mr-2" />
@@ -684,35 +695,35 @@ function SettingsModal({
               <h2 className="text-xl font-bold">生成设置</h2>
               <p className="text-sm text-muted-foreground">为分镜脚本、分镜图设置生成参数</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <Info className="h-5 w-5" />
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 rounded-full">
+              <X className="h-4 w-4" />
             </Button>
           </div>
 
           {/* 分镜脚本设置 */}
           <section className="space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
+            <div className="flex items-center gap-2 pb-2 border-b">
               <PencilLine className="h-4 w-4" />
-              分镜脚本
-            </h3>
+              <h3 className="font-semibold">分镜脚本</h3>
+            </div>
 
             <div className="space-y-2">
-              <Label>智能体</Label>
+              <Label className="text-xs text-muted-foreground">智能体</Label>
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
                     <Film className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">分镜编剧（漫剧版 v3）</h4>
-                    <p className="text-sm text-muted-foreground">将场景拆解成分镜脚本，情节推进有节奏!</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm">分镜编剧（漫剧版 v3）</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">将场景拆解成分镜脚本，情节推进有节奏!</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             <div className="space-y-2">
-              <Label>镜头密度</Label>
+              <Label className="text-xs text-muted-foreground">镜头密度</Label>
               <div className="grid grid-cols-3 gap-3">
                 {LENS_DENSITY.map((density) => (
                   <button
@@ -736,28 +747,28 @@ function SettingsModal({
 
           {/* 分镜图设置 */}
           <section className="space-y-3">
-            <h3 className="font-semibold flex items-center gap-2">
+            <div className="flex items-center gap-2 pb-2 border-b">
               <ImageIcon className="h-4 w-4" />
-              分镜图（消耗 🪙 4/张）
-            </h3>
+              <h3 className="font-semibold">分镜图（消耗 🪙 4/张）</h3>
+            </div>
 
             <div className="space-y-2">
-              <Label>智能体</Label>
+              <Label className="text-xs text-muted-foreground">智能体</Label>
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
                     <ImageIcon className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="font-medium">分镜画师（漫剧版 v3）</h4>
-                    <p className="text-sm text-muted-foreground">让分镜脚本配上视觉画面，帧帧都有看点!</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm">分镜画师（漫剧版 v3）</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">让分镜脚本配上视觉画面，帧帧都有看点!</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             <div className="space-y-2">
-              <Label>生图模型</Label>
+              <Label className="text-xs text-muted-foreground">生图模型</Label>
               <div className="space-y-2">
                 {IMAGE_MODELS.map((model) => (
                   <button
@@ -774,13 +785,13 @@ function SettingsModal({
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{model.label}</span>
                         {model.tag && (
-                          <Badge variant="secondary" className="text-xs">{model.tag}</Badge>
+                          <Badge variant="secondary" className="text-xs h-5">{model.tag}</Badge>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">{model.price}</p>
                     </div>
                     {imageModel === model.value && (
-                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0" />
                     )}
                   </button>
                 ))}

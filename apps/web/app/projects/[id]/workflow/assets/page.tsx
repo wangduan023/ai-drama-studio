@@ -695,6 +695,8 @@ export default function AssetsPage() {
         prompt={pendingAction?.prompt || ''}
         onUpdatePrompt={handleUpdatePrompt}
         cost={pendingAction?.cost}
+        negativePrompt="模糊，低质量，变形，多余手指，水印，文字"
+        estimatedTime="30 秒"
         parameters={pendingAction?.type !== 'extract' ? {
           '模型': pendingAction?.parameters?.model || '纳米修图 Pro',
           '分辨率': pendingAction?.parameters?.resolution || '4K',
