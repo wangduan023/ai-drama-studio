@@ -11,6 +11,7 @@ import {
   Plus,
   Wand2,
   Edit2,
+  Trash2,
   Image as ImageIcon,
   Loader2,
   Building,
@@ -414,228 +415,218 @@ export default function AssetsPage() {
               </Card>
             )}
 
-            {/* 标签页 - 原型风格等宽三栏 */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="w-full">
-              {/* 自定义 Tab 导航 */}
-              <div className="grid grid-cols-3 gap-0 mb-6">
-                {/* 场景 Tab */}
+            {/* 标签页 - 原型风格紧凑按钮 */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
                 <button
                   onClick={() => setActiveTab('scenes')}
                   className={cn(
-                    'relative h-16 flex flex-col items-center justify-center gap-1 border-b-2 transition-colors',
+                    'inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors',
                     activeTab === 'scenes'
-                      ? 'border-primary text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    {activeTab === 'scenes' ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Circle className="h-4 w-4" />
-                    )}
-                    <span className="text-base font-medium">场景</span>
-                  </div>
-                  <span className="text-xs">
-                    {scenes.length > 0 ? `已选${scenes.length}项` : '未选择'}
+                  {activeTab === 'scenes' ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                  场景
+                  <span className={cn(
+                    'ml-1 text-xs',
+                    activeTab === 'scenes' ? 'text-green-100' : 'text-muted-foreground'
+                  )}>
+                    {scenes.length > 0 ? `(${scenes.length})` : ''}
                   </span>
                 </button>
-
-                {/* 角色 Tab */}
                 <button
                   onClick={() => setActiveTab('characters')}
                   className={cn(
-                    'relative h-16 flex flex-col items-center justify-center gap-1 border-b-2 transition-colors',
+                    'inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors',
                     activeTab === 'characters'
-                      ? 'border-primary text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    {activeTab === 'characters' ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Circle className="h-4 w-4" />
-                    )}
-                    <span className="text-base font-medium">角色</span>
-                  </div>
-                  <span className="text-xs">
-                    {characters.length > 0 ? `已选${characters.length}项` : '未选择'}
+                  {activeTab === 'characters' ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                  角色
+                  <span className={cn(
+                    'ml-1 text-xs',
+                    activeTab === 'characters' ? 'text-green-100' : 'text-muted-foreground'
+                  )}>
+                    {characters.length > 0 ? `(${characters.length})` : ''}
                   </span>
                 </button>
-
-                {/* 道具 Tab */}
                 <button
                   onClick={() => setActiveTab('props')}
                   className={cn(
-                    'relative h-16 flex flex-col items-center justify-center gap-1 border-b-2 transition-colors',
+                    'inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors',
                     activeTab === 'props'
-                      ? 'border-primary text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-muted text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    {activeTab === 'props' ? (
-                      <CheckCircle2 className="h-4 w-4" />
-                    ) : (
-                      <Circle className="h-4 w-4" />
-                    )}
-                    <span className="text-base font-medium">道具</span>
-                  </div>
-                  <span className="text-xs">
-                    {props.length > 0 ? `已选${props.length}项` : '未选择'}
+                  {activeTab === 'props' ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
+                  道具
+                  <span className={cn(
+                    'ml-1 text-xs',
+                    activeTab === 'props' ? 'text-green-100' : 'text-muted-foreground'
+                  )}>
+                    {props.length > 0 ? `(${props.length})` : ''}
                   </span>
                 </button>
               </div>
 
-              {/* 场景列表 */}
-              <TabsContent value="scenes" className="space-y-4">
-                {scenes.length === 0 ? (
-                  <Card className="border-dashed">
-                    <CardContent className="py-16 text-center">
-                      <Building className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-semibold mb-2">暂无场景</h3>
-                      <p className="text-sm text-muted-foreground mb-6">
-                        使用 AI 分析自动提取 或 手动添加
-                      </p>
-                      <div className="flex items-center justify-center gap-3">
-                        <Button onClick={handleExtract}>
-                          <Wand2 className="h-4 w-4 mr-2" />
-                          AI 分析并提取
-                        </Button>
-                        <Button variant="outline" onClick={handleManualAdd}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          手动添加
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold">
-                        场景数：{scenes.length} 项
-                      </h2>
-                      <Button variant="ghost" size="sm" onClick={handleManualAdd}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        添加场景
-                      </Button>
-                    </div>
-
-                    {scenes.map((scene, index) => (
-                      <SceneCard
-                        key={scene.id}
-                        scene={scene}
-                        index={index}
-                        onGenerate={() => handleGenerateSceneImage(scene.id)}
-                        onPreview={(imageUrl, title) => setPreviewScene({ imageUrl, title })}
-                      />
-                    ))}
-
-                    <div className="flex justify-center pt-4">
-                      <Button variant="outline" onClick={handleAiAdjust}>
-                        <Wand2 className="h-4 w-4 mr-2" />
-                        AI 调整
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </TabsContent>
-
-              {/* 角色列表 */}
-              <TabsContent value="characters" className="space-y-4">
-                {characters.length === 0 ? (
-                  <Card className="border-dashed">
-                    <CardContent className="py-16 text-center">
-                      <User className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-semibold mb-2">暂无角色</h3>
-                      <p className="text-sm text-muted-foreground mb-6">
-                        使用 AI 分析自动提取 或 手动添加
-                      </p>
-                      <div className="flex items-center justify-center gap-3">
-                        <Button onClick={handleExtract}>
-                          <Wand2 className="h-4 w-4 mr-2" />
-                          AI 分析并提取
-                        </Button>
-                        <Button variant="outline" onClick={handleManualAdd}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          手动添加
+            {/* 场景列表 */}
+            <div className="space-y-4">
+              {activeTab === 'scenes' && (
+                <>
+                  {scenes.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="py-16 text-center">
+                        <Building className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-semibold mb-2">暂无场景</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          使用 AI 分析自动提取 或 手动添加
+                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                          <Button onClick={handleExtract}>
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            AI 分析并提取
+                          </Button>
+                          <Button variant="outline" onClick={handleManualAdd}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            手动添加
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">
+                          场景数：{scenes.length} 项
+                        </h2>
+                        <Button variant="ghost" size="sm" onClick={handleManualAdd}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          添加场景
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold">
-                        角色数：{characters.length} 项
-                      </h2>
-                      <Button variant="ghost" size="sm" onClick={handleManualAdd}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        添加角色
-                      </Button>
-                    </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {characters.map((character) => (
-                        <CharacterCard
-                          key={character.id}
-                          character={character}
-                          onGenerate={() => handleGenerateCharacterImage(character.id)}
+                      {scenes.map((scene, index) => (
+                        <SceneCard
+                          key={scene.id}
+                          scene={scene}
+                          index={index}
+                          onGenerate={() => handleGenerateSceneImage(scene.id)}
+                          onPreview={(imageUrl, title) => setPreviewScene({ imageUrl, title })}
                         />
                       ))}
-                    </div>
-                  </>
-                )}
-              </TabsContent>
 
-              {/* 道具列表 */}
-              <TabsContent value="props" className="space-y-4">
-                {props.length === 0 ? (
-                  <Card className="border-dashed">
-                    <CardContent className="py-16 text-center">
-                      <Film className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
-                      <h3 className="text-lg font-semibold mb-2">暂无道具</h3>
-                      <p className="text-sm text-muted-foreground mb-6">
-                        使用 AI 分析自动提取 或 手动添加
-                      </p>
-                      <div className="flex items-center justify-center gap-3">
-                        <Button onClick={handleExtract}>
+                      <div className="flex justify-center pt-4">
+                        <Button variant="outline" onClick={handleAiAdjust}>
                           <Wand2 className="h-4 w-4 mr-2" />
-                          AI 分析并提取
-                        </Button>
-                        <Button variant="outline" onClick={handleManualAdd}>
-                          <Plus className="h-4 w-4 mr-2" />
-                          手动添加
+                          AI 调整
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold">
-                        道具数：{props.length} 项
-                      </h2>
-                      <Button variant="ghost" size="sm" onClick={handleManualAdd}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        添加道具
-                      </Button>
-                    </div>
+                    </>
+                  )}
+                </>
+              )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {props.map((prop) => (
-                        <PropCard
-                          key={prop.id}
-                          prop={prop}
-                          onGenerate={() => handleGeneratePropImage(prop.id)}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </TabsContent>
-            </Tabs>
+              {activeTab === 'characters' && (
+                <>
+                  {characters.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="py-16 text-center">
+                        <User className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-semibold mb-2">暂无角色</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          使用 AI 分析自动提取 或 手动添加
+                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                          <Button onClick={handleExtract}>
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            AI 分析并提取
+                          </Button>
+                          <Button variant="outline" onClick={handleManualAdd}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            手动添加
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">
+                          角色数：{characters.length} 项
+                        </h2>
+                        <Button variant="ghost" size="sm" onClick={handleManualAdd}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          添加角色
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {characters.map((character) => (
+                          <CharacterCard
+                            key={character.id}
+                            character={character}
+                            onGenerate={() => handleGenerateCharacterImage(character.id)}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {activeTab === 'props' && (
+                <>
+                  {props.length === 0 ? (
+                    <Card className="border-dashed">
+                      <CardContent className="py-16 text-center">
+                        <Film className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-semibold mb-2">暂无道具</h3>
+                        <p className="text-sm text-muted-foreground mb-6">
+                          使用 AI 分析自动提取 或 手动添加
+                        </p>
+                        <div className="flex items-center justify-center gap-3">
+                          <Button onClick={handleExtract}>
+                            <Wand2 className="h-4 w-4 mr-2" />
+                            AI 分析并提取
+                          </Button>
+                          <Button variant="outline" onClick={handleManualAdd}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            手动添加
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">
+                          道具数：{props.length} 项
+                        </h2>
+                        <Button variant="ghost" size="sm" onClick={handleManualAdd}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          添加道具
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {props.map((prop) => (
+                          <PropCard
+                            key={prop.id}
+                            prop={prop}
+                            onGenerate={() => handleGeneratePropImage(prop.id)}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </main>
       </div>
@@ -815,12 +806,14 @@ function SceneCard({ scene, index, onGenerate, onPreview }: {
               <Button variant="ghost" size="sm" className="h-8 text-xs">
                 修改场景设定
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="12" cy="5" r="1" />
-                  <circle cx="12" cy="19" r="1" />
-                </svg>
+              <Button variant="ghost" size="sm" className="h-8 text-xs">
+                编辑场景图
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 text-xs">
+                复制场景
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive">
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -829,7 +822,16 @@ function SceneCard({ scene, index, onGenerate, onPreview }: {
           {scene.views && scene.views.length > 0 ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">多机位视角</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">多机位视角</span>
+                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="1" />
+                      <circle cx="12" cy="5" r="1" />
+                      <circle cx="12" cy="19" r="1" />
+                    </svg>
+                  </Button>
+                </div>
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="sm" className="text-xs h-7">
                     <Edit2 className="h-3 w-3 mr-1" />
@@ -865,12 +867,15 @@ function SceneCard({ scene, index, onGenerate, onPreview }: {
                       )}
                     </div>
                     {view.status === 'completed' && view.imageUrl ? (
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onPreview(view.imageUrl!, view.name)}>
                           预览
                         </Button>
                         <Button variant="outline" size="sm" className="h-7 text-xs">
                           替换
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs">
+                          下载
                         </Button>
                         <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
                           <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
