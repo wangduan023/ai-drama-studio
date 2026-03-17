@@ -150,6 +150,12 @@ export default function AssetsPage() {
     setShowAgentSelector(true)
   }
 
+  // AI 调整
+  const handleAiAdjust = () => {
+    setPendingAction({ type: 'extract', prompt: '重新分析剧本并调整场景、角色、道具信息', cost: 5 })
+    setShowConfirmModal(true)
+  }
+
   // 确认提取 - 提交任务到队列
   const confirmExtract = () => {
     setIsExtracting(true)
@@ -501,7 +507,7 @@ export default function AssetsPage() {
                     ))}
 
                     <div className="flex justify-center pt-4">
-                      <Button variant="outline">
+                      <Button variant="outline" onClick={handleAiAdjust}>
                         <Wand2 className="h-4 w-4 mr-2" />
                         AI 调整
                       </Button>
