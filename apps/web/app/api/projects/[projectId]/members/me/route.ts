@@ -11,7 +11,7 @@ import { getProjectRole } from '@/lib/collaboration/permissions'
 // GET - 获取当前用户在项目中的角色
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     const { user } = await verifyAuth(request)
@@ -20,7 +20,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id: projectId } = await params
+    const { projectId } = await params
 
     // 检查项目是否存在
     const project = await prisma.project.findFirst({

@@ -36,10 +36,10 @@ const ACTIVITY_LABELS: Record<string, { action: string; icon: string }> = {
 // 获取活动日志
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id: projectId } = await params
+    const { projectId } = await params
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
@@ -123,10 +123,10 @@ export async function GET(
 // 创建活动日志（内部使用，也可用于手动记录）
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id: projectId } = await params
+    const { projectId } = await params
     const body = await request.json()
     const { action, targetType, targetId, metadata } = body
 

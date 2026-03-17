@@ -6,10 +6,10 @@ import { ProjectStatus } from '@prisma/client'
 // 获取项目详情
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id } = await params
+    const { projectId } = await params
     const { user } = await verifyAuth(request)
     const userId = user?.id
 
@@ -18,8 +18,7 @@ export async function GET(
     }
 
     const project = await prisma.project.findFirst({
-      where: {
-        id,
+      where: { id: projectId,
         deletedAt: null,
         OR: [
           { userId }, // 所有者
@@ -73,10 +72,10 @@ export async function GET(
 // 更新项目
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id } = await params
+    const { projectId } = await params
     const body = await request.json()
     const { name, description, status } = body
 
@@ -89,8 +88,7 @@ export async function PUT(
 
     // 检查项目访问权限和角色（需要 EDITOR 或 OWNER 权限）
     const projectAccess = await prisma.project.findFirst({
-      where: {
-        id,
+      where: { id: projectId,
         deletedAt: null,
         OR: [
           { userId }, // 所有者有完全权限
@@ -115,7 +113,7 @@ export async function PUT(
     }
 
     const project = await prisma.project.update({
-      where: { id },
+      where: { id: projectId },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
@@ -161,10 +159,10 @@ export async function PUT(
 // 软删除项目
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id } = await params
+    const { projectId } = await params
     const { user } = await verifyAuth(request)
     const userId = user?.id
 
@@ -174,8 +172,7 @@ export async function DELETE(
 
     // 检查项目访问权限和角色（需要 EDITOR 或 OWNER 权限）
     const projectAccess = await prisma.project.findFirst({
-      where: {
-        id,
+      where: { id: projectId,
         deletedAt: null,
         OR: [
           { userId }, // 所有者有完全权限
@@ -193,7 +190,7 @@ export async function DELETE(
 
     // 软删除：更新 deletedAt 字段
     await prisma.project.update({
-      where: { id },
+      where: { id: projectId },
       data: {
         deletedAt: new Date(),
         deletedBy: userId,

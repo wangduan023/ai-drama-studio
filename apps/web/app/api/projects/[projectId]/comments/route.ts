@@ -16,10 +16,10 @@ import {
 // 获取评论列表
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id: projectId } = await params
+    const { projectId } = await params
     const { searchParams } = new URL(request.url)
     const episodeId = searchParams.get('episodeId')
     const page = parseInt(searchParams.get('page') || '1')
@@ -130,10 +130,10 @@ export async function GET(
 // 发表评论
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const { id: projectId } = await params
+    const { projectId } = await params
     const body = await request.json()
     const { content, episodeId, parentId } = body
 
