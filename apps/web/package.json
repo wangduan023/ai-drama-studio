@@ -20,11 +20,15 @@
     "test:e2e:debug": "playwright test --debug",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "monitor": "tsx scripts/error-monitor/index.ts",
+    "monitor:headless": "HEADLESS=true tsx scripts/error-monitor/index.ts",
+    "monitor:fix": "AUTO_FIX=true tsx scripts/error-monitor/index.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.2.0",
     "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-slider": "1.3.6",
     "@tanstack/react-query": "^5.90.20",
     "bcryptjs": "3.0.3",
     "class-variance-authority": "^0.7.1",
