@@ -842,17 +842,17 @@ function SceneCard({ scene, index, onGenerate, onPreview }: {
               <p className="text-sm text-muted-foreground mt-1">{scene.description}</p>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="h-8 text-xs">
+              <Button variant="outline" size="sm" className="h-8 text-xs">
                 修改场景设定
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs">
+              <Button size="sm" className="h-8 text-xs bg-green-500 hover:bg-green-600">
                 编辑场景图
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 text-xs">
+              <Button variant="outline" size="sm" className="h-8 text-xs">
                 复制场景
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-destructive">
-                <Trash2 className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="h-8 text-xs text-destructive hover:text-destructive hover:border-destructive">
+                删除场景
               </Button>
             </div>
           </div>
@@ -913,9 +913,23 @@ function SceneCard({ scene, index, onGenerate, onPreview }: {
                         <Button variant="outline" size="sm" className="h-7 text-xs">
                           替换
                         </Button>
-                        <Button variant="outline" size="sm" className="h-7 w-7 p-0">
-                          <Download className="h-3 w-3" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-7 w-7 p-0">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Download className="h-4 w-4 mr-2" />
+                              下载到本地
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Copy className="h-4 w-4 mr-2" />
+                              复制链接
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
