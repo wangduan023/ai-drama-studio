@@ -32,6 +32,28 @@ import { useTaskQueue } from '@/hooks/useTaskQueue'
 import { TaskType, TaskPriority } from '@/lib/task-queue'
 import { cn } from '@/lib/utils'
 
+// 场景预览弹窗组件
+function ScenePreviewModal({ open, onClose, imageUrl, title }: { open: boolean; onClose: () => void; imageUrl: string; title: string }) {
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="aspect-video bg-muted rounded-lg overflow-hidden">
+          <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>关闭</Button>
+          <Button onClick={() => window.open(imageUrl, '_blank')}>
+            在新窗口打开
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // 模拟数据 - 添加 taskId 字段用于任务追踪
 const mockScenes = [
   {
@@ -110,6 +132,9 @@ export default function AssetsPage() {
   const [characters] = useState(mockCharacters)
   const [props] = useState(mockProps)
   const [isExtracting, setIsExtracting] = useState(false)
+
+  // 场景预览弹窗状态
+  const [previewScene, setPreviewScene] = useState<{ imageUrl: string; title: string } | null>(null)
 
   // 提示词确认弹窗状态
   const [showConfirmModal, setShowConfirmModal] = useState(false)
@@ -503,6 +528,7 @@ export default function AssetsPage() {
                         scene={scene}
                         index={index}
                         onGenerate={() => handleGenerateSceneImage(scene.id)}
+                        onPreview={(imageUrl, title) => setPreviewScene({ imageUrl, title })}
                       />
                     ))}
 
@@ -749,12 +775,27 @@ export default function AssetsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 场景预览弹窗 */}
+      {previewScene && (
+        <ScenePreviewModal
+          open={true}
+          onClose={() => setPreviewScene(null)}
+          imageUrl={previewScene.imageUrl}
+          title={previewScene.title}
+        />
+      )}
     </div>
   )
 }
 
 // 场景卡片组件
-function SceneCard({ scene, index, onGenerate }: { scene: typeof mockScenes[0], index: number, onGenerate: () => void }) {
+function SceneCard({ scene, index, onGenerate, onPreview }: {
+  scene: typeof mockScenes[0],
+  index: number,
+  onGenerate: () => void,
+  onPreview: (imageUrl: string, title: string) => void
+}) {
   return (
     <Card>
       <CardContent className="p-4">
@@ -825,7 +866,7 @@ function SceneCard({ scene, index, onGenerate }: { scene: typeof mockScenes[0], 
                     </div>
                     {view.status === 'completed' && view.imageUrl ? (
                       <div className="flex items-center justify-between">
-                        <Button variant="outline" size="sm" className="h-7 text-xs">
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => onPreview(view.imageUrl!, view.name)}>
                           预览
                         </Button>
                         <Button variant="outline" size="sm" className="h-7 text-xs">
