@@ -1,33 +1,30 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   Play,
-  Settings2,
   Coins,
-  ArrowRight,
-  Share2,
   Wand2,
   Film,
   Layers,
   ImagePlus,
   Clock,
   Sparkles,
-  CheckCircle2,
   Loader2,
-  AlertCircle,
   Copy,
   Trash2,
   Edit2,
   Zap,
   Info,
+  ChevronRight,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Tooltip,
   TooltipContent,
@@ -212,6 +209,10 @@ export default function StoryboardVideoPage() {
     cost?: number
     count?: number
     parameters?: Record<string, string | number>
+    assets?: {
+      characters?: string[]
+      props?: string[]
+    }
   } | null>(null)
 
   // 视频生成设置
@@ -223,6 +224,15 @@ export default function StoryboardVideoPage() {
     cameraMotion: 'none',
     specialEffect: 'normal',
   })
+
+  // 镜头运动选择弹窗
+  const [showCameraMotionSelector, setShowCameraMotionSelector] = useState(false)
+  // 特殊拍摄手法弹窗
+  const [showSpecialEffectSelector, setShowSpecialEffectSelector] = useState(false)
+  // 画面描述
+  const [promptDescription, setPromptDescription] = useState('')
+  // 当前选中的分镜
+  const [currentStoryboardId, setCurrentStoryboardId] = useState<string | null>(null)
 
   // 处理分镜选择
   const toggleStoryboardSelection = (id: string) => {
@@ -264,6 +274,10 @@ export default function StoryboardVideoPage() {
         '画质': QUALITY_OPTIONS.find(q => q.value === videoSettings.quality)?.label || '',
         '镜头运动': CAMERA_MOTIONS.find(m => m.value === videoSettings.cameraMotion)?.label || '',
       },
+      assets: {
+        characters: storyboard.characters,
+        props: storyboard.props,
+      },
     })
     setShowConfirmModal(true)
   }
@@ -283,6 +297,17 @@ export default function StoryboardVideoPage() {
       * selectedStoryboardIds.length
     )
 
+    // 收集所有引用的资产
+    const allCharacters = new Set<string>()
+    const allProps = new Set<string>()
+    selectedStoryboardIds.forEach(id => {
+      const storyboard = storyboards.find(sb => sb.id === id)
+      if (storyboard) {
+        storyboard.characters.forEach(c => allCharacters.add(c))
+        storyboard.props.forEach(p => allProps.add(p))
+      }
+    })
+
     setPendingAction({
       targetIds: selectedStoryboardIds,
       prompt: `为 ${selectedStoryboardIds.length} 个分镜生成视频`,
@@ -293,6 +318,10 @@ export default function StoryboardVideoPage() {
         '时长': `${videoSettings.duration} 秒`,
         '画质': QUALITY_OPTIONS.find(q => q.value === videoSettings.quality)?.label || '',
         '镜头运动': CAMERA_MOTIONS.find(m => m.value === videoSettings.cameraMotion)?.label || '',
+      },
+      assets: {
+        characters: Array.from(allCharacters),
+        props: Array.from(allProps),
       },
     })
     setShowConfirmModal(true)
@@ -347,6 +376,10 @@ export default function StoryboardVideoPage() {
         '画质': QUALITY_OPTIONS.find(q => q.value === videoSettings.quality)?.label || '',
         '镜头运动': CAMERA_MOTIONS.find(m => m.value === videoSettings.cameraMotion)?.label || '',
       },
+      assets: {
+        characters: storyboard.characters,
+        props: storyboard.props,
+      },
     })
     setShowConfirmModal(true)
   }
@@ -380,201 +413,201 @@ export default function StoryboardVideoPage() {
       <div className="flex-1 overflow-auto">
         {/* 顶部导航栏 */}
         <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary" className="text-sm">
-                漫剧工作流
-              </Badge>
-              <span className="text-sm text-muted-foreground">|</span>
-              <span className="text-sm font-medium">☰ 走错婚房</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" title="分享项目">
-                <Share2 className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" title="积分余额">
-                <Coins className="h-4 w-4" />
-                <span className="ml-1">💰 1,250</span>
-              </Button>
-              <Button
-                onClick={handleNext}
-                className="ml-4"
-                disabled={completedCount === 0}
-              >
-                下一步：配音对口型
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
+          <div className="px-6 py-4">
+            {/* 分镜导航栏（横向滚动） */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
+              {storyboards.map((storyboard) => (
+                <button
+                  key={storyboard.id}
+                  onClick={() => setCurrentStoryboardId(storyboard.id)}
+                  className={cn(
+                    'flex-shrink-0 p-3 rounded-lg border-2 transition-all min-w-[120px]',
+                    currentStoryboardId === storyboard.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <div className="text-sm font-medium mb-1">分镜{storyboard.sceneNumber}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {storyboard.videoStatus === 'completed' ? (
+                      <span className="text-green-500">已完成</span>
+                    ) : storyboard.videoStatus === 'generating' ? (
+                      <span className="text-blue-500">生成中</span>
+                    ) : (
+                      <span className="text-amber-500">未设置</span>
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </header>
 
         {/* 内容区 */}
         <main className="p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* 页面标题和操作 */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold mb-1">分镜视频生成</h1>
-                <p className="text-sm text-muted-foreground">
-                  为分镜生成动态视频，支持多种创作模式和镜头运动
-                </p>
+          <div className="max-w-5xl mx-auto">
+            {/* 视频生成模式选择 */}
+            <section className="mb-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Film className="h-5 w-5" />
+                <h2 className="text-lg font-semibold">视频生成模式</h2>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSettings(true)}
-                  disabled={selectedStoryboardIds.length === 0}
-                >
-                  <Settings2 className="h-4 w-4 mr-2" />
-                  批量生成设置
-                </Button>
-                <Button
-                  onClick={handleBatchGenerate}
-                  disabled={selectedStoryboardIds.length === 0}
-                >
-                  <Wand2 className="h-4 w-4 mr-2" />
-                  批量生成视频
-                </Button>
-              </div>
-            </div>
-
-            {/* 统计信息 */}
-            <div className="grid grid-cols-3 gap-4">
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{completedCount}</p>
-                    <p className="text-sm text-muted-foreground">已完成</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                    <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{generatingCount}</p>
-                    <p className="text-sm text-muted-foreground">生成中</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Clock className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{pendingCount}</p>
-                    <p className="text-sm text-muted-foreground">待生成</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* 视频生成模式选择 */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-lg font-semibold">选择生成模式</h2>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Info className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>图生视频：基于单张分镜图生成动态视频</p>
-                      <p>多参生视频：基于多张参考图生成复杂动作</p>
-                      <p>首尾帧视频：指定首尾两帧，AI 生成中间过渡</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
                 {VIDEO_MODES.map((mode) => (
-                  <button
+                  <Button
                     key={mode.value}
+                    variant={selectedMode === mode.value ? 'default' : 'outline'}
+                    size="sm"
                     onClick={() => setSelectedMode(mode.value as VideoMode)}
-                    className={cn(
-                      'relative p-4 rounded-lg border-2 transition-all text-left hover:border-primary/50',
-                      selectedMode === mode.value
-                        ? 'border-primary bg-primary/5 shadow-md'
-                        : 'border-border'
-                    )}
+                    className="relative"
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center',
-                        selectedMode === mode.value
-                          ? 'bg-primary/20'
-                          : 'bg-muted'
-                      )}>
-                        <mode.icon className={cn(
-                          'h-5 w-5',
-                          selectedMode === mode.value
-                            ? 'text-primary'
-                            : 'text-muted-foreground'
-                        )} />
-                      </div>
-                      {mode.badge && (
-                        <Badge variant="secondary" className="text-xs">
-                          {mode.badge}
-                        </Badge>
-                      )}
-                    </div>
-                    <h3 className="font-semibold mb-1">{mode.label}</h3>
-                    <p className="text-sm text-muted-foreground">{mode.description}</p>
-                    {selectedMode === mode.value && (
-                      <div className="absolute top-2 right-2">
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
-                      </div>
+                    <mode.icon className="h-4 w-4 mr-2" />
+                    {mode.label}
+                    {mode.badge && (
+                      <Badge variant="secondary" className="ml-2 text-xs h-5">
+                        {mode.badge}
+                      </Badge>
                     )}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </section>
 
-            {/* 分镜列表 */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-semibold">
-                    分镜列表
-                  </h2>
-                  <Badge variant="outline" className="text-xs">
-                    {selectedStoryboardIds.length} / {storyboards.length} 已选
-                  </Badge>
+            {/* 左侧资产区和生成面板 */}
+            <Card className="mb-6">
+              <CardContent className="p-4 space-y-4">
+                {/* @分镜脚本引用 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">@分镜脚本 1：分镜 1-1</Badge>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      生成提示词
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-muted-foreground">九宫格多机位</label>
+                    <input type="checkbox" className="h-4 w-4" />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+
+                {/* 分镜图预览 */}
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden border-2 border-dashed flex items-center justify-center">
+                  <div className="text-center">
+                    <Film className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">分镜图预览区域</p>
+                    <p className="text-xs text-muted-foreground mt-1">记者蹲姿偷拍场景</p>
+                  </div>
+                </div>
+
+                {/* 镜头运动选择 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">镜头运动</label>
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={toggleSelectAll}
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => setShowCameraMotionSelector(true)}
                   >
-                    {selectedStoryboardIds.length === storyboards.length
-                      ? '取消全选'
-                      : '全选'}
+                    <span>请选择镜头运动</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  {videoSettings.cameraMotion !== 'none' && (
+                    <Badge variant="secondary" className="text-xs">
+                      当前：{CAMERA_MOTIONS.find(m => m.value === videoSettings.cameraMotion)?.label}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* 镜头运动描述 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">请输入镜头运动描述（可选）</label>
+                  <Textarea
+                    placeholder="可补充具体运动细节，如：镜头缓慢推进，聚焦于主角面部..."
+                    className="min-h-[80px]"
+                  />
+                </div>
+
+                {/* 特殊拍摄手法 */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">特殊拍摄手法</label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 text-xs"
+                      onClick={() => setShowSpecialEffectSelector(true)}
+                    >
+                      展开 <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() => setShowSpecialEffectSelector(true)}
+                  >
+                    <span>请选择特殊拍摄手法</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  {videoSettings.specialEffect !== 'normal' && (
+                    <Badge variant="secondary" className="text-xs">
+                      当前：{SPECIAL_EFFECTS.find(e => e.value === videoSettings.specialEffect)?.label}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* 画面描述 */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">描述你想要生成的画面内容和动作：</label>
+                  <div className="relative">
+                    <Textarea
+                      placeholder="如：一个穿着红色裙子的小女孩在草地上奔跑"
+                      value={promptDescription}
+                      onChange={(e) => setPromptDescription(e.target.value)}
+                      className="min-h-[100px] pr-10"
+                    />
+                    <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                      <span className="text-xs text-muted-foreground">
+                        {promptDescription.length}/3000
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 参数配置 */}
+                <div className="grid grid-cols-4 gap-2">
+                  <Button variant="outline" className="justify-start">
+                    <Film className="h-4 w-4 mr-2" />
+                    {VIDEO_MODELS.find(m => m.value === videoSettings.model)?.label || 'Vidu Q2-Turbo'}
+                  </Button>
+                  <Button variant="outline" className="justify-start">
+                    <Clock className="h-4 w-4 mr-2" />
+                    {videoSettings.duration}s
+                  </Button>
+                  <Button variant="outline" className="justify-start">
+                    <Layers className="h-4 w-4 mr-2" />
+                    {videoSettings.quantity}个
+                  </Button>
+                  <Button variant="outline" className="justify-start">
+                    <Zap className="h-4 w-4 mr-2" />
+                    {QUALITY_OPTIONS.find(q => q.value === videoSettings.quality)?.label || '高品质'}
                   </Button>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                {storyboards.map((storyboard) => (
-                  <StoryboardVideoCard
-                    key={storyboard.id}
-                    storyboard={storyboard}
-                    isSelected={selectedStoryboardIds.includes(storyboard.id)}
-                    onSelect={() => toggleStoryboardSelection(storyboard.id)}
-                    onGenerate={() => handleGenerateVideo(storyboard.id)}
-                    onPreview={() => handlePreviewVideo(storyboard.id)}
-                    onRegenerate={() => handleRegenerate(storyboard.id)}
-                    selectedMode={selectedMode}
-                  />
-                ))}
-              </div>
-            </section>
+                {/* 生成按钮 */}
+                <Button className="w-full" onClick={() => handleGenerateVideo(currentStoryboardId || storyboards[0]?.id)}>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  开始生成视频  消耗 🪙 {Math.round(parseInt(VIDEO_MODELS.find(m => m.value === videoSettings.model)?.price || '50') * videoSettings.duration)}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
@@ -605,6 +638,33 @@ export default function StoryboardVideoPage() {
           cost={pendingAction.cost}
           count={pendingAction.count}
           parameters={pendingAction.parameters}
+          assets={pendingAction.assets}
+        />
+      )}
+
+      {/* 镜头运动选择弹窗 */}
+      {showCameraMotionSelector && (
+        <CameraMotionSelector
+          open={showCameraMotionSelector}
+          onClose={() => setShowCameraMotionSelector(false)}
+          selectedMotion={videoSettings.cameraMotion}
+          onSelectMotion={(motion) => {
+            setVideoSettings({ ...videoSettings, cameraMotion: motion })
+            setShowCameraMotionSelector(false)
+          }}
+        />
+      )}
+
+      {/* 特殊拍摄手法弹窗 */}
+      {showSpecialEffectSelector && (
+        <SpecialEffectSelector
+          open={showSpecialEffectSelector}
+          onClose={() => setShowSpecialEffectSelector(false)}
+          selectedEffect={videoSettings.specialEffect}
+          onSelectEffect={(effect) => {
+            setVideoSettings({ ...videoSettings, specialEffect: effect })
+            setShowSpecialEffectSelector(false)
+          }}
         />
       )}
     </div>
@@ -1033,6 +1093,152 @@ function VideoSettingsModal({
           <Button onClick={onConfirm}>
             <Wand2 className="h-4 w-4 mr-2" />
             确认生成
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// 镜头运动选择弹窗
+function CameraMotionSelector({
+  open,
+  onClose,
+  selectedMotion,
+  onSelectMotion,
+}: {
+  open: boolean
+  onClose: () => void
+  selectedMotion: string
+  onSelectMotion: (motion: string) => void
+}) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+      >
+        <div className="p-6 space-y-4">
+          {/* 头部 */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold">镜头运动</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                选择镜头的运动方式，为视频增加动态效果
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* 镜头运动选项 */}
+          <div className="grid grid-cols-2 gap-3">
+            {CAMERA_MOTIONS.map((motion) => (
+              <button
+                key={motion.value}
+                onClick={() => onSelectMotion(motion.value)}
+                className={cn(
+                  'p-4 rounded-lg border-2 text-left transition-all',
+                  selectedMotion === motion.value
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                )}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={cn(
+                    'w-3 h-3 rounded-full border-2',
+                    selectedMotion === motion.value
+                      ? 'border-primary bg-primary'
+                      : 'border-muted-foreground'
+                  )} />
+                  <span className="font-medium text-sm">{motion.label}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{motion.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 p-4 border-t bg-muted/30">
+          <Button variant="outline" onClick={onClose}>
+            取消
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// 特殊拍摄手法弹窗
+function SpecialEffectSelector({
+  open,
+  onClose,
+  selectedEffect,
+  onSelectEffect,
+}: {
+  open: boolean
+  onClose: () => void
+  selectedEffect: string
+  onSelectEffect: (effect: string) => void
+}) {
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+      >
+        <div className="p-6 space-y-4">
+          {/* 头部 */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold">特殊拍摄手法</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                添加特殊效果，如慢动作、延时摄影等
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* 特殊效果选项 */}
+          <div className="grid grid-cols-2 gap-3">
+            {SPECIAL_EFFECTS.map((effect) => (
+              <button
+                key={effect.value}
+                onClick={() => onSelectEffect(effect.value)}
+                className={cn(
+                  'p-4 rounded-lg border-2 text-left transition-all',
+                  selectedEffect === effect.value
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border hover:border-primary/50'
+                )}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={cn(
+                    'w-3 h-3 rounded-full border-2',
+                    selectedEffect === effect.value
+                      ? 'border-primary bg-primary'
+                      : 'border-muted-foreground'
+                  )} />
+                  <span className="font-medium text-sm">{effect.label}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">{effect.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 p-4 border-t bg-muted/30">
+          <Button variant="outline" onClick={onClose}>
+            取消
           </Button>
         </div>
       </motion.div>
