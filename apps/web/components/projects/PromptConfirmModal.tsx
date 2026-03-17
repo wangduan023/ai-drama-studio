@@ -26,6 +26,8 @@ export interface PromptConfirmModalProps {
   cost?: number
   count?: number
   parameters?: Record<string, string | number>
+  negativePrompt?: string
+  estimatedTime?: string
   loading?: boolean
 }
 
@@ -40,6 +42,8 @@ export function PromptConfirmModal({
   cost,
   count,
   parameters,
+  negativePrompt,
+  estimatedTime,
   loading,
 }: PromptConfirmModalProps) {
   const [editedPrompt, setEditedPrompt] = useState(prompt)
@@ -115,8 +119,18 @@ export function PromptConfirmModal({
             </section>
           )}
 
-          {/* 费用和数量 */}
-          {(cost !== undefined || count) && (
+          {/* 负向提示词 */}
+          {negativePrompt && (
+            <section className="space-y-2">
+              <h3 className="text-sm font-semibold">负向提示词</h3>
+              <div className="p-3 text-sm border rounded-md bg-muted/50">
+                {negativePrompt}
+              </div>
+            </section>
+          )}
+
+          {/* 费用和预计时长 */}
+          {(cost !== undefined || count || estimatedTime) && (
             <Card className={cn(
               'border-primary/20',
               cost !== undefined && 'bg-primary/5'
@@ -126,18 +140,23 @@ export function PromptConfirmModal({
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5 text-primary" />
                     <span className="font-medium">
-                      {count ? `总费用` : `单次费用`}
+                      {count ? `总费用` : `预计消耗`}
                     </span>
                   </div>
                   <div className="text-right">
                     {cost !== undefined && (
                       <div className="font-bold text-primary">
-                        {cost * (count || 1)}🪙
+                        🪙 {cost * (count || 1)}
                       </div>
                     )}
                     {count && (
                       <div className="text-xs text-muted-foreground">
                         {count} 个任务 × {cost}🪙/个
+                      </div>
+                    )}
+                    {estimatedTime && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        预计时长：约 {estimatedTime}
                       </div>
                     )}
                   </div>
