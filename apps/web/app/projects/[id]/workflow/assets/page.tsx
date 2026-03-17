@@ -934,39 +934,41 @@ function CharacterCard({ character, onGenerate }: { character: typeof mockCharac
     <Card>
       <CardContent className="p-4">
         <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold">{character.name}</h3>
-              <p className="text-sm text-muted-foreground">{character.role} · {character.description}</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="12" cy="5" r="1" />
-                  <circle cx="12" cy="19" r="1" />
-                </svg>
-              </Button>
-            </div>
+          {/* 角色头像区域 */}
+          <div className="aspect-square bg-muted rounded-lg overflow-hidden border">
+            {character.status === 'completed' && character.imageUrl ? (
+              <img src={character.imageUrl} alt={character.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <User className="h-12 w-12 text-muted-foreground opacity-50" />
+              </div>
+            )}
           </div>
 
+          {/* 角色信息 */}
+          <div>
+            <h3 className="font-semibold text-center">{character.name}</h3>
+            <p className="text-sm text-muted-foreground text-center">{character.role}</p>
+          </div>
+
+          {/* 生成按钮 */}
           {character.status === 'completed' && character.imageUrl ? (
-            <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-              <img src={character.imageUrl} alt={character.name} className="w-full h-full object-cover" />
+            <div className="flex items-center justify-center gap-1">
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                预览
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                替换
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                下载
+              </Button>
             </div>
           ) : (
-            <div className="flex items-center justify-center aspect-square bg-muted rounded-lg border-2 border-dashed">
-              <div className="text-center">
-                <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <Button onClick={onGenerate} size="sm" className="mt-2">
-                  <Wand2 className="h-4 w-4 mr-1" />
-                  生成角色图
-                </Button>
-              </div>
-            </div>
+            <Button onClick={onGenerate} className="w-full">
+              <Wand2 className="h-4 w-4 mr-2" />
+              生成三视图
+            </Button>
           )}
 
           <div className="w-full">
@@ -984,42 +986,44 @@ function PropCard({ prop, onGenerate }: { prop: typeof mockProps[0], onGenerate:
     <Card>
       <CardContent className="p-4">
         <div className="space-y-3">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="font-semibold">{prop.name}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs">{prop.type}</Badge>
-                <span className="text-xs text-muted-foreground">关联：{prop.related}</span>
+          {/* 道具图片区域 */}
+          <div className="aspect-square bg-muted rounded-lg overflow-hidden border">
+            {prop.status === 'completed' && prop.imageUrl ? (
+              <img src={prop.imageUrl} alt={prop.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Film className="h-12 w-12 text-muted-foreground opacity-50" />
               </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Edit2 className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="12" cy="5" r="1" />
-                  <circle cx="12" cy="19" r="1" />
-                </svg>
-              </Button>
-            </div>
+            )}
           </div>
 
+          {/* 道具信息 */}
+          <div>
+            <h3 className="font-semibold text-center">{prop.name}</h3>
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <Badge variant="outline" className="text-xs">{prop.type}</Badge>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-1">关联：{prop.related}</p>
+          </div>
+
+          {/* 生成按钮 */}
           {prop.status === 'completed' && prop.imageUrl ? (
-            <div className="aspect-square bg-muted rounded-lg overflow-hidden">
-              <img src={prop.imageUrl} alt={prop.name} className="w-full h-full object-cover" />
+            <div className="flex items-center justify-center gap-1">
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                预览
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                替换
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs">
+                下载
+              </Button>
             </div>
           ) : (
-            <div className="flex items-center justify-center aspect-square bg-muted rounded-lg border-2 border-dashed">
-              <div className="text-center">
-                <ImageIcon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <Button onClick={onGenerate} size="sm" className="mt-2">
-                  <Wand2 className="h-4 w-4 mr-1" />
-                  生成道具图
-                </Button>
-              </div>
-            </div>
+            <Button onClick={onGenerate} className="w-full">
+              <Wand2 className="h-4 w-4 mr-2" />
+              生成道具图
+            </Button>
           )}
 
           <div className="w-full">
