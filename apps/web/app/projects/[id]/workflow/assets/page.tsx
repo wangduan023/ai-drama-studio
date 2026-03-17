@@ -19,12 +19,22 @@ import {
   Film,
   CheckCircle2,
   Circle,
+  MoreVertical,
+  Download,
+  Copy,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { StepNavigation, PROJECT_STEPS } from '@/components/projects/StepNavigation'
 import { TaskStatusBadge, type TaskStatus } from '@/components/projects/TaskStatusBadge'
@@ -440,8 +450,7 @@ export default function AssetsPage() {
             )}
 
             {/* 标签页 - 原型风格紧凑按钮 */}
-            <div className="mb-6">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-4">
                 <button
                   onClick={() => setActiveTab('scenes')}
                   className={cn(
@@ -904,16 +913,31 @@ function SceneCard({ scene, index, onGenerate, onPreview }: {
                         <Button variant="outline" size="sm" className="h-7 text-xs">
                           替换
                         </Button>
-                        <Button variant="outline" size="sm" className="h-7 text-xs">
-                          下载
+                        <Button variant="outline" size="sm" className="h-7 w-7 p-0">
+                          <Download className="h-3 w-3" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="1" />
-                            <circle cx="12" cy="5" r="1" />
-                            <circle cx="12" cy="19" r="1" />
-                          </svg>
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                              <MoreVertical className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              编辑视角
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Copy className="h-4 w-4 mr-2" />
+                              复制视角
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              删除视角
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center">
@@ -990,9 +1014,31 @@ function CharacterCard({ character, onGenerate }: { character: typeof mockCharac
               <Button variant="outline" size="sm" className="h-8 text-xs">
                 替换
               </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs">
-                下载
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                <Download className="h-3 w-3" />
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    编辑角色
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Copy className="h-4 w-4 mr-2" />
+                    复制角色
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    删除角色
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : (
             <Button onClick={onGenerate} className="w-full">
@@ -1045,9 +1091,31 @@ function PropCard({ prop, onGenerate }: { prop: typeof mockProps[0], onGenerate:
               <Button variant="outline" size="sm" className="h-8 text-xs">
                 替换
               </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs">
-                下载
+              <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                <Download className="h-3 w-3" />
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    编辑道具
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Copy className="h-4 w-4 mr-2" />
+                    复制道具
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    删除道具
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           ) : (
             <Button onClick={onGenerate} className="w-full">
