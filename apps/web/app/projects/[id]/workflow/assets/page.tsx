@@ -145,6 +145,12 @@ export default function AssetsPage() {
     targetId?: string
     prompt?: string
     cost?: number
+    parameters?: {
+      model: string
+      resolution: string
+      aspectRatio: string
+      quality: string
+    }
   } | null>(null)
 
   // 智能体选择
@@ -208,7 +214,13 @@ export default function AssetsPage() {
       type: 'generate_scene',
       targetId: sceneId,
       prompt: `生成场景图：${scene.name} - ${scene.description}`,
-      cost: 10,
+      cost: 16,
+      parameters: {
+        model: '纳米修图 Pro',
+        resolution: '4K',
+        aspectRatio: '16:9',
+        quality: '高品质',
+      },
     })
     setShowConfirmModal(true)
   }
@@ -250,7 +262,13 @@ export default function AssetsPage() {
       type: 'generate_character',
       targetId: characterId,
       prompt: `生成角色图：${character.name} - ${character.role} - ${character.description}`,
-      cost: 10,
+      cost: 16,
+      parameters: {
+        model: '纳米修图 Pro',
+        resolution: '4K',
+        aspectRatio: '3:4',
+        quality: '高品质',
+      },
     })
     setShowConfirmModal(true)
   }
@@ -291,7 +309,13 @@ export default function AssetsPage() {
       type: 'generate_prop',
       targetId: propId,
       prompt: `生成道具图：${prop.name} - ${prop.type}`,
-      cost: 10,
+      cost: 16,
+      parameters: {
+        model: '纳米修图 Pro',
+        resolution: '4K',
+        aspectRatio: '1:1',
+        quality: '高品质',
+      },
     })
     setShowConfirmModal(true)
   }
@@ -662,6 +686,12 @@ export default function AssetsPage() {
         prompt={pendingAction?.prompt || ''}
         onUpdatePrompt={handleUpdatePrompt}
         cost={pendingAction?.cost}
+        parameters={pendingAction?.type !== 'extract' ? {
+          '模型': pendingAction?.parameters?.model || '纳米修图 Pro',
+          '分辨率': pendingAction?.parameters?.resolution || '4K',
+          '比例': pendingAction?.parameters?.aspectRatio || '16:9',
+          '画质': pendingAction?.parameters?.quality || '高品质',
+        } : undefined}
         loading={isExtracting}
       />
 
