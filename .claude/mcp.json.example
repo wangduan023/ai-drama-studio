@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "error-monitor": {
+      "name": "浏览器错误监控",
+      "description": "自动捕获、分析和修复浏览器控制台错误",
+      "command": "bash",
+      "args": [
+        "-c",
+        "cd apps/web && npx tsx scripts/error-monitor/mcp-simple.ts"
+      ]
+    }
+  }
+}

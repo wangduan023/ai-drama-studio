@@ -225,6 +225,12 @@ export default function ProjectDetailPage() {
                     </Button>
                   </Link>
                 )}
+                <Link href={`/projects/${project.id}/workflow/global-settings`}>
+                  <Button variant="secondary">
+                    <Play className="h-4 w-4 mr-2" />
+                    工作流
+                  </Button>
+                </Link>
                 <Button variant="outline" onClick={handleStartEdit} data-testid="edit-button">
                   <Edit className="h-4 w-4 mr-2" />
                   编辑
@@ -352,6 +358,26 @@ export default function ProjectDetailPage() {
 
           {/* 快捷入口 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 工作流入口 - 新增 */}
+            <Card className="hover:border-primary transition-colors cursor-pointer bg-primary/5">
+              <CardContent className="p-6">
+                <Link href={`/projects/${project.id}/workflow/global-settings`}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center">
+                      <Play className="h-6 w-6 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">AI 工作流</h3>
+                      <p className="text-sm text-muted-foreground">
+                        进入纳米漫剧流水线
+                      </p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+
             <Card className="hover:border-primary transition-colors cursor-pointer">
               <CardContent className="p-6">
                 <Link href={`/library/characters?project=${project.id}`}>
