@@ -12,6 +12,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { projectId: string } }
 ) {
+  const { projectId } = await params
   // TODO: 从数据库获取资产列表
   return NextResponse.json({
     success: true,
@@ -28,6 +29,7 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
+    const { projectId } = await params
     const body = await request.json()
     const { script } = body
 

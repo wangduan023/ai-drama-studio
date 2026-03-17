@@ -15,7 +15,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { projectId: string } }
 ) {
-  const { projectId } = params
+  const { projectId } = await params
   const { searchParams } = new URL(request.url)
 
   const status = searchParams.get('status') as TaskStatus | null
@@ -35,5 +35,6 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { projectId: string } }
 ) {
-  return handleSubmitTask(request, params.projectId)
+  const { projectId } = await params
+  return handleSubmitTask(request, projectId)
 }

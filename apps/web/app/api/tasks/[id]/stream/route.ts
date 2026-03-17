@@ -36,7 +36,7 @@ export async function GET(
 ) {
   const searchParams = request.nextUrl.searchParams
   const projectId = searchParams.get('projectId')
-  const taskId = params.id
+  const { id: taskId } = await params
   const userId = request.headers.get('x-user-id')
 
   // Validate required parameters

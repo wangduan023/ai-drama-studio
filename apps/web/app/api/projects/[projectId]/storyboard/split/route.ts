@@ -11,6 +11,7 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
+    const { projectId } = await params
     const body = await request.json()
     const { script, lensDensity } = body
 
