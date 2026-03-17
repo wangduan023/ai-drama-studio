@@ -297,7 +297,7 @@ export default function StoryboardScriptPage() {
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="text-sm">
-                纳米漫剧流水线
+                漫剧工作流
               </Badge>
               <span className="text-sm text-muted-foreground">|</span>
               <span className="text-sm font-medium">☰ 走错婚房</span>

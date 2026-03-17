@@ -17,7 +17,7 @@ export interface StepNavigationProps {
 }
 
 /**
- * 纳米漫剧流水线 - 步骤导航组件
+ * 漫剧工作流 - 步骤导航组件
  * 显示左侧的步骤列表，包含 7 个步骤的状态
  */
 export function StepNavigation({

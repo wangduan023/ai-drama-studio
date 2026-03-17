@@ -369,7 +369,7 @@ export default function ProjectDetailPage() {
                     <div className="flex-1">
                       <h3 className="font-semibold">AI 工作流</h3>
                       <p className="text-sm text-muted-foreground">
-                        进入纳米漫剧流水线
+                        进入漫剧工作流
                       </p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />

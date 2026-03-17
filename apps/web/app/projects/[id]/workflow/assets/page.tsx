@@ -11,14 +11,19 @@ import {
   Plus,
   Wand2,
   Edit2,
-  Trash2,
   Image as ImageIcon,
   Loader2,
+  Building,
+  User,
+  Film,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { StepNavigation, PROJECT_STEPS } from '@/components/projects/StepNavigation'
 import { TaskStatusBadge, type TaskStatus } from '@/components/projects/TaskStatusBadge'
@@ -37,6 +42,7 @@ const mockScenes = [
     status: 'pending' as TaskStatus, // pending, generating, completed, failed
     imageUrl: null,
     taskId: null as string | null,
+    views: [] as { name: string; imageUrl: string | null; status: TaskStatus }[],
   },
   {
     id: '2',
@@ -46,6 +52,11 @@ const mockScenes = [
     status: 'completed' as TaskStatus,
     imageUrl: '/mock/scene-2.jpg',
     taskId: null as string | null,
+    views: [
+      { name: '北面视角', imageUrl: '/mock/scene-2-north.jpg', status: 'completed' as TaskStatus },
+      { name: '南面视角', imageUrl: '/mock/scene-2-south.jpg', status: 'completed' as TaskStatus },
+      { name: '西面视角', imageUrl: '/mock/scene-2-west.jpg', status: 'pending' as TaskStatus },
+    ],
   },
 ]
 
@@ -64,6 +75,28 @@ const mockProps = [
 
 type TabValue = 'scenes' | 'characters' | 'props'
 
+// 智能体配置
+const AGENT_CONFIGS = {
+  scene: {
+    name: '场景编剧',
+    version: '漫剧版 v3',
+    description: '拆解剧本切分场次，让故事结构清晰好拍!',
+    icon: Building,
+  },
+  character: {
+    name: '角色编剧',
+    version: '漫剧版 v3',
+    description: '深挖角色性格特质，快速生成趣味人设!',
+    icon: User,
+  },
+  prop: {
+    name: '道具编剧',
+    version: '漫剧版 v3',
+    description: '提取剧本道具创意，丰富细节添加巧思!',
+    icon: Film,
+  },
+}
+
 export default function AssetsPage() {
   const router = useRouter()
   const params = useParams()
@@ -80,6 +113,7 @@ export default function AssetsPage() {
 
   // 提示词确认弹窗状态
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showAgentSelector, setShowAgentSelector] = useState(false)
   const [pendingAction, setPendingAction] = useState<{
     type: 'extract' | 'generate_scene' | 'generate_character' | 'generate_prop'
     targetId?: string
@@ -87,10 +121,33 @@ export default function AssetsPage() {
     cost?: number
   } | null>(null)
 
-  // 处理 AI 提取 - 打开确认弹窗
-  const handleExtract = () => {
+  // 智能体选择
+  const [selectedAgents, setSelectedAgents] = useState({
+    scene: 'manhua-v3',
+    character: 'manhua-v3',
+    prop: 'manhua-v3',
+  })
+
+  // 打开智能体选择弹窗
+  const handleOpenAgentSelector = () => {
+    setShowAgentSelector(true)
+  }
+
+  // 确认智能体选择并开始提取
+  const confirmAgentSelection = () => {
+    setShowAgentSelector(false)
     setPendingAction({ type: 'extract', prompt: '从剧本中提取场景、角色、道具信息', cost: 5 })
     setShowConfirmModal(true)
+  }
+
+  // 手动添加
+  const handleManualAdd = () => {
+    toast.info('手动添加功能开发中...')
+  }
+
+  // handleExtract 函数
+  const handleExtract = () => {
+    setShowAgentSelector(true)
   }
 
   // 确认提取 - 提交任务到队列
@@ -268,7 +325,7 @@ export default function AssetsPage() {
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="text-sm">
-                纳米漫剧流水线
+                漫剧工作流
               </Badge>
               <span className="text-sm text-muted-foreground">|</span>
               <span className="text-sm font-medium">☰ 走错婚房</span>
@@ -307,9 +364,9 @@ export default function AssetsPage() {
               <div className="flex items-center gap-2">
                 <Button variant="outline" onClick={handleExtract}>
                   <Wand2 className="h-4 w-4 mr-2" />
-                  AI 重新提取
+                  AI 分析并提取
                 </Button>
-                <Button onClick={() => setActiveTab('scenes')}>
+                <Button variant="outline" onClick={handleManualAdd}>
                   <Plus className="h-4 w-4 mr-2" />
                   手动添加
                 </Button>
@@ -326,87 +383,225 @@ export default function AssetsPage() {
               </Card>
             )}
 
-            {/* 标签页 */}
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
-              <TabsList className="grid w-full max-w-md grid-cols-3">
-                <TabsTrigger value="scenes">场景</TabsTrigger>
-                <TabsTrigger value="characters">角色</TabsTrigger>
-                <TabsTrigger value="props">道具</TabsTrigger>
-              </TabsList>
+            {/* 标签页 - 原型风格等宽三栏 */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="w-full">
+              {/* 自定义 Tab 导航 */}
+              <div className="grid grid-cols-3 gap-0 mb-6">
+                {/* 场景 Tab */}
+                <button
+                  onClick={() => setActiveTab('scenes')}
+                  className={cn(
+                    'relative h-16 flex flex-col items-center justify-center gap-1 border-b-2 transition-colors',
+                    activeTab === 'scenes'
+                      ? 'border-primary text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {activeTab === 'scenes' ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Circle className="h-4 w-4" />
+                    )}
+                    <span className="text-base font-medium">场景</span>
+                  </div>
+                  <span className="text-xs">
+                    {scenes.length > 0 ? `已选${scenes.length}项` : '未选择'}
+                  </span>
+                </button>
+
+                {/* 角色 Tab */}
+                <button
+                  onClick={() => setActiveTab('characters')}
+                  className={cn(
+                    'relative h-16 flex flex-col items-center justify-center gap-1 border-b-2 transition-colors',
+                    activeTab === 'characters'
+                      ? 'border-primary text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {activeTab === 'characters' ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Circle className="h-4 w-4" />
+                    )}
+                    <span className="text-base font-medium">角色</span>
+                  </div>
+                  <span className="text-xs">
+                    {characters.length > 0 ? `已选${characters.length}项` : '未选择'}
+                  </span>
+                </button>
+
+                {/* 道具 Tab */}
+                <button
+                  onClick={() => setActiveTab('props')}
+                  className={cn(
+                    'relative h-16 flex flex-col items-center justify-center gap-1 border-b-2 transition-colors',
+                    activeTab === 'props'
+                      ? 'border-primary text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {activeTab === 'props' ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <Circle className="h-4 w-4" />
+                    )}
+                    <span className="text-base font-medium">道具</span>
+                  </div>
+                  <span className="text-xs">
+                    {props.length > 0 ? `已选${props.length}项` : '未选择'}
+                  </span>
+                </button>
+              </div>
 
               {/* 场景列表 */}
               <TabsContent value="scenes" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">
-                    场景数：{scenes.length} 项
-                  </h2>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('scenes')}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    添加场景
-                  </Button>
-                </div>
+                {scenes.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-16 text-center">
+                      <Building className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-semibold mb-2">暂无场景</h3>
+                      <p className="text-sm text-muted-foreground mb-6">
+                        使用 AI 分析自动提取 或 手动添加
+                      </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <Button onClick={handleExtract}>
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          AI 分析并提取
+                        </Button>
+                        <Button variant="outline" onClick={handleManualAdd}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          手动添加
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold">
+                        场景数：{scenes.length} 项
+                      </h2>
+                      <Button variant="ghost" size="sm" onClick={handleManualAdd}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        添加场景
+                      </Button>
+                    </div>
 
-                {scenes.map((scene, index) => (
-                  <SceneCard
-                    key={scene.id}
-                    scene={scene}
-                    index={index}
-                    onGenerate={() => handleGenerateSceneImage(scene.id)}
-                  />
-                ))}
+                    {scenes.map((scene, index) => (
+                      <SceneCard
+                        key={scene.id}
+                        scene={scene}
+                        index={index}
+                        onGenerate={() => handleGenerateSceneImage(scene.id)}
+                      />
+                    ))}
 
-                <div className="flex justify-center pt-4">
-                  <Button variant="outline">
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    AI 调整
-                  </Button>
-                </div>
+                    <div className="flex justify-center pt-4">
+                      <Button variant="outline">
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        AI 调整
+                      </Button>
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               {/* 角色列表 */}
               <TabsContent value="characters" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">
-                    角色数：{characters.length} 项
-                  </h2>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('characters')}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    添加角色
-                  </Button>
-                </div>
+                {characters.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-16 text-center">
+                      <User className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-semibold mb-2">暂无角色</h3>
+                      <p className="text-sm text-muted-foreground mb-6">
+                        使用 AI 分析自动提取 或 手动添加
+                      </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <Button onClick={handleExtract}>
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          AI 分析并提取
+                        </Button>
+                        <Button variant="outline" onClick={handleManualAdd}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          手动添加
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold">
+                        角色数：{characters.length} 项
+                      </h2>
+                      <Button variant="ghost" size="sm" onClick={handleManualAdd}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        添加角色
+                      </Button>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {characters.map((character) => (
-                    <CharacterCard
-                      key={character.id}
-                      character={character}
-                      onGenerate={() => handleGenerateCharacterImage(character.id)}
-                    />
-                  ))}
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {characters.map((character) => (
+                        <CharacterCard
+                          key={character.id}
+                          character={character}
+                          onGenerate={() => handleGenerateCharacterImage(character.id)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </TabsContent>
 
               {/* 道具列表 */}
               <TabsContent value="props" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">
-                    道具数：{props.length} 项
-                  </h2>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveTab('props')}>
-                    <Plus className="h-4 w-4 mr-1" />
-                    添加道具
-                  </Button>
-                </div>
+                {props.length === 0 ? (
+                  <Card className="border-dashed">
+                    <CardContent className="py-16 text-center">
+                      <Film className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                      <h3 className="text-lg font-semibold mb-2">暂无道具</h3>
+                      <p className="text-sm text-muted-foreground mb-6">
+                        使用 AI 分析自动提取 或 手动添加
+                      </p>
+                      <div className="flex items-center justify-center gap-3">
+                        <Button onClick={handleExtract}>
+                          <Wand2 className="h-4 w-4 mr-2" />
+                          AI 分析并提取
+                        </Button>
+                        <Button variant="outline" onClick={handleManualAdd}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          手动添加
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-lg font-semibold">
+                        道具数：{props.length} 项
+                      </h2>
+                      <Button variant="ghost" size="sm" onClick={handleManualAdd}>
+                        <Plus className="h-4 w-4 mr-1" />
+                        添加道具
+                      </Button>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {props.map((prop) => (
-                    <PropCard
-                      key={prop.id}
-                      prop={prop}
-                      onGenerate={() => handleGeneratePropImage(prop.id)}
-                    />
-                  ))}
-                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {props.map((prop) => (
+                        <PropCard
+                          key={prop.id}
+                          prop={prop}
+                          onGenerate={() => handleGeneratePropImage(prop.id)}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </TabsContent>
             </Tabs>
           </div>
@@ -446,6 +641,108 @@ export default function AssetsPage() {
         cost={pendingAction?.cost}
         loading={isExtracting}
       />
+
+      {/* 智能体选择弹窗 */}
+      <Dialog open={showAgentSelector} onOpenChange={setShowAgentSelector}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>提取场景/角色/道具</DialogTitle>
+            <DialogDescription>
+              选择智能体来为您精准提取
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* 场景提取智能体 */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Building className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">场景编剧（漫剧版 v3）</h4>
+                    <select
+                      value={selectedAgents.scene}
+                      onChange={(e) => setSelectedAgents({ ...selectedAgents, scene: e.target.value })}
+                      className="text-sm border rounded px-2 py-1 bg-background"
+                    >
+                      <option value="manhua-v3">漫剧版 v3</option>
+                      <option value="novel-v2">小说版 v2</option>
+                      <option value="short-v1">短剧版 v1</option>
+                    </select>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    拆解剧本切分场次，让故事结构清晰好拍!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 角色提取智能体 */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">角色编剧（漫剧版 v3）</h4>
+                    <select
+                      value={selectedAgents.character}
+                      onChange={(e) => setSelectedAgents({ ...selectedAgents, character: e.target.value })}
+                      className="text-sm border rounded px-2 py-1 bg-background"
+                    >
+                      <option value="manhua-v3">漫剧版 v3</option>
+                      <option value="novel-v2">小说版 v2</option>
+                      <option value="short-v1">短剧版 v1</option>
+                    </select>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    深挖角色性格特质，快速生成趣味人设!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 道具提取智能体 */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Film className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">道具编剧（漫剧版 v3）</h4>
+                    <select
+                      value={selectedAgents.prop}
+                      onChange={(e) => setSelectedAgents({ ...selectedAgents, prop: e.target.value })}
+                      className="text-sm border rounded px-2 py-1 bg-background"
+                    >
+                      <option value="manhua-v3">漫剧版 v3</option>
+                      <option value="novel-v2">小说版 v2</option>
+                      <option value="short-v1">短剧版 v1</option>
+                    </select>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    提取剧本道具创意，丰富细节添加巧思!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAgentSelector(false)}>
+              取消
+            </Button>
+            <Button onClick={confirmAgentSelection}>
+              <Wand2 className="h-4 w-4 mr-2" />
+              开始提取
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -467,17 +764,85 @@ function SceneCard({ scene, index, onGenerate }: { scene: typeof mockScenes[0], 
               <h3 className="font-semibold text-lg">{scene.name}</h3>
               <p className="text-sm text-muted-foreground mt-1">{scene.description}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <Edit2 className="h-4 w-4" />
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="sm" className="h-8 text-xs">
+                修改场景设定
               </Button>
-              <Button variant="ghost" size="sm">
-                <Trash2 className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="12" cy="5" r="1" />
+                  <circle cx="12" cy="19" r="1" />
+                </svg>
               </Button>
             </div>
           </div>
 
-          {scene.status === 'completed' && scene.imageUrl ? (
+          {/* 多机位场景图展示 */}
+          {scene.views && scene.views.length > 0 ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">多机位视角</span>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="sm" className="text-xs h-7">
+                    <Edit2 className="h-3 w-3 mr-1" />
+                    编辑场景图
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs h-7">
+                    <Plus className="h-3 w-3 mr-1" />
+                    复制场景
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {scene.views.map((view, viewIndex) => (
+                  <div key={viewIndex} className="space-y-2">
+                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden border">
+                      {view.status === 'completed' && view.imageUrl ? (
+                        <img src={view.imageUrl} alt={view.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          {view.status === 'generating' ? (
+                            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                          ) : (
+                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                          )}
+                        </div>
+                      )}
+                      {view.status === 'completed' && view.imageUrl && (
+                        <div className="absolute top-2 left-2">
+                          <Badge variant="secondary" className="text-xs h-5">
+                            {view.name}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
+                    {view.status === 'completed' && view.imageUrl ? (
+                      <div className="flex items-center justify-between">
+                        <Button variant="outline" size="sm" className="h-7 text-xs">
+                          预览
+                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs">
+                          替换
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="12" r="1" />
+                            <circle cx="12" cy="5" r="1" />
+                            <circle cx="12" cy="19" r="1" />
+                          </svg>
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <TaskStatusBadge status={view.status} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : scene.status === 'completed' && scene.imageUrl ? (
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
               <img src={scene.imageUrl} alt={scene.name} className="w-full h-full object-cover" />
             </div>

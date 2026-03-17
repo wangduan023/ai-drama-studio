@@ -17,7 +17,7 @@ interface NewProjectModalProps {
 }
 
 /**
- * 纳米漫剧流水线 - 新建作品弹窗
+ * 漫剧工作流 - 新建作品弹窗
  * 对应原型文档：docs/dev/01-new-project-modal.md
  */
 export function NewProjectModal({ open, onClose }: NewProjectModalProps) {
